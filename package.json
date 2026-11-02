@@ -1,0 +1,37 @@
+{
+  "name": "vadere",
+  "version": "0.1.0",
+  "description": "A map of your company that any agent can read. Encrypted, gated, open source.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "vadere": "dist/cli.mjs" },
+  "files": ["dist", "README.md", "LICENSE", "docs/SECURITY.md"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build && node scripts/build-server.mjs",
+    "start": "node dist/cli.mjs serve",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
+    "@fontsource/livvic": "^5.3.0",
+    "@fontsource/lustria": "^5.3.0",
+    "@types/d3-contour": "^3.0.6",
+    "@types/d3-force": "^3.0.10",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "latest",
+    "d3-contour": "^4.0.2",
+    "d3-force": "^3.0.0",
+    "esbuild": "^0.28.2",
+    "fflate": "^0.8.3",
+    "pdfjs-dist": "^6.5.438",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}
