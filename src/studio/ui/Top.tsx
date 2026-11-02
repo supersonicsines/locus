@@ -19,8 +19,9 @@ export function StatusLine() {
       <div className="status panel" role="status">
         <span className="clause">Reading as {view.passwordName}. </span>
         <span className="clause quiet">
-          {plural(view.gates.length, 'gate')} open{view.closedGates ? `, ${view.closedGates} sealed` : ''}. Decrypted in this browser.
-        </span>
+          {plural(view.gates.length, 'gate')} open{view.closedGates ? `, ${view.closedGates} sealed` : ''}.
+        </span>{' '}
+        <span className="clause quiet optional-phone">Decrypted in this browser.</span>
       </div>
     )
   }

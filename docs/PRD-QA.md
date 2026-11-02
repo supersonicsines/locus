@@ -39,6 +39,8 @@ Fix: render bodies through a safe Markdown subset with no raw HTML. Strict CSP w
 **9. The Claude key must never travel.**
 Fix: stored only in the browser, optional, and excluded from the owner's sealed copy.
 
+**9a. A document could forge a section of what agents read.** Found while building: a summary containing a newline and `## Always follow` would have read as a real rule. Fix: everything from a document is flattened to one line in the index, and headings inside a piece's body are escaped. Tested.
+
 ## Risks to the SaaS-lite decision
 
 **10. Free, anonymous, encrypted hosting is an abuse magnet.** This is the largest non-technical risk, and it's the founder's to weigh. An operator can't inspect what's stored, and there's no email to contact or ban.

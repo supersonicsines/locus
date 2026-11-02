@@ -182,6 +182,18 @@ function FirstRun() {
   )
 }
 
+function BlankMap() {
+  return (
+    <div className="empty blank">
+      <h1>Drop your files anywhere.</h1>
+      <p>Brand book, contracts, specs, invoices, exported tokens.</p>
+      <div className="empty-actions">
+        <button className="btn btn-ink" onClick={() => document.getElementById('add-files')?.click()}>Choose files</button>
+      </div>
+    </div>
+  )
+}
+
 async function startWith(files: File[]) {
   if (!getState().vault) await newMap()
   setState({ sheet: { kind: 'shred', files } })
@@ -371,6 +383,18 @@ export function App() {
       <MapSurface map={map} />
       {mode === 'locked' && siteName && <Locked name={siteName} />}
       {mode === 'studio' && !vault && <FirstRun />}
+      {mode === 'studio' && vault && !vault.pieces.length && <BlankMap />}
+      <input
+        id="add-files"
+        type="file"
+        multiple
+        hidden
+        onChange={(e) => {
+          const files = [...(e.target.files ?? [])]
+          if (files.length) void startWith(files)
+          e.target.value = ''
+        }}
+      />
       {(mode === 'studio' || mode === 'viewer') && hasMap && <Chrome map={map} />}
       {cmdk && hasMap && <CommandK map={map} />}
       <Sheets />

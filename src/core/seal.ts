@@ -190,6 +190,9 @@ function forReaders(p: Piece): Piece {
   const out: Piece = { ...p }
   if (out.always === 'proposed') delete out.always
   if (out.mcp && !out.mcp.approved) delete out.mcp
+  // Where pieces sit on the owner's map could hint at what's behind closed gates.
+  delete out.x
+  delete out.y
   return out
 }
 

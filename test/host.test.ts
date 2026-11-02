@@ -265,3 +265,15 @@ test('security headers on the Studio', async () => {
   const t = await get(h, 'http://localhost:4747/../../package.json')
   assert.ok(!(await t.text()).includes('"name": "vadere"'), 'no path traversal')
 })
+
+test('wrong passwords are limited per address', async () => {
+  const h = host()
+  const { vault, open } = vaultFor('acme')
+  await publish(h, vault)
+  const attempt = (key: string) => h(new Request(`${SITE}/llms.txt`, { headers: { Authorization: `Bearer ${key}` } }), '9.9.9.9')
+  for (let i = 0; i < 31; i++) await attempt(generatePassword())
+  assert.equal((await attempt(generatePassword())).status, 429)
+  assert.equal((await attempt(open)).status, 429, 'the limit is on the address, whatever it sends next')
+  const other = await h(new Request(`${SITE}/llms.txt`, { headers: { Authorization: `Bearer ${open}` } }), '1.1.1.1')
+  assert.equal(other.status, 200, 'other addresses are unaffected')
+})

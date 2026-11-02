@@ -5,8 +5,8 @@
   --raised: #fbfcfc;
   --ink: #15191e;
   --ink-rgb: 21, 25, 30;
-  --soft: rgba(21, 25, 30, 0.66);
-  --faint: rgba(21, 25, 30, 0.44);
+  --soft: rgba(21, 25, 30, 0.72);
+  --faint: rgba(21, 25, 30, 0.6);
   --hair: rgba(21, 25, 30, 0.14);
   --hair-strong: rgba(21, 25, 30, 0.28);
   --wash: rgba(21, 25, 30, 0.045);
@@ -33,8 +33,8 @@
   --raised: #161c24;
   --ink: #e8e6df;
   --ink-rgb: 232, 230, 223;
-  --soft: rgba(232, 230, 223, 0.68);
-  --faint: rgba(232, 230, 223, 0.46);
+  --soft: rgba(232, 230, 223, 0.74);
+  --faint: rgba(232, 230, 223, 0.6);
   --hair: rgba(232, 230, 223, 0.13);
   --hair-strong: rgba(232, 230, 223, 0.28);
   --wash: rgba(232, 230, 223, 0.05);
@@ -700,6 +700,28 @@ a {
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.prop-input {
+  width: 100%;
+  padding: 2px 6px;
+  margin-left: -7px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  outline: none;
+  text-overflow: ellipsis;
+  transition: background-color 100ms ease, border-color 100ms ease;
+}
+
+.prop-input:focus {
+  border-color: var(--ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .prop-input:hover {
+    background: var(--wash);
+  }
 }
 
 .select {
@@ -1721,6 +1743,14 @@ a {
   text-decoration-color: var(--hair-strong);
 }
 
+.empty.blank h1 {
+  font-size: clamp(26px, 3.4vw, 40px);
+}
+
+.empty.blank p {
+  margin: 10px 0 18px;
+}
+
 /* Locked address. */
 
 .lock {
@@ -1943,10 +1973,34 @@ a {
     overflow: hidden;
   }
   .left.is-open {
-    width: 100%;
     max-height: calc(100dvh - 24px);
     overflow: visible;
     z-index: 14;
+  }
+  .phone-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+  }
+  .status .optional-phone {
+    display: none;
+  }
+  .cartouche-inner {
+    padding: 8px 10px 7px;
+  }
+  .cart-style,
+  .scale-labels {
+    display: none;
+  }
+  .cart-total {
+    font-size: 22px;
+    line-height: 26px;
+  }
+  .cart-note {
+    margin-top: 6px;
+  }
+  .left-col {
+    z-index: 12;
   }
   .status {
     left: var(--gutter);

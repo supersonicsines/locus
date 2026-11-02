@@ -86,6 +86,10 @@ function Connect({ pw, address, name }: { pw: Password; address: string; name: s
           <p className="hint" style={{ margin: '6px 0 0' }}>Paste it into any agent's instructions.</p>
         </>
       )}
+      <p className="hint" style={{ margin: '10px 0 0' }}>
+        Is this for a person?{' '}
+        <button className="text-btn" onClick={() => void copy(`${address}/#key=${pw.key}`, 'Link copied. The password is after the #, which browsers never send to the host.')}>Copy a link that opens the map</button>
+      </p>
     </div>
   )
 }

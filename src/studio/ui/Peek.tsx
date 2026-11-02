@@ -240,9 +240,9 @@ export function Peek() {
               <dt>Link</dt>
               <dd>
                 {readOnly ? (
-                  <a href={piece.url} target="_blank" rel="noreferrer noopener">{piece.url}</a>
+                  /^https?:\/\//.test(piece.url ?? '') ? <a href={piece.url} target="_blank" rel="noreferrer noopener">{piece.url}</a> : piece.url
                 ) : (
-                  <input className="field" style={{ height: 28 }} aria-label="Link" placeholder="https://" value={piece.url ?? ''} onChange={(e) => changePiece(piece.id, { url: e.target.value || undefined })} />
+                  <input className="prop-input" aria-label="Link" placeholder="https://" value={piece.url ?? ''} onChange={(e) => changePiece(piece.id, { url: e.target.value || undefined })} />
                 )}
               </dd>
             </>

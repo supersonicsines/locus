@@ -333,7 +333,9 @@ export async function unlockViewer(name: string, key: string): Promise<string | 
     if (res.status === 404) return 'Nothing is published here yet.'
     if (!res.ok) return `The host answered ${res.status}.`
     const view = await openBundle((await res.json()) as Bundle, key.trim())
-    setState({ view, mode: 'viewer' })
+    // A reader gets a map of what they can see, drawn fresh, with no gaps where closed gates sit.
+    const moved = layoutPieces(view.gates, view.pieces, view.links, { wide: window.innerWidth > window.innerHeight })
+    setState({ view: { ...view, pieces: view.pieces.map((p) => ({ ...p, ...moved.get(p.id) })) }, mode: 'viewer' })
     return null
   } catch (e) {
     if (e instanceof WrongPassword) return "That password doesn't open this map."

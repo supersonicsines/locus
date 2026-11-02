@@ -210,6 +210,7 @@ One package, four parts:
 - A password is a generated 130-bit key. HKDF-SHA-256 turns it into a wrapping key, and AES-256-GCM wraps the gate keys that password opens.
 - Links between two gates are sealed under a key derived from both, so they're readable only by a password that opens both.
 - Prices are sealed in the Money gate, so a password can open a gate full of services and still see no prices.
+- Readers don't receive the owner's layout. They get a fresh map of what they can see, so nothing hints at closed gates.
 - The owner key seals a full copy of the map, so you can restore from any device.
 - Plaintext is padded to size buckets before sealing. Every part is bound to site, version and part name.
 

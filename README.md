@@ -1,0 +1,116 @@
+# Vadere
+
+**A map of your company that any agent can read.**
+
+Drop your company's pile onto a map: brand book, contracts, specs, invoices, exported tokens. AI shreds it into small pieces and links them, along with the services you run on. Gates divide the map into regions, and a password opens a chosen set of them. Give any agent one address and one password, and it knows the rules to follow, where everything lives and which MCP server to use for what.
+
+It's a harness you don't have to build, and it's encrypted so the host can't read it at rest.
+
+*Vadere* is Latin for "to go". A *vade mecum* ("go with me") is the handbook you carry everywhere.
+
+![The map](docs/images/map.png)
+
+## Try it
+
+```sh
+npm install
+npm run build
+npm start
+```
+
+Open http://localhost:4747 and choose **Open a sample company**.
+
+## What it does
+
+**Shred.** With your own Claude key, from the browser, or with no AI at all, on your device. Secrets are removed before anything leaves. Documents can't grant themselves authority: a rule or MCP server found in a file stays a proposal until you approve it.
+
+**See it at a glance.** One sentence says whether you're live, who has a password, and what needs you: conflicts, gaps, secrets found in documents, renewals due.
+
+**Open and close gates.** Pick a password and the map shows what it can see. Click a gate to seal it. See the exact text an agent gets. Every password has its own keys, so a closed gate is cryptography, not a setting.
+
+![Sealing gates](docs/images/seal.png)
+
+**See what it costs.** The `$` switch overlays the price of every service, from your invoices, your own numbers, or a dated catalog of list prices that always shows as an estimate.
+
+![The $ switch](docs/images/towns.png)
+
+## Connect an agent
+
+Share gives you these, filled in for each password.
+
+```sh
+# Claude Code. Decrypts on your machine, so the host never sees the password.
+claude mcp add yourco -e VADERE_KEY=vdr_… -- npx -y vadere mcp https://yourco.domain
+
+# Claude Code, with no local process. The host decrypts per request.
+claude mcp add --transport http yourco https://yourco.domain/mcp --header "Authorization: Bearer vdr_…"
+
+# Claude.ai: add this as a custom connector. Treat the whole URL as the password.
+https://yourco.domain/k/vdr_…/mcp
+
+# Anything that can fetch a URL.
+curl -H "Authorization: Bearer vdr_…" https://yourco.domain/llms.txt
+```
+
+## What's encrypted, honestly
+
+The host stores only ciphertext. Anyone can download it: that's the point of `vadere verify`. Decrypting has to happen somewhere, though, and Vadere tells you where:
+
+| How it connects | Who decrypts |
+| --- | --- |
+| `vadere mcp`, `vadere pull` | Your machine. The host never sees the password |
+| Browser | The browser, running code the host served |
+| Bearer header, `/k/` URL | The host, in memory, for that request |
+
+Turn **Remote access** off on a password and the host refuses the last row. The full threat model, including what this doesn't protect against, is in [docs/SECURITY.md](docs/SECURITY.md). This code hasn't had an independent audit.
+
+## The command line
+
+```sh
+vadere serve              # the Studio and the host
+vadere mcp <address>      # MCP server on stdio, decrypting locally
+vadere pull <address>     # write the map to a folder, starting with COMPANY_MAP.md
+vadere verify <address>   # show what the host really holds, and test a password
+vadere admin list         # accounts on this host
+```
+
+Passwords come from `--key` or `VADERE_KEY`.
+
+## Run your own
+
+The host has no runtime dependencies and no database. A site is a folder holding a sealed bundle and a hash.
+
+```sh
+vadere serve --domain yourdomain.com --trust-proxy --data /var/lib/vadere
+```
+
+Point `*.yourdomain.com` and `yourdomain.com` at it, behind anything that terminates HTTPS. Wildcard certificates need a DNS challenge: Caddy with a DNS plugin, or Cloudflare in front, both work. Without wildcard DNS, every address also works at `/s/<name>/`.
+
+Or with Docker: `docker build -t vadere . && docker run -p 4747:4747 -v vadere:/data vadere`.
+
+### The free hosted mode
+
+```sh
+vadere serve --hosted --max-accounts 500 --donate-url https://… --abuse-contact abuse@…
+```
+
+An account is a claimed name and an owner key: no email, nothing personal stored. A small proof of work and a per-address limit stop a script taking every spot, and each account is limited to 10 MB. When it's full, the map still works in the browser and the app offers the self-host command. Read the note on abuse in [docs/SECURITY.md](docs/SECURITY.md) before opening one to the public.
+
+## Developing
+
+```sh
+npm run dev        # hot reload for the Studio
+npm test           # crypto and host, end to end
+npm run typecheck
+```
+
+- `src/core`: types, sealing, search, the text agents read. Web Crypto only.
+- `src/server`: the host.
+- `src/cli`: the `vadere` command.
+- `src/studio`: the map. A static React app, drawn on one canvas.
+
+Start with [docs/PRD.md](docs/PRD.md). [docs/PRD-QA.md](docs/PRD-QA.md) records what an adversarial read found, and [docs/design/dollar-overlay.md](docs/design/dollar-overlay.md) records how the `$` switch was designed.
+
+## License
+
+MIT

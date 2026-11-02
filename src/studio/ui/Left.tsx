@@ -102,6 +102,7 @@ export function Left() {
 
   return (
     <div className={`left panel ${openOnPhone ? 'is-open' : ''}`}>
+      {openOnPhone && <div className="phone-backdrop" onClick={() => setOpenOnPhone(false)} />}
       <button
         className="company-btn"
         aria-haspopup="menu"

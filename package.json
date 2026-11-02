@@ -4,15 +4,25 @@
   "description": "A map of your company that any agent can read. Encrypted, gated, open source.",
   "license": "MIT",
   "type": "module",
-  "bin": { "vadere": "dist/cli.mjs" },
-  "files": ["dist", "README.md", "LICENSE", "docs/SECURITY.md"],
-  "engines": { "node": ">=22" },
+  "bin": {
+    "vadere": "dist/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs/SECURITY.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "vite build && node scripts/build-server.mjs",
     "start": "node dist/cli.mjs serve",
     "test": "node --test --experimental-strip-types test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^1.4.0",

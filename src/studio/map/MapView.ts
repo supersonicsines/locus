@@ -101,6 +101,7 @@ export class MapView {
   private cam = { x: 0, y: 0, k: 1 }
   private camTarget: { x: number; y: number; k: number } | null = null
   private fitK = 1
+  private overlayK = 1
   private hasFitted = false
   private rightInset = 28
   private userMoved = false
@@ -317,13 +318,37 @@ export class MapView {
     if (this.dollarOn && !wasOn) {
       this.townsReady = false
       this.dollarT = this.reducedMotion ? 1 : 0
-      // The camera stays put, unless no service is in view at all.
-      if (!this.anyServiceInView()) this.fit(true)
     }
-    if (styleChanged && this.dollarOn) this.dollarT = this.reducedMotion ? 1 : 0.02
-    if (this.dollarOn && style === 'towns' && this.cam.k < this.fitK) this.fit(true)
+    if (styleChanged && this.dollarOn) {
+      this.townsReady = false
+      this.dollarT = this.reducedMotion ? 1 : 0.02
+    }
+    if (this.dollarOn && style === 'towns' && !this.townsReady) this.solveTowns()
+
+    if (this.dollarOn !== wasOn || styleChanged) {
+      // Your place on the map is yours: the camera only moves if you haven't
+      // moved it yourself, or if no service would be in view at all.
+      if (!this.userMoved) {
+        this.frameOverlay()
+      } else if (this.dollarOn && !this.anyServiceInView()) {
+        this.frameOverlay()
+      }
+    }
     this.scheduleLabels(this.dollarOn && !wasOn ? 0 : 60)
     this.invalidate()
+  }
+
+  /** Eases just enough to keep every price in frame, or back when they're gone. */
+  private frameOverlay() {
+    const f = this.computeFit(this.dollarOn)
+    this.overlayK = f.k
+    if (this.reducedMotion) {
+      this.cam = { ...f }
+      this.camTarget = null
+    } else {
+      this.camTarget = f
+    }
+    this.cb.cameraChanged(f.k, this.fitK)
   }
 
   private anyServiceInView(): boolean {
@@ -344,12 +369,25 @@ export class MapView {
     return [(x - this.cam.x) / this.cam.k, (y - this.cam.y) / this.cam.k]
   }
 
-  private computeFit() {
+  private computeFit(withOverlay = false) {
     if (!this.territories.length && !this.nodes.length) return { k: 1, x: this.w / 2, y: this.h / 2 }
     const xs: number[] = []
     const ys: number[] = []
     for (const t of this.territories) xs.push(t.minX, t.maxX), ys.push(t.minY, t.maxY)
     for (const n of this.nodes) xs.push(n.tx), ys.push(n.ty)
+    // Prices can stand taller than the land, so they get counted too.
+    if (withOverlay) {
+      const towns = this.dollarStyle === 'towns'
+      for (const n of this.nodes) {
+        if (!n.cost) continue
+        const inMain = n.cost.currency === this.data.currency
+        const r = (towns ? townRadius(inMain ? n.month : null) : inMain ? soundingRadius(n.month ?? 0, this.summary?.biggest ?? 0) : 6) / this.fitK
+        const x = towns ? n.townX : n.tx
+        const y = towns ? n.townY : n.ty
+        xs.push(x - r, x + r)
+        ys.push(y - r, y + r)
+      }
+    }
     const minX = Math.min(...xs)
     const maxX = Math.max(...xs)
     const minY = Math.min(...ys)
@@ -359,8 +397,8 @@ export class MapView {
     const left = narrow ? 16 : 256
     const right = narrow ? 16 : this.rightInset + (this.rightInset > 28 ? 16 : 0)
     // Room for a territory's name, and its subtotal, below the status line.
-    const top = narrow ? 128 : 98
-    const bottom = narrow ? 56 : 24
+    const top = narrow ? 150 : 98
+    const bottom = narrow ? (this.dollarOn && withOverlay ? 150 : 40) : 24
     const k = clamp(Math.min((this.w - left - right) / (maxX - minX || 1), (this.h - top - bottom) / (maxY - minY || 1)), MIN_K, 1.25)
     return {
       k,
@@ -371,8 +409,9 @@ export class MapView {
 
   fit(animated = true) {
     this.userMoved = false
-    const f = this.computeFit()
-    this.fitK = f.k
+    this.fitK = this.computeFit().k
+    const f = this.computeFit(this.dollarOn)
+    this.overlayK = f.k
     if (animated && !this.reducedMotion) this.camTarget = f
     else {
       this.cam = { ...f }
@@ -413,8 +452,8 @@ export class MapView {
   }
 
   private clampZoom(k: number) {
-    const floor = this.dollarOn && this.dollarStyle === 'towns' ? this.fitK : MIN_K
-    return clamp(k, Math.min(floor, this.fitK), MAX_K)
+    const floor = this.dollarOn && this.dollarStyle === 'towns' ? Math.min(this.fitK, this.overlayK) : MIN_K
+    return clamp(k, floor, MAX_K)
   }
 
   // Input
@@ -971,7 +1010,8 @@ export class MapView {
       const r = towns ? this.townScreenRadius(n) : Math.max(this.soundingScreenRadius(n), 7)
       const font = this.figureFont(n)
       const text = figure(n.cost!, this.period)
-      const w = this.measure(text, font)
+      // A thing to check carries a small mark after the figure, which needs room too.
+      const w = this.measure(text, font) + (this.data.priceChecks.has(n.piece.id) ? 12 : 0)
       let placed: [number, number, CanvasTextAlign, boolean] | null = null
 
       if (towns) {
@@ -1515,7 +1555,7 @@ export class MapView {
 
       if (this.data.priceChecks.has(l.id)) {
         const w = ctx.measureText(text).width
-        const dx = l.align === 'left' ? fx + w + 7 : l.align === 'right' ? fx + 6 : fx + w / 2 + 7
+        const dx = l.align === 'left' ? fx + w + 6 : l.align === 'right' ? fx + 5 : fx + w / 2 + 6
         const dy = fy - 4
         ctx.fillStyle = p.ink
         ctx.beginPath()

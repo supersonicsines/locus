@@ -26,7 +26,7 @@ The reviewing agent's vote was Soundings, as the one to keep open every day. Tow
 - **One cost per service.** Precedence: you, invoice, list. The latest invoice wins, and annual invoices become monthly.
 - **Currencies are never converted.** A map has a main currency. Shares and sizes use the main currency only. Other-currency services get the smallest mark, their own figure, and no share of the bar.
 - **Names by priority.** Every figure is always placed. Names are added where they fit: to-check items first, then by cost. Valid placements persist when zoom settles, and only changed labels crossfade. Hover names anything unnamed.
-- **The camera doesn't move** on toggle, unless no service is in view at all.
+- **The camera stays where you put it.** If you've panned or zoomed, the toggle leaves it alone, unless no service would be in view at all. If you haven't, it eases just enough to keep every price in frame. (Changed during build: big marks otherwise spilled off screen and hid territory names.)
 - **Later:** cheaper-alternative recommendations arrive in the peek, with a mark on the map (below).
 
 ## Soundings: nothing moves
@@ -59,6 +59,18 @@ The reviewing agent's vote was Soundings, as the one to keep open every day. Tow
 - **Transition:** discs swell and shoulder their neighbours, about 700 ms, one precomputed reversible tween that lands exactly on the saved layout.
 - **Later:** a small satellite disc with the cheaper price, so the saving shows as a size difference.
 - **Weakness:** motion costs spatial memory while the overlay is on, and it needs excellent engraving to avoid looking like a bubble chart.
+
+## What the build showed
+
+![Soundings](options/soundings.png)
+
+![Towns](options/towns.png)
+
+Tested at 5 services and at 60, among 40 to 240 other pieces, at 60 frames a second.
+
+- **At 60 services, Towns is the clearer of the two.** This goes against the debate's prediction. Figures sit inside their discs, so they never collide. In Soundings, big rings overlap and a dense gate gets busy, though it stays readable.
+- **At a typical 25 services, both read well.** Soundings keeps your place, and every service's position, exactly.
+- **Soundings' names sit beside their figures; Towns' sit under their discs.**
 
 ## Rejected along the way
 

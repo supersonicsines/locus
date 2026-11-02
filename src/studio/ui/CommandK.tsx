@@ -41,6 +41,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
         { id: 'share', group: 'Actions', title: 'Share', run: () => setState({ panel: 'share' }) },
         { id: 'publish', group: 'Actions', title: 'Publish', run: () => void publish() },
         { id: 'new-pw', group: 'Actions', title: 'New password', run: () => { setState({ panel: 'share' }); createPassword() } },
+        { id: 'add-files', group: 'Actions', title: 'Add files', run: () => document.getElementById('add-files')?.click() },
         { id: 'add-piece', group: 'Actions', title: 'Add a piece', run: () => addPiece() },
         { id: 'add-service', group: 'Actions', title: 'Add a service', run: () => setState({ sheet: { kind: 'add-service' } }) },
         { id: 'needs', group: 'Actions', title: 'Things that need you', run: () => setState({ panel: 'needs' }) },
@@ -83,9 +84,14 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
     const seen = new Set<string>()
     const found = [...byTitle, ...hits].filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true))).slice(0, 12)
     const gateName = (id: string) => content?.gates.find((g) => g.id === id)?.name
+    // If you've typed the start of an action's name, you meant the action.
+    const matching = actions.filter((a) => a.title.toLowerCase().includes(needle))
+    const exact = matching.filter((a) => a.title.toLowerCase().startsWith(needle))
+    const rest = matching.filter((a) => !exact.includes(a))
     return [
+      ...exact,
       ...found.map((p) => ({ id: p.id, group: 'Pieces', title: p.title, note: p.summary, meta: gateName(p.gate), kind: p.kind, run: open(p.id) })),
-      ...actions.filter((a) => a.title.toLowerCase().includes(needle)),
+      ...rest,
     ]
   }, [q, content, actions, map])
 

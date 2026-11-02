@@ -103,7 +103,14 @@ class Limiter {
     h.n++
     return h.n <= max
   }
+  /** Checks a limit without counting against it. */
+  over(key: string, max: number): boolean {
+    const h = this.hits.get(key)
+    return !!h && h.until >= Date.now() && h.n > max
+  }
 }
+
+const BAD_PASSWORDS_PER_MINUTE = 30
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false
@@ -287,6 +294,9 @@ export function createHandler(config: Config) {
 
   // Remote reads: the only place the host handles a password.
   async function openFor(name: string, key: string, ip: string): Promise<{ view?: View; fail?: Response }> {
+    if (limiter.over(`bad:${ip}`, BAD_PASSWORDS_PER_MINUTE)) {
+      return { fail: textReply('Too many wrong passwords. Wait a minute.\n', 429) }
+    }
     const raw = store.bundle(name)!
     const bundle = JSON.parse(raw) as Bundle
     const id = await passwordId(key)
@@ -303,7 +313,7 @@ export function createHandler(config: Config) {
       return { view: await openBundle(bundle, key) }
     } catch (e) {
       if (e instanceof WrongPassword) {
-        limiter.allow(`bad:${ip}`, 30, 60_000)
+        limiter.allow(`bad:${ip}`, BAD_PASSWORDS_PER_MINUTE, 60_000)
         return { fail: textReply('That password does not open this map.\n', 401, { 'WWW-Authenticate': 'Bearer' }) }
       }
       throw e

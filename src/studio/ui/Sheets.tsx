@@ -103,7 +103,7 @@ function PublishSheet() {
       <Sheet label="Every free account is taken" onClose={close}>
         <h2>Every free account is taken</h2>
         <p>
-          All {server!.accounts!.max} free accounts here are in use. Your map is safe in this browser, and it works fully without publishing. To publish today, run your own host: it takes one command and has no limits.
+          Your map is safe in this browser, and it works fully without publishing. To publish today, run your own host: it takes one command and has no limits.
         </p>
         <div className="code-block">npx vadere serve</div>
         <div className="actions">
@@ -400,7 +400,7 @@ function ShredSheet({ files }: { files: File[] }) {
               {extracted.map((f) => (
                 <li key={f.name} className="file-row">
                   <span>{f.name}</span>
-                  <span>{f.type === 'unreadable' ? "Can't read" : f.type === 'image' ? 'Image' : f.pages ? plural(f.pages, 'page') : `${Math.round(f.text.length / 1000)}k characters`}</span>
+                  <span>{f.type === 'unreadable' ? "Can't read" : f.type === 'image' ? 'Image' : f.pages ? plural(f.pages, 'page') : plural(f.text.trim().split(/\s+/).length, 'word')}</span>
                 </li>
               ))}
             </ul>
