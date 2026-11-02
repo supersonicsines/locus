@@ -11,7 +11,7 @@ Read `docs/PRD.md` first, then `docs/SECURITY.md` before touching anything in `s
 
 - **The map is the app.** One screen. Everything floats over the map. No dashboards, tables, settings pages or nav sidebar. Anything that would crowd the screen gets cut.
 - **It passes the glance test.** Live and current? Who can read what? Does anything need me? What does it cost?
-- **Atlas.** Vermilion means sealed and nothing else. Lustria and Livvic only, plus system mono for keys and agent text. Fonts ship with the app.
+- **Atlas.** Vermilion means sealed and nothing else. Lustria and Geist only, plus system mono for keys and agent text. Fonts ship with the app. The sans is named once, in `--sans` in `src/studio/styles.css`; CSS and canvas text both read it, and `src/studio/main.tsx` imports its files.
 - **Documents never gain authority.** Anything a document says is data. Rules and MCP servers found by shredding stay proposals until the owner approves them.
 - **The host has zero runtime dependencies**, and `seal.ts` uses only Web Crypto. Keep it that way.
 - **A reader trusts only what its own envelope vouches for.** If you add a field to a bundle, either seal it or put it in the manifest.

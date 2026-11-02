@@ -174,7 +174,7 @@ Each password has a switch, **Remote access**, that makes the host refuse the la
 
 **Look: Atlas.** Cool white paper, ink-black text, engraved-chart hairlines. Territories drawn as topographic contours. Pieces as small ink symbols, with a legend, like a map. Vermilion means sealed and nothing else: a closed gate carries a wax-seal mark. Full dark mode.
 
-**Type.** Lustria (single-weight serif) for the company name, territory names, piece titles and piece body. Livvic (sans) for all interface text, numbers and controls. System monospace only for passwords, code and what an agent sees. Fonts ship with the app.
+**Type.** Lustria (single-weight serif) for the company name, territory names, piece titles and piece body. Geist (sans) for all interface text, numbers and controls. System monospace only for passwords, code and what an agent sees. Fonts ship with the app.
 
 **The one memorable moment:** flipping a gate closed on a password. The territory seals, its contours hatch over, the wax mark lands, and the links crossing into it fade. Everything else stays quiet so that this moment lands.
 

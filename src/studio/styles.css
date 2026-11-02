@@ -18,7 +18,8 @@
   --scrim: rgba(243, 245, 246, 0.62);
 
   --serif: Lustria, Georgia, 'Times New Roman', serif;
-  --sans: Livvic, 'Helvetica Neue', Arial, sans-serif;
+  /* The one place the interface sans is named. The map's canvas text reads this too. */
+  --sans: Geist, 'Helvetica Neue', Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -1669,6 +1670,7 @@ a {
   flex: none;
   color: var(--faint);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* First run. */
@@ -1715,6 +1717,11 @@ a {
   color: var(--soft);
   font-size: 15px;
   line-height: 23px;
+}
+
+/* Each sentence balances on its own, so the wrap doesn't split one across lines to even them out. */
+.empty p span {
+  display: block;
 }
 
 .empty-actions {

@@ -159,7 +159,7 @@ function FirstRun() {
     <div className="empty">
       <div className="empty-word">Vadere</div>
       <h1>Drop your company here.</h1>
-      <p>Brand book, contracts, specs, invoices, exported tokens. They become one map your agents can read, with gates you control and a password for each agent.</p>
+      <p><span>Brand book, contracts, specs, invoices, exported tokens.</span> <span>They become one map your agents can read, with gates you control and a password for each agent.</span></p>
       <div className="empty-actions">
         <button className="btn btn-ink" onClick={() => input.current?.click()}>Choose files</button>
         <button className="btn btn-paper" onClick={() => void loadSample()}>Open a sample company</button>

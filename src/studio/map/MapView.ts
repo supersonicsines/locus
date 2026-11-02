@@ -80,13 +80,14 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const MIN_K = 0.18
 const MAX_K = 3.5
 
-const SANS = 'Livvic, "Helvetica Neue", Arial, sans-serif'
 const SERIF = 'Lustria, Georgia, "Times New Roman", serif'
 
 export class MapView {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private cb: MapCallbacks
+  // Canvas fonts can't use var(), so this reads the --sans token and the sans is only named in styles.css.
+  private sans = getComputedStyle(document.documentElement).getPropertyValue('--sans').trim() || 'sans-serif'
   private w = 0
   private h = 0
   private dpr = 1
@@ -1078,7 +1079,7 @@ export class MapView {
     this.figures = nextFigures
 
     // Second pass: names where they fit, things to check first, then by cost.
-    const NAME_FONT = `10.5px ${SANS}`
+    const NAME_FONT = `10.5px ${this.sans}`
     const nextNames = new Map<string, Omit<PlacedLabel, 'alpha' | 'target'>>()
     for (const n of services) {
       const f = nextFigures.get(n.piece.id)!
@@ -1510,7 +1511,7 @@ export class MapView {
       const [x, y] = this.toScreen(wx, wy)
       ctx.globalAlpha = a * (this.dollarOn ? EASE(this.dollarT) * 0.8 : 1)
       ctx.textAlign = l.align
-      ctx.font = this.dollarOn && n.cost ? `10.5px ${SANS}` : `12.5px ${SERIF}`
+      ctx.font = this.dollarOn && n.cost ? `10.5px ${this.sans}` : `12.5px ${SERIF}`
       ctx.fillStyle = l.id === focus ? p.ink : `rgba(${p.inkRGB},0.86)`
       this.haloText(n.piece.title, x + l.x, y + l.y)
     }
@@ -1601,7 +1602,7 @@ export class MapView {
       const share = this.summary?.byGate.find((b) => b.gate === t.gate)
       if (this.dollarT > 0.01 && share) {
         ctx.globalAlpha = EASE(this.dollarT)
-        ctx.font = `12px ${SANS}`
+        ctx.font = `12px ${this.sans}`
         ctx.fillStyle = `rgba(${p.inkRGB},0.72)`
         const value = this.period === 'year' ? share.amount * 12 : share.amount
         const money = value.toLocaleString('en-US', { maximumFractionDigits: 0 })
