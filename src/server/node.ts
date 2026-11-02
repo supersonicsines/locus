@@ -4,7 +4,21 @@
 import { createServer, type Server } from 'node:http'
 import type { Handler } from './app.ts'
 
-export function listen(handler: Handler, port: number, maxBodyBytes: number, trustProxy: boolean): Promise<Server> {
+/**
+ * Which address a request came from. Anyone can send their own X-Forwarded-For, and
+ * each proxy appends the address it saw, so only entries added by your own proxies
+ * can be believed: the one `hops` from the right, never the leftmost.
+ */
+export function clientAddress(forwardedFor: string | undefined, socketAddress: string | undefined, hops: number): string {
+  if (hops > 0 && forwardedFor) {
+    const entries = forwardedFor.split(',').map((s) => s.trim()).filter(Boolean)
+    const entry = entries[entries.length - hops]
+    if (entry) return entry
+  }
+  return socketAddress || 'unknown'
+}
+
+export function listen(handler: Handler, port: number, maxBodyBytes: number, proxyHops: number): Promise<Server> {
   const server = createServer(async (req, res) => {
     try {
       const chunks: Buffer[] = []
@@ -33,8 +47,9 @@ export function listen(handler: Handler, port: number, maxBodyBytes: number, tru
         body: method === 'GET' || method === 'HEAD' ? undefined : Buffer.concat(chunks),
       })
 
-      const forwarded = trustProxy ? String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() : ''
-      const response = await handler(request, forwarded || req.socket.remoteAddress || 'unknown')
+      const forwarded = req.headers['x-forwarded-for']
+      const ip = clientAddress(Array.isArray(forwarded) ? forwarded.join(',') : forwarded, req.socket.remoteAddress, proxyHops)
+      const response = await handler(request, ip)
 
       const out: Record<string, string> = {}
       response.headers.forEach((v, k) => (out[k] = v))

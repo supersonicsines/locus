@@ -8,6 +8,7 @@ import { after, test } from 'node:test'
 import { generateOwnerKey, generatePassword, publishToken, sealVault, sha256Hex } from '../src/core/seal.ts'
 import type { Vault } from '../src/core/types.ts'
 import { createHandler, type Config } from '../src/server/app.ts'
+import { clientAddress, listen } from '../src/server/node.ts'
 
 const dirs: string[] = []
 after(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })))
@@ -292,4 +293,117 @@ test('odd names and paths are refused cleanly', async () => {
   const body = await (await get(h, 'http://x_y.localhost:4747/bundle.json')).text()
   assert.ok(!body.includes('vadere/1'))
   assert.notEqual((await h(new Request('http://localhost:4747/api/sites/-bad-', { method: 'DELETE' }))).status, 200)
+})
+
+test('two simultaneous claims of a name cannot both win', async () => {
+  const h = host({ hosted: true, maxAccounts: 5, powBits: 0 })
+  const [a, b] = [vaultFor('acme').vault, vaultFor('acme').vault]
+  const results = await Promise.all([publish(h, a), publish(h, b)])
+  assert.deepEqual(results.map((r) => r.status).sort(), [201, 403])
+  const winner = results[0].status === 201 ? a : b
+  assert.equal((await publish(h, winner, 2)).status, 200, 'and the winner keeps it')
+})
+
+test('the page is never served without its security headers', async () => {
+  const dataDir = mkdtempSync(join(tmpdir(), 'vadere-test-'))
+  dirs.push(dataDir)
+  const h = createHandler({ domain: 'localhost', dataDir, studioDir: join(process.cwd(), 'test', 'fixtures'), hosted: false, maxAccounts: 1, maxBundleBytes: 1000, powBits: 0, donateUrl: '', abuseContact: '', trustProxy: false })
+  for (const path of ['/', '/index.html', '/s/acme/', '/s/acme/index.html']) {
+    const r = await get(h, `http://localhost:4747${path}`, { Accept: 'text/html' })
+    assert.ok(r.headers.get('content-security-policy')?.includes("script-src 'self'"), path)
+  }
+})
+
+test('an address behind a proxy cannot be spoofed', () => {
+  // Nginx appends what it saw, so the client controls everything to the left.
+  assert.equal(clientAddress('6.6.6.6, 9.9.9.9', '10.0.0.1', 1), '9.9.9.9')
+  assert.equal(clientAddress('6.6.6.6, 9.9.9.9, 10.0.0.2', '10.0.0.1', 2), '9.9.9.9')
+  assert.equal(clientAddress('6.6.6.6', '10.0.0.1', 0), '10.0.0.1', 'no proxy trusted, header ignored')
+  assert.equal(clientAddress(undefined, '10.0.0.1', 1), '10.0.0.1')
+})
+
+test('nothing but a real bundle can be stored', async () => {
+  const h = host()
+  const { vault } = vaultFor('acme')
+  const token = await publishToken(vault.site!.ownerKey)
+  const put = (body: unknown) => h(new Request('http://localhost:4747/api/sites/acme', { method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(body) }))
+  const good: any = await sealVault(vault, 1)
+  assert.equal((await put({ ...good, sealedAt: 'a file hidden in the date field' })).status, 400)
+  assert.equal((await put({ ...good, head: { iv: 'not base64!', ct: 'x' } })).status, 400)
+  assert.equal((await put({ ...good, gates: { 'any-name-i-like': good.head } })).status, 400)
+})
+
+test('a size limit counts bytes, not characters', async () => {
+  const h = host({ maxBundleBytes: 2000 })
+  const { vault } = vaultFor('acme')
+  const token = await publishToken(vault.site!.ownerKey)
+  // Under the limit in characters, over it in bytes.
+  const r = await h(new Request('http://localhost:4747/api/sites/acme', { method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: 'é'.repeat(1500) }))
+  assert.equal(r.status, 413)
+})
+
+test('a bundle changed after sealing is refused to readers', async () => {
+  const h = host()
+  const { vault, open } = vaultFor('acme')
+  const token = await publishToken(vault.site!.ownerKey)
+  const good: any = await sealVault(vault, 1)
+  const put = await h(new Request('http://localhost:4747/api/sites/acme', { method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...good, sealedAt: '2001-01-01T00:00:00.000Z' }) }))
+  assert.equal(put.status, 201)
+  const r = await get(h, `${SITE}/llms.txt`, { Authorization: `Bearer ${open}` })
+  assert.equal(r.status, 502)
+  assert.ok((await r.text()).includes('altered'))
+})
+
+test('MCP batches are capped', async () => {
+  const h = host()
+  const { vault, open } = vaultFor('acme')
+  await publish(h, vault)
+  const msg = { jsonrpc: '2.0', id: 1, method: 'ping' }
+  const send = (n: number) => h(new Request(`${SITE}/mcp`, { method: 'POST', headers: { Authorization: `Bearer ${open}` }, body: JSON.stringify(Array(n).fill(msg)) }))
+  assert.equal((await send(16)).status, 200)
+  assert.equal((await send(17)).status, 400)
+})
+
+test('through the real network adapter, a forged X-Forwarded-For buys no extra accounts', async () => {
+  const handler = host({ hosted: true, maxAccounts: 100, powBits: 0, trustProxy: true })
+  const server = await listen(handler, 0, 10 * 1_048_576, 1)
+  const port = (server.address() as { port: number }).port
+  try {
+    const statuses: number[] = []
+    for (let i = 0; i < 8; i++) {
+      const { vault } = vaultFor(`spoof${i}`)
+      const res = await fetch(`http://localhost:${port}/api/sites/spoof${i}`, {
+        method: 'PUT',
+        // A different fake client each time, then what our one proxy really saw.
+        headers: { Authorization: `Bearer ${await publishToken(vault.site!.ownerKey)}`, 'X-Forwarded-For': `6.6.6.${i}, 203.0.113.9` },
+        body: JSON.stringify(await sealVault(vault, 1)),
+      })
+      statuses.push(res.status)
+    }
+    assert.deepEqual(statuses, [201, 201, 201, 201, 201, 201, 429, 429])
+  } finally {
+    server.close()
+  }
+})
+
+test('a large map stays cheap to read, and calls in a batch are counted', async () => {
+  const h = host({ maxBundleBytes: 12 * 1_048_576 })
+  const { vault, open } = vaultFor('bigco')
+  const words = 'liability clause invoice renewal agreement brand voice token deploy migration '
+  // About 3 MB of text. The owner's sealed copy doubles it, so the bundle is near 8 MB.
+  for (let i = 0; i < 150; i++) vault.pieces.push({ id: `p${i}`, title: `Piece ${i}`, summary: 's', body: words.repeat(240), kind: 'fact', gate: 'brand', updatedAt: 1 })
+  assert.equal((await publish(h, vault)).status, 201)
+  const t0 = performance.now()
+  const r = await get(h, `${SITE.replace('acme', 'bigco')}/v1/search?q=liability`, { Authorization: `Bearer ${open}` })
+  const ms = performance.now() - t0
+  assert.equal(r.status, 200)
+  assert.ok(ms < 1500, `one search on a map this size took ${Math.round(ms)} ms`)
+  // A batch can't spend more than the per-address allowance.
+  const msg = { jsonrpc: '2.0', id: 1, method: 'ping' }
+  let limited = false
+  for (let i = 0; i < 20 && !limited; i++) {
+    const b = await h(new Request(`${SITE.replace('acme', 'bigco')}/mcp`, { method: 'POST', headers: { Authorization: `Bearer ${open}` }, body: JSON.stringify(Array(16).fill(msg)) }), '8.8.8.8')
+    limited = b.status === 429
+  }
+  assert.ok(limited, 'sixteen-call batches hit the limit within twenty requests')
 })

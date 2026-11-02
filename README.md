@@ -62,7 +62,7 @@ The host stores only ciphertext. Anyone can download it: that's the point of `va
 | Browser | The browser, running code the host served |
 | Bearer header, `/k/` URL | The host, in memory, for that request |
 
-Turn **Remote access** off on a password and the host refuses the last row. The full threat model, including what this doesn't protect against, is in [docs/SECURITY.md](docs/SECURITY.md). This code hasn't had an independent audit.
+Turn **Remote access** off on a password and the host refuses the last row. A reader also checks everything against what the owner sealed for that password, so a host can't change what a password it doesn't hold reads. The full threat model, including what this doesn't protect against, is in [docs/SECURITY.md](docs/SECURITY.md). This code hasn't had a professional audit.
 
 ## The command line
 
@@ -81,7 +81,7 @@ Passwords come from `--key` or `VADERE_KEY`.
 The host has no runtime dependencies and no database. A site is a folder holding a sealed bundle and a hash.
 
 ```sh
-vadere serve --domain yourdomain.com --trust-proxy --data /var/lib/vadere
+vadere serve --domain yourdomain.com --trust-proxy --proxy-hops 1 --data /var/lib/vadere
 ```
 
 Point `*.yourdomain.com` and `yourdomain.com` at it, behind anything that terminates HTTPS. Wildcard certificates need a DNS challenge: Caddy with a DNS plugin, or Cloudflare in front, both work. Without wildcard DNS, every address also works at `/s/<name>/`.
@@ -94,7 +94,7 @@ Or with Docker: `docker build -t vadere . && docker run -p 4747:4747 -v vadere:/
 vadere serve --hosted --max-accounts 500 --donate-url https://… --abuse-contact abuse@…
 ```
 
-An account is a claimed name and an owner key: no email, nothing personal stored. A small proof of work and a per-address limit stop a script taking every spot, and each account is limited to 10 MB. When it's full, the map still works in the browser and the app offers the self-host command. Read the note on abuse in [docs/SECURITY.md](docs/SECURITY.md) before opening one to the public.
+An account is a claimed name and an owner key: no email, nothing personal stored. A small proof of work and a per-address limit stop a script taking every spot, and each account is limited to 10 MB, or about 3.7 MB of text. When it's full, the map still works in the browser and the app offers the self-host command. Read the note on abuse in [docs/SECURITY.md](docs/SECURITY.md) before opening one to the public.
 
 ## Developing
 

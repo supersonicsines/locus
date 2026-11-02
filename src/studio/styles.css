@@ -1032,6 +1032,15 @@ a {
   margin-bottom: 1px;
 }
 
+.need-quote {
+  margin: 6px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--hair-strong);
+  font-family: var(--serif);
+  font-size: 13.5px;
+  line-height: 20px;
+}
+
 .need-actions {
   display: flex;
   gap: 4px;

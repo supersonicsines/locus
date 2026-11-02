@@ -37,7 +37,7 @@ const K1 = 1.4
 const B = 0.75
 
 export function search(pieces: Piece[], links: Link[], query: string, limit = 8): Hit[] {
-  const terms = [...new Set(tokenize(query))]
+  const terms = [...new Set(tokenize(query.slice(0, 500)))].slice(0, 32)
   if (!terms.length) return []
 
   // Title counts three times, summary twice.

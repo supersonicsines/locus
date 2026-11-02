@@ -74,6 +74,29 @@ Fix: first publish can't complete until the key has been copied or downloaded. T
 
 **20. `*.localhost` doesn't resolve in Safari, and some self-hosters lack wildcard DNS.** Fix: every address is also available at `/s/<name>/`.
 
+## Independent review
+
+After the build, a fresh agent read the code with no briefing on these findings and tried to break it, writing and running its own attacks. It couldn't read anything behind a closed gate. It did find these, all fixed, each kept as a test, and its attack scripts rerun against the fixes.
+
+| Severity | Finding | Fix |
+| --- | --- | --- |
+| High | **Forgery.** Gate keys are shared, so one password plus write access to the bundle could forge content for every other reader, including "Always follow" rules. The first draft of SECURITY.md wrongly claimed otherwise | Each envelope lists the hash of everything its reader may trust, sealed under that password's own key |
+| High | `vadere pull` could write outside its folder, through a hostile piece ID | IDs sanitised, and paths outside the folder refused |
+| High | Document text could forge an "Always follow" section through fields other than title and summary, or an underlined heading in a body, and could reach MCP `instructions` | Every interpolated field flattened, bodies quoted line by line, and nothing from the map in MCP's privileged text |
+| Medium | The owner approved a rule by its title, while agents obeyed a summary the owner never saw | The approval shows the exact words |
+| Medium | A device that was behind could publish over a newer version, silently bringing a revoked password back | Refused, with an offer to load the newer version |
+| Medium | Editing during a publish showed a false "Up to date" | What was sealed is what counts as published |
+| Medium | Limits behind a proxy trusted the leftmost `X-Forwarded-For`, so one client could take every free account or lock someone out | Only entries from your own proxies are believed |
+| Medium | A small hostile bundle or an MCP batch could stall the host for seconds | Duplicates refused, batches capped and charged per call, reads limited per map |
+| Low | Markdown link parsing could produce a `vscode:` or `file:` link | Only http and https become links |
+| Low | `/index.html` was served without the CSP | Routed through the same response as `/` |
+| Low | Money readers learned file names from closed gates | Withheld from readers |
+| Low | The secret scanner missed common forms such as `DB_PASSWORD=` and JSON | Widened, with a check that ordinary writing is left alone |
+| Low | Deletions weren't flagged as still readable, and a failed delete still said "Deleted" | Both fixed |
+| Low | Junk could be stored in unchecked bundle fields, sizes counted characters not bytes, and two claims of one name could both succeed | Strict shape check, bytes counted, no await between check and write |
+
+What held up: envelopes, links and the owner copy exposed nothing beyond granted gates; slot, version, site and key-type swaps were refused; IVs were unique and keys rotated; 14 raw-socket traversal and Host attempts leaked nothing; forced errors logged no key; no raw-HTML sinks.
+
 ## Rejected from the Gemini PRD, with reasons
 
 | Gemini proposed | Decision | Why |

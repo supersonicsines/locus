@@ -10,7 +10,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize, sep } from 'node:path'
 import { costsText, llmsFull, llmsTxt, lockedText, pieceText, searchText } from '../core/agent.ts'
 import { handleRpc, SERVER_VERSION } from '../core/mcp.ts'
-import { isBundleShaped, looksLikeKey, openBundle, passwordId, sha256Hex, WrongPassword } from '../core/seal.ts'
+import { AlteredBundle, isBundleShaped, looksLikeKey, openBundle, passwordId, sha256Hex, WrongPassword } from '../core/seal.ts'
 import type { Bundle, View } from '../core/types.ts'
 import { FileStore } from './store.ts'
 
@@ -25,6 +25,7 @@ export interface Config {
   donateUrl: string
   abuseContact: string
   trustProxy: boolean
+  proxyHops?: number
 }
 
 export const RESERVED = new Set(
@@ -111,6 +112,9 @@ class Limiter {
 }
 
 const BAD_PASSWORDS_PER_MINUTE = 30
+// Each remote read decrypts and may search the whole map, so one map can only ask so much.
+const SITE_READS_PER_MINUTE = { hosted: 240, self: 1200 }
+const MAX_RPC_BATCH = 16
 
 function safeDecode(s: string): string {
   try {
@@ -178,6 +182,8 @@ export function createHandler(config: Config) {
     } catch {
       return res('Bad path', 400)
     }
+    // The page must never be served without its security headers.
+    if (rel === 'index.html') return serveIndex()
     const file = join(config.studioDir, rel)
     if (rel && !rel.includes('..') && file.startsWith(config.studioDir + sep)) {
       try {
@@ -246,7 +252,8 @@ export function createHandler(config: Config) {
       if (!/^[0-9a-f]{64}$/.test(token)) return json({ error: 'Missing publish token.' }, 401)
 
       const raw = await req.text()
-      if (raw.length > config.maxBundleBytes) {
+      const size = Buffer.byteLength(raw)
+      if (size > config.maxBundleBytes) {
         const mb = Math.round(config.maxBundleBytes / 1_048_576)
         return json({ error: `This map is over the ${mb} MB limit.`, code: 'too-large' }, 413)
       }
@@ -258,7 +265,11 @@ export function createHandler(config: Config) {
       }
       if (!isBundleShaped(bundle, name)) return json({ error: 'That is not a Vadere bundle.' }, 400)
 
+      // Finish everything that can wait first. From reading the account to writing it
+      // there's no await, so two claims of one name can't both win.
       const tokenHash = await sha256Hex(token)
+      const claimNonce = req.headers.get('x-vadere-pow') ?? ''
+      const powPassed = config.hosted && !store.has(name) ? await powOk(name, claimNonce, config.powBits) : true
       const meta = store.meta(name)
       const now = new Date().toISOString()
 
@@ -269,7 +280,7 @@ export function createHandler(config: Config) {
         if (bundle.version <= meta.version) {
           return json({ error: `A newer version (${meta.version}) is already live.`, code: 'stale', version: meta.version }, 409)
         }
-        store.save(name, raw, { ...meta, updatedAt: now, version: bundle.version, bytes: raw.length })
+        store.save(name, raw, { ...meta, updatedAt: now, version: bundle.version, bytes: size })
         return json({ ok: true, version: bundle.version })
       }
 
@@ -278,13 +289,12 @@ export function createHandler(config: Config) {
         if (!limiter.allow(`claim:${ip}`, 6, 3_600_000)) {
           return json({ error: 'Too many new accounts from this address. Try again in an hour.' }, 429)
         }
-        const nonce = req.headers.get('x-vadere-pow') ?? ''
-        if (!(await powOk(name, nonce, config.powBits))) return json({ error: 'Proof of work failed.', code: 'pow' }, 400)
+        if (!powPassed) return json({ error: 'Proof of work failed.', code: 'pow' }, 400)
         if (store.count() >= config.maxAccounts) {
           return json({ error: 'Every free account is taken.', code: 'full', accounts: accounts() }, 403)
         }
       }
-      store.save(name, raw, { tokenHash, createdAt: now, updatedAt: now, version: bundle.version, bytes: raw.length })
+      store.save(name, raw, { tokenHash, createdAt: now, updatedAt: now, version: bundle.version, bytes: size })
       return json({ ok: true, version: bundle.version, claimed: true }, 201)
     }
 
@@ -325,6 +335,7 @@ export function createHandler(config: Config) {
         limiter.allow(`bad:${ip}`, BAD_PASSWORDS_PER_MINUTE, 60_000)
         return { fail: textReply('That password does not open this map.\n', 401, { 'WWW-Authenticate': 'Bearer' }) }
       }
+      if (e instanceof AlteredBundle) return { fail: textReply(`${e.message}\n`, 502) }
       throw e
     }
   }
@@ -370,6 +381,7 @@ export function createHandler(config: Config) {
     if (!exists) return textReply(`Nothing has been published at ${name}.\n`, 404)
 
     if (!limiter.allow(`agent:${ip}`, 240, 60_000)) return textReply('Too many requests. Slow down.\n', 429)
+    if (!limiter.allow(`site:${name}`, config.hosted ? SITE_READS_PER_MINUTE.hosted : SITE_READS_PER_MINUTE.self, 60_000)) return textReply('This map is being read too often. Slow down.\n', 429)
 
     if (path === '/mcp' && req.method === 'GET') {
       return textReply('This MCP server speaks JSON over POST.\n', 405, { Allow: 'POST' })
@@ -397,6 +409,11 @@ export function createHandler(config: Config) {
       }
       const noStore = { 'Cache-Control': 'no-store', ...CORS }
       if (Array.isArray(body)) {
+        if (body.length > MAX_RPC_BATCH) return json({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Batch too large' } }, 400, CORS)
+        // Each call in a batch does the work of a request, so each counts as one.
+        for (let i = 1; i < body.length; i++) {
+          if (!limiter.allow(`agent:${ip}`, 240, 60_000)) return textReply('Too many requests. Slow down.\n', 429)
+        }
         const out = body.map((m) => handleRpc(view, m)).filter(Boolean)
         return out.length ? json(out, 200, noStore) : res(null, 202, noStore)
       }

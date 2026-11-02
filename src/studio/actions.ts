@@ -1,6 +1,6 @@
 // Everything the app does: changing the map, minting passwords, publishing.
 
-import { generatePassword, newId, openBundle, openOwnerCopy, publishToken, sealVault, sha256Hex, WrongPassword } from '../core/seal.ts'
+import { AlteredBundle, generatePassword, newId, openBundle, openOwnerCopy, publishToken, sealVault, sha256Hex, WrongPassword } from '../core/seal.ts'
 import { createEmptyVault, createSample } from '../core/sample.ts'
 import { snapshot } from '../core/status.ts'
 import type { Bundle, Cost, Gate, Password, Piece, Vault } from '../core/types.ts'
@@ -74,12 +74,23 @@ export async function switchVault(id: string) {
 export async function deleteCurrentMap() {
   const v = getState().vault
   if (!v) return
-  // Removing it from the host frees the account's spot.
+  // Removing it from the host frees the account's spot. If that fails, keep the
+  // map: claiming it's gone while every password still works would be worse.
   if (v.site && v.published) {
+    const failed = "Couldn't take it off the host, so nothing was deleted. Every password still works."
     try {
       const token = await publishToken(v.site.ownerKey)
-      await fetch(`/api/sites/${v.site.name}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
-    } catch {}
+      const res = await fetch(`/api/sites/${v.site.name}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok && res.status !== 404) {
+        setState({ sheet: null })
+        toast(failed)
+        return
+      }
+    } catch {
+      setState({ sheet: null })
+      toast(failed)
+      return
+    }
   }
   await storage.deleteVault(v.id)
   const rest = await storage.vaults()
@@ -258,26 +269,27 @@ export async function publish(): Promise<boolean> {
   lastPublishFailure = null
   setState({ publishing: true })
   try {
-    let version = (v.published?.version ?? 0) + 1
+    const version = (v.published?.version ?? 0) + 1
     const server = getState().server
     let nonce = ''
     if (!v.published && server?.powBits) nonce = await solvePow(v.site.name, server.powBits)
 
     const token = await publishToken(v.site.ownerKey)
-    const send = async (ver: number) =>
-      fetch(`/api/sites/${v.site!.name}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(nonce ? { 'x-vadere-pow': nonce } : {}) },
-        // The sealed copy records its own publish, so a new device starts up to date.
-        body: JSON.stringify(await sealVault({ ...v, published: snapshot(v, ver) }, ver)),
-      })
+    // What was sealed is what counts as published, even if you keep editing meanwhile.
+    const sealedState = snapshot(v, version)
+    const res = await fetch(`/api/sites/${v.site.name}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(nonce ? { 'x-vadere-pow': nonce } : {}) },
+      // The sealed copy records its own publish, so a new device starts up to date.
+      body: JSON.stringify(await sealVault({ ...v, published: sealedState }, version)),
+    })
 
-    let res = await send(version)
     if (res.status === 409) {
-      // Another device published first. Go past it.
-      const body = await res.json()
-      version = (body.version ?? version) + 1
-      res = await send(version)
+      // Another device published first. Publishing over it from this older copy
+      // could quietly bring back a password that was revoked there.
+      lastPublishFailure = { code: 'stale', message: 'A newer version was published from another device, so this one was not published.' }
+      toast(`${lastPublishFailure.message} Loading it replaces unpublished changes here.`, { label: 'Load it', run: () => void reloadFromHost() })
+      return false
     }
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
@@ -286,7 +298,7 @@ export async function publish(): Promise<boolean> {
       toast(lastPublishFailure.message)
       return false
     }
-    updateVault((x) => ({ ...x, published: snapshot(x, version) }))
+    updateVault((x) => ({ ...x, published: sealedState }))
     void refreshServer()
     return true
   } catch (e) {
@@ -296,6 +308,14 @@ export async function publish(): Promise<boolean> {
   } finally {
     setState({ publishing: false })
   }
+}
+
+/** Replaces this device's copy with what's live, using the owner key. */
+export async function reloadFromHost() {
+  const site = getState().vault?.site
+  if (!site) return
+  const err = await signIn(site.name, site.ownerKey)
+  if (err) toast(err)
 }
 
 export async function refreshServer() {
@@ -339,6 +359,7 @@ export async function unlockViewer(name: string, key: string): Promise<string | 
     return null
   } catch (e) {
     if (e instanceof WrongPassword) return "That password doesn't open this map."
+    if (e instanceof AlteredBundle) return e.message
     return "Couldn't read this map."
   }
 }

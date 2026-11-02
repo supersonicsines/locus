@@ -9,10 +9,16 @@ const PATTERNS: { name: string; re: RegExp }[] = [
   { name: 'AWS access key', re: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g },
   { name: 'Google API key', re: /\bAIza[A-Za-z0-9_-]{35}\b/g },
   { name: 'Resend key', re: /\bre_[A-Za-z0-9]{8}_[A-Za-z0-9]{16,}/g },
+  { name: 'GitLab token', re: /\bglpat-[A-Za-z0-9_-]{16,}/g },
+  { name: 'npm token', re: /\bnpm_[A-Za-z0-9]{30,}/g },
+  { name: 'SendGrid key', re: /\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/g },
+  { name: 'Twilio key', re: /\bSK[0-9a-f]{32}\b/g },
+  { name: 'JSON web token', re: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g },
   { name: 'Vadere key', re: /\bvd[ro]_[0-9a-hjkmnp-tv-z]{26}\b/g },
   { name: 'Private key', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g },
-  { name: 'Database URL with password', re: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis):\/\/[^\s:@/]+:[^\s@/]+@[^\s]+/g },
-  { name: 'Password', re: /\b(?:password|passwd|secret|api[_-]?key)\s*[:=]\s*["']?[^\s"']{8,}/gi },
+  { name: 'Database URL with password', re: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|rediss?|amqps?):\/\/[^\s:@/]*:[^\s@]+@[^\s]+/g },
+  // Catches DB_PASSWORD=..., db_password: ... and {"password": "..."} as well as plain forms.
+  { name: 'Password', re: /[\w-]*(?:password|passwd|secret|api[_-]?key|access[_-]?key|auth[_-]?token|private[_-]?key)["']?\s*[:=]\s*["']?[^\s"',}]{8,}["']?/gi },
 ]
 
 export interface ScrubResult {

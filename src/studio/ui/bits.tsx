@@ -1,6 +1,7 @@
 // Small shared pieces: icons, safe Markdown, the symbol glyph, text that grows.
 
 import { useEffect, useLayoutEffect, useRef, type ReactNode, type TextareaHTMLAttributes } from 'react'
+import { linkParts } from '../../core/links.ts'
 import type { PieceKind } from '../../core/types.ts'
 import { drawSymbol } from '../map/symbols.ts'
 import { useStore } from '../store.ts'
@@ -73,9 +74,8 @@ function inline(text: string, key = 0): ReactNode[] {
     else if (t.startsWith('**')) out.push(<strong key={i++} style={{ fontWeight: 400, textDecoration: 'underline', textDecorationThickness: 1, textUnderlineOffset: 3 }}>{t.slice(2, -2)}</strong>)
     else if (t.startsWith('*')) out.push(<span key={i++}>{t.slice(1, -1)}</span>)
     else if (t.startsWith('[')) {
-      const label = t.slice(1, t.indexOf(']'))
-      const href = t.slice(t.indexOf('(') + 1, -1)
-      out.push(<a key={i++} href={href} target="_blank" rel="noreferrer noopener">{label}</a>)
+      const { label, href } = linkParts(t)
+      out.push(href ? <a key={i++} href={href} target="_blank" rel="noreferrer noopener">{label}</a> : label)
     } else out.push(<a key={i++} href={t} target="_blank" rel="noreferrer noopener">{t}</a>)
     last = m.index + t.length
   }

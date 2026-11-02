@@ -215,11 +215,11 @@ function toPieces(raw: any, file: Extracted, now: number): { pieces: Piece[]; co
     const piece: Piece = {
       id,
       title: String(r.title ?? 'Untitled').slice(0, 90),
-      summary: String(r.summary ?? ''),
+      summary: String(r.summary ?? '').slice(0, 500),
       body: String(r.body ?? ''),
       kind,
       gate: 'product',
-      source: { file: file.name, ...(r.where ? { where: String(r.where) } : {}) },
+      source: { file: file.name, ...(r.where ? { where: String(r.where).slice(0, 120) } : {}) },
       updatedAt: now,
     }
     if (r.date && ['ends', 'renews', 'as-of'].includes(r.date_means)) piece.date = { on: r.date, means: r.date_means }
@@ -311,7 +311,7 @@ export async function shredWithClaude(files: Extracted[], apiKey: string, model:
   )
 
   // Gates: keep Money as the built-in one, reuse default IDs where names match.
-  const names: string[] = [...new Set<string>((map.gates ?? []).map((g: string) => g.trim()).filter(Boolean))]
+  const names: string[] = [...new Set<string>((map.gates ?? []).map((g: string) => String(g).replace(/\s+/g, ' ').trim().slice(0, 40)).filter(Boolean))].slice(0, 12)
   if (!names.some((n) => n.toLowerCase() === 'money')) names.push('Money')
   const gates: Gate[] = names.map((name) => {
     const known = DEFAULT_GATES.find((g) => g.name.toLowerCase() === name.toLowerCase())
@@ -353,6 +353,6 @@ export async function shredWithClaude(files: Extracted[], apiKey: string, model:
     links,
     costs,
     findings,
-    ...(map.company_name ? { company: { name: String(map.company_name), about: String(map.company_about ?? '') } } : {}),
+    ...(map.company_name ? { company: { name: String(map.company_name).replace(/\s+/g, ' ').trim().slice(0, 80), about: String(map.company_about ?? '').replace(/\s+/g, ' ').trim().slice(0, 240) } } : {}),
   }
 }

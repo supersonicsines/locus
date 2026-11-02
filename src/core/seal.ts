@@ -8,10 +8,15 @@
 //   - A password's sealed envelope holds the keys to the gates it opens.
 //   - A link between two gates is sealed under a key derived from both gates,
 //     so only a password that opens both can read it.
+//   - Every envelope also lists the hash of every part its reader may read. Gate
+//     keys are shared, so AES-GCM alone only proves "someone with this gate's key
+//     wrote this", and that includes other readers. The manifest is sealed under
+//     this password's own key, so nobody else can change what it vouches for.
 //
 // Only the platform's Web Crypto is used, so the same code runs in a browser
 // and in Node with no dependencies.
 
+import { costForReaders, pieceForReaders } from './readers.ts'
 import type { Bundle, Company, Cost, Gate, Link, Piece, Sealed, Vault, View } from './types.ts'
 
 const subtle = globalThis.crypto.subtle
@@ -177,24 +182,31 @@ interface GatePart {
   costs?: Cost[]
 }
 
+/** Everything a reader may trust, fixed by whoever sealed this envelope. */
+interface Manifest {
+  head: string
+  /** Hash of each gate part, by position in Envelope.gates. */
+  gates: string[]
+  /** Each bridge this reader must find: positions of its two gates, and its hash. */
+  bridges: { a: number; b: number; hash: string }[]
+  sealedAt: string
+  remote: boolean
+}
+
 interface Envelope {
   name: string
   head: string
   gates: { part: string; key: string }[]
   closedGates: number
+  manifest: Manifest
 }
 
-/** Fields the owner keeps that no reader needs. */
-function forReaders(p: Piece): Piece {
-  // Unapproved proposals must never reach an agent as instructions.
-  const out: Piece = { ...p }
-  if (out.always === 'proposed') delete out.always
-  if (out.mcp && !out.mcp.approved) delete out.mcp
-  // Where pieces sit on the owner's map could hint at what's behind closed gates.
-  delete out.x
-  delete out.y
-  return out
-}
+const hashOf = (s: Sealed) => sha256Hex(`${s.iv}.${s.ct}`)
+
+// Limits keep a hostile bundle from costing the host real CPU.
+export const MAX_GATES = 64
+export const MAX_PASSWORDS = 256
+const MAX_BRIDGES = (MAX_GATES * (MAX_GATES - 1)) / 2
 
 // Seal
 
@@ -212,14 +224,20 @@ export async function sealVault(vault: Vault, version: number): Promise<Bundle> 
   const money = vault.gates.find((g) => g.builtin === 'money')
 
   // Gates, each holding its own pieces and the links that stay inside it.
+  if (vault.gates.length > MAX_GATES) throw new Error(`A map can have at most ${MAX_GATES} gates.`)
+  if (vault.passwords.length > MAX_PASSWORDS) throw new Error(`A map can have at most ${MAX_PASSWORDS} passwords.`)
+
+  const sealedAt = new Date().toISOString()
   const gates: Bundle['gates'] = {}
+  const gateHash = new Map<string, string>()
   for (const gate of vault.gates) {
     const part = gateParts.get(gate.id)!
-    const pieces = vault.pieces.filter((p) => p.gate === gate.id).map(forReaders)
+    const pieces = vault.pieces.filter((p) => p.gate === gate.id).map(pieceForReaders)
     const links = vault.links.filter((l) => pieceGate.get(l.from) === gate.id && pieceGate.get(l.to) === gate.id)
     const value: GatePart = { gate, pieces, links }
-    if (gate.id === money?.id) value.costs = vault.costs
+    if (gate.id === money?.id) value.costs = vault.costs.map(costForReaders)
     gates[part] = await sealPart(gateKeys.get(gate.id)!, aad(site, version, part), value)
+    gateHash.set(gate.id, await hashOf(gates[part]))
   }
 
   // Bridges: links between two different gates.
@@ -233,10 +251,16 @@ export async function sealVault(vault: Vault, version: number): Promise<Bundle> 
     crossing.get(pair)!.links.push(link)
   }
   const bridges: Bundle['bridges'] = {}
-  for (const { a, b, links } of crossing.values()) {
+  const bridgeHash = new Map<string, string>()
+  for (const [pair, { a, b, links }] of crossing) {
     const { id, key } = await bridgeKeys(gateKeys.get(a)!, gateKeys.get(b)!)
     bridges[id] = await sealPart(key, aad(site, version, id), links)
+    bridgeHash.set(pair, await hashOf(bridges[id]))
   }
+
+  const head: Head = { company: vault.company, currency: vault.currency }
+  const sealedHead = await sealPart(headKey, aad(site, version, 'head'), head)
+  const headHash = await hashOf(sealedHead)
 
   // One envelope per password. New gate keys every time, so a removed password
   // can't read anything published after it was removed.
@@ -245,17 +269,29 @@ export async function sealVault(vault: Vault, version: number): Promise<Bundle> 
     const id = await passwordId(pw.key)
     // In map order, so a reader sees the same order as the Studio's preview.
     const known = vault.gates.filter((g) => pw.gates.includes(g.id)).map((g) => g.id)
+    const readableBridges: Manifest['bridges'] = []
+    for (let a = 0; a < known.length; a++) {
+      for (let b = a + 1; b < known.length; b++) {
+        const hash = bridgeHash.get([known[a], known[b]].sort().join('|'))
+        if (hash) readableBridges.push({ a, b, hash })
+      }
+    }
     const envelope: Envelope = {
       name: pw.name,
       head: bytesToB64(headKey),
       gates: known.map((g) => ({ part: gateParts.get(g)!, key: bytesToB64(gateKeys.get(g)!) })),
       closedGates: vault.gates.length - known.length,
+      manifest: {
+        head: headHash,
+        gates: known.map((g) => gateHash.get(g)!),
+        bridges: readableBridges,
+        sealedAt,
+        remote: pw.remote,
+      },
     }
     const wrap = await fromSecret(pw.key, `wrap ${site}`)
     passwords[id] = { remote: pw.remote, sealed: await sealPart(wrap, aad(site, version, `password ${id}`), envelope) }
   }
-
-  const head: Head = { company: vault.company, currency: vault.currency }
 
   // The owner's full copy, for signing in on another device. The owner key
   // itself is left out: whoever opens this already has it.
@@ -266,8 +302,8 @@ export async function sealVault(vault: Vault, version: number): Promise<Bundle> 
     format: FORMAT,
     site,
     version,
-    sealedAt: new Date().toISOString(),
-    head: await sealPart(headKey, aad(site, version, 'head'), head),
+    sealedAt,
+    head: sealedHead,
     gates,
     bridges,
     passwords,
@@ -281,6 +317,14 @@ export class WrongPassword extends Error {
   constructor() {
     super('That password does not open this map.')
     this.name = 'WrongPassword'
+  }
+}
+
+/** The password is right, but what's stored isn't what the owner sealed for it. */
+export class AlteredBundle extends Error {
+  constructor() {
+    super('This map has been altered or damaged, so it was refused.')
+    this.name = 'AlteredBundle'
   }
 }
 
@@ -298,27 +342,34 @@ export async function openBundle(bundle: Bundle, key: string): Promise<View> {
     throw new WrongPassword()
   }
 
+  // Nothing is believed until it matches what this password's own envelope vouches for.
+  const m = envelope.manifest
+  if (!m || m.sealedAt !== bundle.sealedAt || m.remote !== entry.remote) throw new AlteredBundle()
+  if (m.gates.length !== envelope.gates.length) throw new AlteredBundle()
+  if (envelope.gates.length > MAX_GATES || m.bridges.length > MAX_BRIDGES) throw new AlteredBundle()
+  if (new Set(envelope.gates.map((g) => g.part)).size !== envelope.gates.length) throw new AlteredBundle()
+  if ((await hashOf(bundle.head)) !== m.head) throw new AlteredBundle()
+
   const head = await openPart<Head>(b64ToBytes(envelope.head), aad(site, version, 'head'), bundle.head)
 
-  const parts = await Promise.all(
-    envelope.gates.map(async ({ part, key: k }) => {
-      const sealed = bundle.gates[part]
-      if (!sealed) throw new Error('This map is damaged: a gate is missing.')
-      return openPart<GatePart>(b64ToBytes(k), aad(site, version, part), sealed)
-    }),
-  )
+  const parts: GatePart[] = []
+  for (const [i, { part, key: k }] of envelope.gates.entries()) {
+    const sealed = bundle.gates[part]
+    if (!sealed || (await hashOf(sealed)) !== m.gates[i]) throw new AlteredBundle()
+    parts.push(await openPart<GatePart>(b64ToBytes(k), aad(site, version, part), sealed))
+  }
 
   const links = parts.flatMap((p) => p.links)
 
-  // Every pair of open gates might have a bridge. The ID comes from both keys,
-  // so a closed gate's bridges can't even be located.
+  // The ID comes from both gates' keys, so a closed gate's bridges can't even be
+  // located. The manifest says which must exist, so one can't quietly go missing.
   const keys = envelope.gates.map((g) => b64ToBytes(g.key))
-  for (let i = 0; i < keys.length; i++) {
-    for (let j = i + 1; j < keys.length; j++) {
-      const { id: bridgeId, key: bridgeKey } = await bridgeKeys(keys[i], keys[j])
-      const sealed = bundle.bridges[bridgeId]
-      if (sealed) links.push(...(await openPart<Link[]>(bridgeKey, aad(site, version, bridgeId), sealed)))
-    }
+  for (const { a, b, hash } of m.bridges) {
+    if (!keys[a] || !keys[b] || a === b) throw new AlteredBundle()
+    const { id: bridgeId, key: bridgeKey } = await bridgeKeys(keys[a], keys[b])
+    const sealed = bundle.bridges[bridgeId]
+    if (!sealed || (await hashOf(sealed)) !== hash) throw new AlteredBundle()
+    links.push(...(await openPart<Link[]>(bridgeKey, aad(site, version, bridgeId), sealed)))
   }
 
   const moneyPart = parts.find((p) => p.costs)
@@ -326,7 +377,7 @@ export async function openBundle(bundle: Bundle, key: string): Promise<View> {
   return {
     site,
     version,
-    sealedAt: bundle.sealedAt,
+    sealedAt: m.sealedAt,
     passwordName: envelope.name,
     company: head.company,
     currency: head.currency,
@@ -335,7 +386,7 @@ export async function openBundle(bundle: Bundle, key: string): Promise<View> {
     pieces: parts.flatMap((p) => p.pieces),
     links,
     costs: moneyPart?.costs ?? null,
-    remote: entry.remote,
+    remote: m.remote,
   }
 }
 
@@ -353,15 +404,25 @@ export async function openOwnerCopy(bundle: Bundle, ownerKey: string): Promise<V
 /** A cheap structural check the host can run without any keys. */
 export function isBundleShaped(x: unknown, site: string): x is Bundle {
   const isSealed = (s: any) =>
-    s && typeof s.iv === 'string' && typeof s.ct === 'string' && Object.keys(s).length === 2
+    s && typeof s.iv === 'string' && typeof s.ct === 'string' && Object.keys(s).length === 2 &&
+    /^[A-Za-z0-9+/]{16}$/.test(s.iv) && /^[A-Za-z0-9+/]+={0,2}$/.test(s.ct)
   const b = x as Bundle
   if (!b || b.format !== FORMAT || b.site !== site) return false
   if (!Number.isInteger(b.version) || b.version < 1) return false
-  if (typeof b.sealedAt !== 'string' || !isSealed(b.head) || !isSealed(b.owner)) return false
-  if (!b.gates || !b.bridges || !b.passwords) return false
+  // Fields the host can't check by decrypting mustn't be a place to store anything else.
+  if (typeof b.sealedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(b.sealedAt)) return false
+  if (!isSealed(b.head) || !isSealed(b.owner)) return false
+  const isMap = (m: unknown) => !!m && typeof m === 'object' && !Array.isArray(m)
+  if (!isMap(b.gates) || !isMap(b.bridges) || !isMap(b.passwords)) return false
+  const gateIds = Object.keys(b.gates)
+  const bridgeIds = Object.keys(b.bridges)
+  const passwordIds = Object.keys(b.passwords)
+  if (gateIds.length > MAX_GATES || bridgeIds.length > MAX_BRIDGES || passwordIds.length > MAX_PASSWORDS) return false
+  if (!gateIds.every((id) => /^[0-9a-hjkmnp-tv-z]{16}$/.test(id))) return false
+  if (![...bridgeIds, ...passwordIds].every((id) => /^[0-9a-f]{16}$/.test(id))) return false
   if (!Object.values(b.gates).every(isSealed)) return false
   if (!Object.values(b.bridges).every(isSealed)) return false
-  if (!Object.values(b.passwords).every((p: any) => typeof p?.remote === 'boolean' && isSealed(p.sealed))) return false
+  if (!Object.values(b.passwords).every((p: any) => typeof p?.remote === 'boolean' && isSealed(p.sealed) && Object.keys(p).length === 2)) return false
   const allowed = new Set(['format', 'site', 'version', 'sealedAt', 'head', 'gates', 'bridges', 'passwords', 'owner'])
   return Object.keys(b).every((k) => allowed.has(k))
 }

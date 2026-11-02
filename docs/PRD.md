@@ -213,6 +213,7 @@ One package, four parts:
 - Readers don't receive the owner's layout. They get a fresh map of what they can see, so nothing hints at closed gates.
 - The owner key seals a full copy of the map, so you can restore from any device.
 - Plaintext is padded to size buckets before sealing. Every part is bound to site, version and part name.
+- Each password's envelope lists the hash of everything it may read, because gate keys are shared and AES-GCM alone can't tell one reader from another. A reader refuses anything that doesn't match.
 
 ### 11.3 No accounts database
 

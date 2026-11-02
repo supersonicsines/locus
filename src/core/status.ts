@@ -18,6 +18,8 @@ export interface Need {
   kind: NeedKind
   message: string
   pieces: string[]
+  /** The exact words at stake, so an approval is of what agents will actually read. */
+  quote?: string
 }
 
 /** A small, stable hash. It only detects change; nothing about it is secret. */
@@ -102,6 +104,15 @@ export function pending(v: Vault): Pending {
     }
   }
 
+  // A deleted piece is still in what's published.
+  const deleted = Object.keys(pub.pieces).filter((id) => !v.pieces.some((p) => p.id === id))
+  if (deleted.length) {
+    exposures.push({
+      message: `${deleted.length === 1 ? '1 deleted piece is' : `${deleted.length} deleted pieces are`} still readable until you publish.`,
+      pieces: [],
+    })
+  }
+
   // A piece moved somewhere more private is still readable from where it was.
   const moved: string[] = []
   for (const p of v.pieces) {
@@ -144,8 +155,9 @@ export function needs(v: Vault, now = Date.now()): Need[] {
       out.push({
         id: `rule-${p.id}`,
         kind: 'proposal',
-        message: `Shredding proposes a rule for every agent: "${p.title}". It stays out until you approve it.`,
+        message: `Shredding proposes a rule for every agent${p.source?.file ? `, from ${p.source.file}` : ''}. It stays out until you approve it.`,
         pieces: [p.id],
+        quote: `${p.title}. ${p.summary}`,
       })
     }
     if (p.mcp && !p.mcp.approved) {

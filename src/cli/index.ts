@@ -3,7 +3,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { createInterface } from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { exportFiles } from '../core/agent.ts'
@@ -26,6 +26,7 @@ A map of your company that any agent can read.
     --donate-url <url>
     --abuse-contact <addr>
     --trust-proxy           Read X-Forwarded-* from your reverse proxy
+    --proxy-hops 1          How many proxies you run in front (2 for Cloudflare and Caddy)
 
   vadere mcp <address>      MCP server on stdio. Decrypts here; the host never sees the password
   vadere pull <address>     Write the map to a folder as Markdown
@@ -98,10 +99,11 @@ async function serve(args: Args) {
     donateUrl: args['donate-url'] ?? process.env.VADERE_DONATE_URL ?? '',
     abuseContact: args['abuse-contact'] ?? process.env.VADERE_ABUSE_CONTACT ?? '',
     trustProxy: Boolean(args['trust-proxy'] ?? process.env.VADERE_TRUST_PROXY),
+    proxyHops: Number(args['proxy-hops'] ?? process.env.VADERE_PROXY_HOPS ?? 1),
   }
   const port = Number(args.port ?? process.env.PORT ?? 4747)
   mkdirSync(config.dataDir, { recursive: true })
-  await listen(createHandler(config), port, config.maxBundleBytes, config.trustProxy)
+  await listen(createHandler(config), port, config.maxBundleBytes, config.trustProxy ? config.proxyHops ?? 1 : 0)
   console.log(`Vadere is running at http://${config.domain === 'localhost' ? 'localhost' : config.domain}:${port}`)
   console.log(`Sealed maps are stored in ${config.dataDir}`)
   if (hosted) console.log(`Hosted mode: up to ${config.maxAccounts} free accounts.`)
@@ -148,7 +150,9 @@ async function pull(args: Args) {
   const view = await openBundle(await fetchBundle(addr), key).catch((e) => die(e.message))
   const files = exportFiles(view)
   for (const f of files) {
-    const path = join(out, f.path)
+    const path = resolve(out, f.path)
+    // Names in a map come from whoever published it, so they get no say in where files land.
+    if (!path.startsWith(out + sep)) die(`Refusing to write outside ${out}: ${f.path}`)
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, f.text)
   }

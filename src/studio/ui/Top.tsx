@@ -138,6 +138,7 @@ export function NeedsPanel() {
             <div>
               {list[i - 1]?.kind !== n.kind && <span className="need-kind">{KIND_NAMES[n.kind]}</span>}
               {n.message}
+              {n.quote && <blockquote className="need-quote">{n.quote}</blockquote>}
               {n.kind === 'exposure' && (
                 <div className="need-actions">
                   <button
