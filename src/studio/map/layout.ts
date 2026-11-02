@@ -29,7 +29,8 @@ function placeGates(gates: Gate[], pieces: Piece[], wide: boolean): Map<string, 
   const counts = new Map(gates.map((g) => [g.id, pieces.filter((p) => p.gate === g.id).length]))
   const nodes = gates.map((g, i) => {
     // Two territories sit side by side on a wide screen, and stacked on a phone.
-    const a = (i / Math.max(gates.length, 1)) * Math.PI * 2 + (wide ? Math.PI : -Math.PI / 2)
+    const start = gates.length === 2 && wide ? Math.PI : -Math.PI / 2
+    const a = (i / Math.max(gates.length, 1)) * Math.PI * 2 + start
     const r = gateRadius(counts.get(g.id) ?? 0)
     return { id: g.id, r, x: Math.cos(a) * 420, y: Math.sin(a) * 300 }
   })
@@ -52,7 +53,7 @@ export function layoutPieces(gates: Gate[], pieces: Piece[], links: Link[], opts
   const unplaced = pieces.filter((p) => p.x === undefined || p.y === undefined)
   if (!unplaced.length && !opts.reflow) return new Map()
 
-  const centres = placeGates(gates, pieces, opts.wide ?? gates.length > 2)
+  const centres = placeGates(gates, pieces, opts.wide ?? true)
   const random = seeded(3)
 
   // Keep territories that already exist where the user knows them.

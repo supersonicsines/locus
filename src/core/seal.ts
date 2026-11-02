@@ -243,7 +243,8 @@ export async function sealVault(vault: Vault, version: number): Promise<Bundle> 
   const passwords: Bundle['passwords'] = {}
   for (const pw of vault.passwords) {
     const id = await passwordId(pw.key)
-    const known = pw.gates.filter((g) => gateKeys.has(g))
+    // In map order, so a reader sees the same order as the Studio's preview.
+    const known = vault.gates.filter((g) => pw.gates.includes(g.id)).map((g) => g.id)
     const envelope: Envelope = {
       name: pw.name,
       head: bytesToB64(headKey),

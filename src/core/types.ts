@@ -114,6 +114,8 @@ export interface PublishedState {
   pieceGates: Record<string, string>
   /** gates each password opened when published */
   passwords: Record<string, string[]>
+  /** each password's name and remote access when published, to say what's still live */
+  passwordInfo?: Record<string, { name: string; remote: boolean }>
   /** hash of everything else that ends up in the bundle */
   rest: string
 }

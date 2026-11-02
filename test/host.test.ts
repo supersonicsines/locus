@@ -277,3 +277,19 @@ test('wrong passwords are limited per address', async () => {
   const other = await h(new Request(`${SITE}/llms.txt`, { headers: { Authorization: `Bearer ${open}` } }), '1.1.1.1')
   assert.equal(other.status, 200, 'other addresses are unaffected')
 })
+
+test('odd names and paths are refused cleanly', async () => {
+  const h = host()
+  const { vault, open } = vaultFor('acme')
+  await publish(h, vault)
+  // Not a key, and not a crash.
+  assert.equal((await get(h, `${SITE}/k/%E0%A4%A/llms.txt`)).status, 401)
+  assert.equal((await get(h, `${SITE}/v1/pieces/%E0%A4%A`, { Authorization: `Bearer ${open}` })).status, 404)
+  // A key with an escaped character isn't that key.
+  const escaped = `v%64${open.slice(2)}`
+  assert.equal((await get(h, `${SITE}/k/${escaped}/llms.txt`)).status, 401)
+  // Host headers and paths that aren't valid names reach no site.
+  const body = await (await get(h, 'http://x_y.localhost:4747/bundle.json')).text()
+  assert.ok(!body.includes('vadere/1'))
+  assert.notEqual((await h(new Request('http://localhost:4747/api/sites/-bad-', { method: 'DELETE' }))).status, 200)
+})

@@ -125,6 +125,12 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   useEffect(() => map.current?.setGateHover(hoverGate), [hoverGate, map])
   useEffect(() => map.current?.setDollars(dollars, style, period), [dollars, style, period, map])
 
+  // Picking a password is about the whole map, wherever you'd zoomed to.
+  const hasLens = !!lens
+  useEffect(() => {
+    if (hasLens) map.current?.fit(true)
+  }, [hasLens, map])
+
   useEffect(() => {
     if (!vault || !lens) {
       map.current?.setLens(null)

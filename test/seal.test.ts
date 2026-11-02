@@ -175,9 +175,10 @@ test('sizes are padded', () => {
 })
 
 test('the Studio preview matches what the sealed bundle returns', async () => {
-  const { vault, design, all } = vaultFixture()
+  const { vault, design, all, finance } = vaultFixture()
   const bundle = await sealVault(vault, 1)
-  for (const pw of [design, all]) {
+  // finance lists its gates in a different order from the map.
+  for (const pw of [design, all, finance]) {
     const live = await openBundle(bundle, pw.key)
     const preview = viewFor(vault, pw)
     const norm = (v: typeof live) => JSON.stringify(llmsTxt({ ...v, site: '', version: 0, sealedAt: '' }, { kind: 'mcp' }))
@@ -299,4 +300,22 @@ test('readers do not receive the layout of the owner map', async () => {
   assert.ok(view.pieces.every((p) => p.x === undefined && p.y === undefined))
   const restored = await openOwnerCopy(await sealVault(vault, 1), vault.site!.ownerKey)
   assert.equal(restored.pieces[0].x, 100, 'the owner keeps it')
+})
+
+test('switching remote access off is an exposure until published', () => {
+  const { vault, design } = vaultFixture()
+  vault.published = snapshot(vault, 1)
+  const next: Vault = { ...vault, passwords: vault.passwords.map((p) => (p.id === design.id ? { ...p, remote: false } : p)) }
+  assert.ok(pending(next).exposures.some((e) => e.message === 'Design can still be read through the host until you publish.'))
+  // Switching it on is not a loss of access to warn about.
+  const off: Vault = { ...next, published: snapshot(next, 2) }
+  const on: Vault = { ...off, passwords: off.passwords.map((p) => (p.id === design.id ? { ...p, remote: true } : p)) }
+  assert.equal(pending(on).exposures.length, 0)
+})
+
+test('a removed password is an exposure until published', () => {
+  const { vault, design } = vaultFixture()
+  vault.published = snapshot(vault, 1)
+  const next: Vault = { ...vault, passwords: vault.passwords.filter((p) => p.id !== design.id) }
+  assert.ok(pending(next).exposures.some((e) => e.message === 'Design still works until you publish.'))
 })

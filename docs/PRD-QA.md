@@ -20,6 +20,10 @@ Fix: scan locally before anything is sent. Found secrets are replaced with a lab
 The wax seal lands immediately, yet the old bundle still opens that gate until the next publish. A founder cutting off a contractor would believe it was done. This is the most dangerous mismatch in the product.
 Fix: any change that reduces access is called out in place: "Contractor can still read Legal until you publish", with Publish right there. The map shows it too: the gate gets a dashed outline and a ghost of the seal, and the wax only lands once it's truly sealed. Revoke publishes immediately and says it will also publish other pending changes.
 
+**4a. The same mismatch had two more forms, found on a later read.** Switching **Remote access** off doesn't stop the host until the next publish, and a revoke that can't reach the host leaves the password working. Both are now called out the same way.
+
+**4b. An approval could outlive what was approved.** Re-dropping a changed file could have kept an old rule's approval on new words. An approval now covers the words approved: if the text changes, it goes back to being a proposal.
+
 **5. "The host never sees the password" is false for the browser.**
 The unlock page's JavaScript comes from the host. A dishonest host could serve code that steals the password. Only the CLI and local MCP, installed from a pinned package, are independent of the host.
 Fix: the trust table separates the two. The threat model says: to rely on the browser path, self-host or trust your host.

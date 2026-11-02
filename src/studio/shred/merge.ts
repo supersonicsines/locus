@@ -24,7 +24,11 @@ function mergeCost(a: Cost | undefined, b: Cost): Cost {
   return a
 }
 
-export function merge(v: Vault, incoming: Incoming): Vault {
+/**
+ * Pass idMap to learn which existing piece each incoming one became, so a later
+ * step (the Cartographer's map) can refer to it.
+ */
+export function merge(v: Vault, incoming: Incoming, idMap = new Map<string, string>()): Vault {
   const files = new Set(incoming.pieces.map((p) => p.source?.file).filter(Boolean))
 
   // Match new gates to existing ones by name.
@@ -44,7 +48,6 @@ export function merge(v: Vault, incoming: Incoming): Vault {
   const byTitle = new Map(replaced.map((p) => [p.title.toLowerCase(), p]))
   const services = new Map(v.pieces.filter((p) => p.kind === 'service').map((p) => [p.title.toLowerCase(), p]))
 
-  const idMap = new Map<string, string>()
   const added: Piece[] = []
   for (const p of incoming.pieces) {
     const gate = gateMap.get(p.gate) ?? p.gate
@@ -56,8 +59,14 @@ export function merge(v: Vault, incoming: Incoming): Vault {
     }
     const old = byTitle.get(p.title.toLowerCase())
     if (old) {
+      // Each old piece is matched once, even if a file repeats a title.
+      byTitle.delete(p.title.toLowerCase())
       idMap.set(p.id, old.id)
-      added.push({ ...p, id: old.id, gate: old.gate, x: old.x, y: old.y })
+      // An approval covers the words that were approved. New words go back to being a proposal.
+      const sameWords = old.body === p.body && old.summary === p.summary
+      const always = old.always === 'approved' && sameWords ? 'approved' : p.always
+      const { always: _dropped, ...rest } = p
+      added.push({ ...rest, ...(always ? { always } : {}), id: old.id, gate: old.gate, x: old.x, y: old.y })
     } else {
       idMap.set(p.id, p.id)
       added.push({ ...p, gate })

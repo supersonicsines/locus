@@ -124,7 +124,7 @@ The **no-AI fallback** runs entirely in the tab. It splits on headings, guesses 
 
 Before anything is sent, a local scan replaces anything that looks like a live secret with a labelled placeholder and flags the piece. An estimate of the cost appears before a Claude run, and actual usage after it. The model is selectable; the default is Opus 5.5. The Claude key stays in the browser and is never part of what gets sealed.
 
-Re-dropping a file with the same name replaces its pieces. Pieces with the same title keep their position and links, so the map stays recognisable.
+Re-dropping a file with the same name replaces its pieces. Pieces with the same title keep their position and links, so the map stays recognisable. An approved rule stays approved only if its words are unchanged.
 
 Dropped documents are data, not instructions. Reader and Cartographer are told so, and everything an agent reads is labelled the same way.
 
@@ -168,7 +168,7 @@ Three ways to present a password, because agents differ:
 
 Each password has a switch, **Remote access**, that makes the host refuse the last two. The host never logs these paths, sends `Referrer-Policy: no-referrer`, and rejects remote use over plain HTTP where the proxy reports it.
 
-**Changing access.** A change that reduces access doesn't take effect until the next publish, and the interface says so in place ("Contractor can still read Legal until you publish"), with Publish right there. Revoking publishes immediately, and says so if that also publishes other pending changes. Every publish rotates every gate key, so a revoked password can't read anything published afterwards. Whatever it already read, it keeps.
+**Changing access.** A change that reduces access doesn't take effect until the next publish, whether that's closing a gate, moving a piece somewhere more private, or switching Remote access off. The interface says so in place ("Contractor can still read Legal until you publish"), with Publish right there. Revoking publishes immediately, and says so if that also publishes other pending changes. Every publish rotates every gate key, so a revoked password can't read anything published afterwards. Whatever it already read, it keeps.
 
 ## 9. Design
 

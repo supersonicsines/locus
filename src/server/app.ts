@@ -112,6 +112,14 @@ class Limiter {
 
 const BAD_PASSWORDS_PER_MINUTE = 30
 
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return s
+  }
+}
+
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false
   let diff = 0
@@ -145,7 +153,7 @@ export function createHandler(config: Config) {
     if (h === config.domain) return null
     if (!h.endsWith(`.${config.domain}`)) return null
     const label = h.slice(0, -config.domain.length - 1)
-    if (label.includes('.') || label === 'www' || label === 'app') return null
+    if (label === 'www' || label === 'app' || !NAME.test(label)) return null
     return label
   }
 
@@ -281,6 +289,7 @@ export function createHandler(config: Config) {
     }
 
     if (req.method === 'DELETE') {
+      if (!NAME.test(name)) return json({ error: 'No such account.' }, 404)
       const token = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
       const meta = store.meta(name)
       if (!meta) return json({ error: 'No such account.' }, 404)
@@ -330,7 +339,8 @@ export function createHandler(config: Config) {
     let base = `${proto(req)}://${hostOf(req)}${prefix}`
     const k = path.match(/^\/k\/([^/]+)(\/.*)?$/)
     if (k) {
-      key = decodeURIComponent(k[1])
+      // A key never needs escaping, so anything escaped isn't one.
+      key = k[1]
       path = k[2] || '/llms.txt'
       base = `${base}/k/${k[1]}`
     }
@@ -407,7 +417,7 @@ export function createHandler(config: Config) {
     }
     const piece = path.match(/^\/v1\/pieces\/([^/]+)$/)
     if (piece) {
-      const t = pieceText(view, decodeURIComponent(piece[1]))
+      const t = pieceText(view, safeDecode(piece[1]))
       return t ? textReply(t) : textReply('No such piece is readable with this password.\n', 404)
     }
     return textReply('Not found. Start at /llms.txt\n', 404)
@@ -421,7 +431,7 @@ export function createHandler(config: Config) {
     if (site) return handleSite(req, url, site, '', ip)
 
     const pathMatch = url.pathname.match(/^\/s\/([a-z0-9-]+)(\/.*)?$/)
-    if (pathMatch) return handleSite(req, url, pathMatch[1], `/s/${pathMatch[1]}`, ip)
+    if (pathMatch && NAME.test(pathMatch[1])) return handleSite(req, url, pathMatch[1], `/s/${pathMatch[1]}`, ip)
 
     if (url.pathname.startsWith('/api/')) return handleApi(req, url, ip)
     if (req.method !== 'GET' && req.method !== 'HEAD') return res('Method not allowed', 405)

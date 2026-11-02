@@ -47,6 +47,7 @@ export function snapshot(v: Vault, version: number): PublishedState {
     pieces: Object.fromEntries(v.pieces.map((p) => [p.id, pieceHash(p)])),
     pieceGates: Object.fromEntries(v.pieces.map((p) => [p.id, p.gate])),
     passwords: Object.fromEntries(v.passwords.map((p) => [p.id, p.gates])),
+    passwordInfo: Object.fromEntries(v.passwords.map((p) => [p.id, { name: p.name, remote: p.remote }])),
     rest: restHash(v),
   }
 }
@@ -84,6 +85,20 @@ export function pending(v: Vault): Pending {
         message: `${pw.name} can still read ${closed.map(gateName).join(' and ')} until you publish.`,
         pieces: [],
       })
+    }
+  }
+
+  // A password removed here still works out there, if revoking couldn't publish.
+  for (const id of Object.keys(pub.passwords)) {
+    if (v.passwords.some((p) => p.id === id)) continue
+    const name = pub.passwordInfo?.[id]?.name ?? 'A removed password'
+    exposures.push({ message: `${name} still works until you publish.`, pieces: [] })
+  }
+
+  // Remote access switched off still lets the host decrypt for this password.
+  for (const pw of v.passwords) {
+    if (pub.passwordInfo?.[pw.id]?.remote && !pw.remote) {
+      exposures.push({ message: `${pw.name} can still be read through the host until you publish.`, pieces: [] })
     }
   }
 

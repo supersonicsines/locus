@@ -48,7 +48,7 @@ Gate names, password names, company name, pieces, links, prices and readers' lay
 ## What this does not protect against
 
 - **What someone already read.** Revoking stops them reading anything published afterwards. They keep what they already have, including any old bundle they saved.
-- **Delay.** A closed gate stays readable until you publish. The app says so, in words and on the map, until you do. Revoking publishes immediately.
+- **Delay.** A closed gate stays readable until you publish, and so does a password with Remote access switched off. The app says so until you do. Revoking publishes immediately; if it can't reach the host, the app says the password still works.
 - **A dishonest host serving old versions.** It can't forge or read anything, but it could serve an older bundle, and a reader has no way to detect that yet.
 - **Your own browser.** The Studio keeps your map, passwords and optional Claude key in plain form in this browser's storage. Anyone with access to your browser profile has them.
 - **Anthropic, if you shred with Claude.** Those files go to Anthropic under your own key. The no-AI shredder keeps everything on your device.

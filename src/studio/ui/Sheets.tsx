@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { CATALOG, CATALOG_AS_OF } from '../../core/catalog.ts'
 import { generateOwnerKey, looksLikeKey } from '../../core/seal.ts'
 import { shredLocally, DEFAULT_GATES } from '../../core/shred-local.ts'
-import type { Cost, Piece } from '../../core/types.ts'
 import { addPiece, copy, deleteCurrentMap, downloadText, lastPublishFailure, placeNewPieces, publish, refreshServer, setCost, signIn, siteAddress, toast, updateVault } from '../actions.ts'
 import { MODELS, shredWithClaude } from '../shred/claude.ts'
 import { estimateTokens, extract, type Extracted } from '../shred/extract.ts'
@@ -468,16 +467,16 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
   let count = 0
   setState({ shred: { phase: 'Reading', done: 0, total: files.length + 1, pieces: 0 } })
 
-  const accumulated: { pieces: Piece[]; costs: Cost[] } = { pieces: [], costs: [] }
+  // Pieces already on the map keep their place and gate through a re-drop.
+  const before = new Set(getState().vault?.pieces.map((p) => p.id))
+  const idMap = new Map<string, string>()
 
   try {
     const result = await shredWithClaude(files, key, model, {
       pieces(pieces, costs) {
         count += pieces.length
-        accumulated.pieces.push(...pieces)
-        accumulated.costs.push(...costs)
         // Pieces land on the map as they're read, then settle once the map is drawn.
-        updateVault((v) => placeNewPieces(merge(v, { gates: DEFAULT_GATES, pieces, links: [], costs })))
+        updateVault((v) => placeNewPieces(merge(v, { gates: DEFAULT_GATES, pieces, links: [], costs }, idMap)))
         const s = getState().shred
         if (s) setState({ shred: { ...s, pieces: count } })
       },
@@ -493,7 +492,8 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
 
     // Now the Cartographer's map replaces the provisional one.
     updateVault((v) => {
-      const assigned = new Map(result.pieces.map((p) => [p.id, p]))
+      const final = (id: string) => idMap.get(id) ?? id
+      const assigned = new Map(result.pieces.map((p) => [final(p.id), p]))
       const gates = [...v.gates]
       const gateIds = new Map<string, string>()
       for (const g of result.gates) {
@@ -507,11 +507,17 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
       const pieces = v.pieces.map((p) => {
         const r = assigned.get(p.id)
         if (!r) return p
-        return { ...p, gate: gateIds.get(r.gate) ?? r.gate, always: r.always, x: undefined, y: undefined }
+        // Never let a new proposal overwrite an approval that still stands.
+        const always = p.always === 'approved' ? p.always : r.always
+        if (before.has(p.id)) return { ...p, always }
+        return { ...p, gate: gateIds.get(r.gate) ?? r.gate, always, x: undefined, y: undefined }
       })
       const known = new Set(pieces.map((p) => p.id))
-      const links = [...v.links, ...result.links.filter((l) => known.has(l.from) && known.has(l.to))]
-      const findings = [...v.findings, ...result.findings]
+      const links = [
+        ...v.links,
+        ...result.links.map((l) => ({ ...l, from: final(l.from), to: final(l.to) })).filter((l) => known.has(l.from) && known.has(l.to) && l.from !== l.to),
+      ]
+      const findings = [...v.findings, ...result.findings.map((f) => ({ ...f, pieces: f.pieces.map(final) }))]
       const named = v.company.name && v.company.name !== 'Untitled company'
       return placeNewPieces({
         ...v,
