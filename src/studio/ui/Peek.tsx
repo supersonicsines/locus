@@ -29,6 +29,7 @@ function CostBlock({ piece, cost, readOnly }: { piece: Piece; cost: Cost | null;
   if (cost && cost.amount !== null) {
     if (cost.source === 'invoice') note = `From an invoice${cost.unit === 'usage' ? ', and it varies with use' : ''}.`
     else if (cost.source === 'you') note = 'You typed this in.'
+    else if (cost.statedIn) note = `Stated in ${cost.statedIn}, so it may be out of date.`
     else note = `List price as of ${cost.asOf ?? 'an unknown date'}, so it may be out of date.`
   }
   const seatNote = cost?.unit === 'seat' && cost.amount !== null ? `${figure({ ...cost, seats: 1, source: 'invoice', period: 'month' })} a seat, ${plural(cost.seats ?? 1, 'seat')}.` : ''

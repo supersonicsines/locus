@@ -121,6 +121,8 @@ export class MapView {
   private sealTarget = new Set<string>()
   private sealLanded = new Map<string, number>()
   private lensActive = false
+  /** Closed on this password but still readable until the next publish. */
+  private pendingSeal = new Set<string>()
 
   private dollarOn = false
   private dollarT = 0
@@ -290,12 +292,17 @@ export class MapView {
   }
 
   /** Which gates look sealed. A null set means no lens: everything is open. */
-  setLens(closed: Set<string> | null) {
+  setLens(closed: Set<string> | null, pending: Set<string> = new Set()) {
     this.lensActive = closed !== null
     this.sealTarget = closed ?? new Set()
+    // The wax lands when a gate is truly sealed: straight away if nothing was
+    // ever published to this password, or on publish if something was.
     for (const id of this.sealTarget) {
-      if (!this.sealLanded.has(id) && (this.seal.get(id) ?? 0) < 0.5) this.sealLanded.set(id, performance.now())
+      const appearing = !this.sealLanded.has(id) && (this.seal.get(id) ?? 0) < 0.5
+      const justPublished = this.pendingSeal.has(id) && !pending.has(id)
+      if ((appearing && !pending.has(id)) || justPublished) this.sealLanded.set(id, performance.now())
     }
+    this.pendingSeal = pending
     for (const id of this.sealLanded.keys()) if (!this.sealTarget.has(id)) this.sealLanded.delete(id)
     this.scheduleLabels(120)
     this.invalidate()
@@ -1252,7 +1259,9 @@ export class MapView {
         ctx.restore()
         ctx.strokeStyle = `rgba(${p.vermilionRGB},${0.6 * s})`
         ctx.lineWidth = 1 / k
+        if (this.pendingSeal.has(t.gate)) ctx.setLineDash([5 / k, 4 / k])
         ctx.stroke(t.outer)
+        ctx.setLineDash([])
       }
       if (hot) {
         ctx.strokeStyle = `rgba(${p.inkRGB},0.8)`
@@ -1563,17 +1572,19 @@ export class MapView {
 
       // The wax mark lands on a closed gate.
       if (s > 0.01) {
+        const pending = this.pendingSeal.has(t.gate)
         const landed = this.sealLanded.get(t.gate)
         const age = landed ? (now - landed) / 340 : 1
         const land = this.reducedMotion ? 1 : EASE(clamp(age, 0, 1))
         const waxSize = 44
-        const scale = lerp(1.55, 1, land)
+        const scale = pending ? 1 : lerp(1.55, 1, land)
         const wax = this.waxSeal(waxSize)
         const cx = (t.minX + t.maxX) / 2
         const cy = (t.minY + t.maxY) / 2
         const [sx, sy] = this.toScreen(cx, cy)
         const draw = waxSize * scale
-        ctx.globalAlpha = Math.min(1, s * 2) * (landed ? land : s)
+        // A ghost of the seal: it's closed here, but not yet closed out there.
+        ctx.globalAlpha = pending ? 0.26 * s : Math.min(1, s * 2) * (landed ? land : s)
         ctx.drawImage(wax, sx - draw / 2, sy - draw / 2, draw, draw)
         ctx.globalAlpha = 1
       }

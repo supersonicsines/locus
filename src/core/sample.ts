@@ -34,7 +34,7 @@ function defs(now: number): Record<string, Def[]> {
       ['entity-brand', 'fact', 'Company name in the brand book', 'Footer boilerplate: "© Meridian Inc."', 'The brand book\'s legal footer gives the company as Meridian Inc. Used in the website footer and all marketing templates.', { source: brandBook }],
       ['figma', 'service', 'Figma', 'Source of truth for design: components, tokens, logo files.', '', svc('https://www.figma.com/pricing/', 'https://mcp.figma.com/mcp')],
       ['webflow', 'service', 'Webflow', 'Marketing site.', '', svc('https://webflow.com/pricing', 'https://mcp.webflow.com/mcp')],
-      ['loom', 'service', 'Loom', 'Product walkthroughs and clinic training videos.', '', svc('https://www.atlassian.com/software/loom/pricing')],
+      ['loom', 'service', 'Loom', 'Product walkthroughs and clinic training videos.', '', svc('https://www.loom.com')],
     ],
     product: [
       ['positioning', 'fact', 'Positioning', 'Appointment and records software for independent vet clinics with one to five vets.', 'Not for hospital groups. Our edge is that a front desk can learn it in an afternoon. We lose to incumbents on lab integrations and win on everything a receptionist touches.', { source: specs }],

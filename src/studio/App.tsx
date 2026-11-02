@@ -135,7 +135,11 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       map.current?.setLens(null)
       return
     }
-    map.current?.setLens(new Set(vault.gates.filter((g) => !pw.gates.includes(g.id)).map((g) => g.id)))
+    const before = vault.published?.passwords[pw.id] ?? []
+    map.current?.setLens(
+      new Set(vault.gates.filter((g) => !pw.gates.includes(g.id)).map((g) => g.id)),
+      new Set(before.filter((g) => !pw.gates.includes(g))),
+    )
   }, [vault, lens, map])
 
   return <canvas ref={ref} className="map-canvas" tabIndex={-1} aria-hidden="true" />

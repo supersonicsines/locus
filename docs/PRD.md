@@ -83,7 +83,7 @@ Technical terms the audience already knows (MCP, API) are fine in the interface.
 - `$` switch: the price overlay (section 10).
 - Publish, re-publish, revoke, sign in with an owner key on another device. First publish can't complete until the owner key has been copied or downloaded; nobody can recover it.
 - Several maps per browser, switched from the top-left menu.
-- A sample company, so the product can be understood in ten seconds with no setup. The sample can't be published.
+- A sample company, so the product can be understood in ten seconds with no setup. On the hosted service the sample can't be published, so it can't burn a free account; self-hosted, it can, which is how you try the whole flow.
 - Light and dark.
 
 **The address (`yourco.domain`)**
@@ -223,7 +223,7 @@ BM25 plus one hop along links. No embeddings: agents already reformulate queries
 
 ### 11.5 Browser safety
 
-The browser holds plaintext, passwords and the Claude key, so piece bodies are rendered through a safe Markdown subset with no raw HTML. Strict CSP: no inline script, `connect-src` limited to self and `api.anthropic.com`. pdf.js runs with eval disabled. The gates panel, ⌘K and peek are a complete keyboard and screen-reader path to every piece, since a canvas alone offers neither. Reduced motion is respected.
+The browser holds plaintext, passwords and the Claude key, so piece bodies are rendered through a safe Markdown subset with no raw HTML. Strict CSP: no inline script, `connect-src` limited to self and `api.anthropic.com`. The bundled pdf.js has no eval path, and the CSP would block one anyway. The gates panel, ⌘K and peek are a complete keyboard and screen-reader path to every piece, since a canvas alone offers neither. Reduced motion is respected.
 
 ## 12. Success
 

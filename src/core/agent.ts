@@ -175,7 +175,7 @@ function costLine(c: Cost): string {
   if (c.plan) parts.push(`on ${c.plan}`)
   if (c.unit === 'seat' && c.seats) parts.push(`${plural(c.seats, 'seat')}`)
   const trust = trustOf(c)
-  parts.push(trust === 'unknown' ? 'price unknown' : c.source === 'invoice' ? 'from an invoice' : c.source === 'you' ? 'entered by the owner' : `list price as of ${c.asOf ?? 'an unknown date'}, may be out of date`)
+  parts.push(trust === 'unknown' ? 'price unknown' : c.source === 'invoice' ? 'from an invoice' : c.source === 'you' ? 'entered by the owner' : c.statedIn ? `stated in ${c.statedIn}, may be out of date` : `list price as of ${c.asOf ?? 'an unknown date'}, may be out of date`)
   if (c.renews) parts.push(`renews ${c.renews}`)
   return parts.join(', ')
 }

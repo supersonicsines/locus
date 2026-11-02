@@ -40,11 +40,13 @@ export function StatusLine() {
   const share = () => setState({ panel: panel === 'share' ? null : 'share' })
   const live = !!vault.published && !!vault.site
   const address = vault.site ? siteAddress(vault.site.name) : ''
+  // Someone can still read something you closed. That's the only thing worth saying first.
+  const exposed = live && p.exposures.length > 0
 
   return (
     <div className="status panel" role="status">
       {vault.sample && !live && <><span className="clause quiet">This is a sample company.</span>{' '}</>}
-      {live ? (
+      {exposed ? null : live ? (
         <button className="clause" onClick={() => void copy(address, 'Address copied.')} title="Copy the address">
           Live at {hostOf(address)}.
         </button>
@@ -62,9 +64,13 @@ export function StatusLine() {
       ) : live ? (
         <span className="clause quiet optional">Up to date.</span>
       ) : null}{' '}
-      <button className={`clause ${vault.passwords.length ? '' : 'quiet'} optional`} onClick={share}>
-        {vault.passwords.length ? `${plural(vault.passwords.length, 'password')} ${live ? 'out' : 'ready'}.` : 'No passwords yet.'}
-      </button>{' '}
+      {!exposed && (
+        <>
+          <button className={`clause ${vault.passwords.length ? '' : 'quiet'} optional`} onClick={share}>
+            {vault.passwords.length ? `${plural(vault.passwords.length, 'password')} ${live ? 'out' : 'ready'}.` : 'No passwords yet.'}
+          </button>{' '}
+        </>
+      )}
       {list.length > 0 ? (
         <button className="clause strong" onClick={open} aria-expanded={panel === 'needs'}>
           {list.length === 1 ? '1 thing needs you.' : `${list.length} things need you.`}

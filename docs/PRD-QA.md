@@ -18,7 +18,7 @@ Fix: scan locally before anything is sent. Found secrets are replaced with a lab
 
 **4. Flipping a gate looks instant but isn't.**
 The wax seal lands immediately, yet the old bundle still opens that gate until the next publish. A founder cutting off a contractor would believe it was done. This is the most dangerous mismatch in the product.
-Fix: any change that reduces access is called out in place: "Contractor can still read Legal until you publish", with Publish right there. Revoke publishes immediately and says it will also publish other pending changes.
+Fix: any change that reduces access is called out in place: "Contractor can still read Legal until you publish", with Publish right there. The map shows it too: the gate gets a dashed outline and a ghost of the seal, and the wax only lands once it's truly sealed. Revoke publishes immediately and says it will also publish other pending changes.
 
 **5. "The host never sees the password" is false for the browser.**
 The unlock page's JavaScript comes from the host. A dishonest host could serve code that steals the password. Only the CLI and local MCP, installed from a pinned package, are independent of the host.
@@ -34,7 +34,7 @@ Fix: never log these paths, send `Referrer-Policy: no-referrer`, offer this form
 
 **8. Piece content is an XSS path to the most sensitive data in the app.**
 The browser holds plaintext, passwords and the Claude key, and piece bodies come from untrusted files.
-Fix: render bodies through a safe Markdown subset with no raw HTML. Strict CSP with no inline script, and `connect-src` limited to self and `api.anthropic.com`. pdf.js runs with eval disabled.
+Fix: render bodies through a safe Markdown subset with no raw HTML. Strict CSP with no inline script, and `connect-src` limited to self and `api.anthropic.com`. The bundled pdf.js has no eval path, and the CSP would block one anyway.
 
 **9. The Claude key must never travel.**
 Fix: stored only in the browser, optional, and excluded from the owner's sealed copy.
@@ -54,7 +54,7 @@ Fix: first publish can't complete until the key has been copied or downloaded. T
 
 **13. A founder may have more than one company.** Fix: several maps per browser, switched from the top-left menu. Cheap, and it avoids a data-loss trap when moving from the sample to real data.
 
-**14. The sample could be published by accident and burn a spot.** Fix: the sample can't be published.
+**14. The sample could be published by accident and burn a spot.** Fix: the sample can't be published on the hosted service. Self-hosted it can, which is how you try the whole flow.
 
 **15. Re-dropping an updated file was undefined.** Fix: pieces from a file with the same name are replaced, and pieces with the same title keep their position and links, so the map stays recognisable.
 

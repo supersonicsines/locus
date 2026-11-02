@@ -72,6 +72,8 @@ export interface Cost {
   plan?: string
   asOf?: string
   renews?: string
+  /** A document that named this price without being an invoice for it. */
+  statedIn?: string
   /** The bundled list price, kept to compare against an invoice. */
   listAmount?: number
   /** The previous invoice's amount, to spot a usage jump. */
