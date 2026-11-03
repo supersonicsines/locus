@@ -185,7 +185,8 @@ export function Peek() {
           </>
         ) : (
           <>
-            <GrowingText className="piece-title" aria-label="Title" value={piece.title} placeholder="Untitled" onChange={(e) => changePiece(piece.id, { title: e.target.value.replace(/\n/g, ' ') })} />
+            {/* A new note is waiting for its name, so that's where typing goes. Otherwise focus stays on the button that made it, and every space makes another. */}
+            <GrowingText key={piece.id} className="piece-title" aria-label="Title" autoFocus={piece.title === 'Untitled'} onFocus={(e) => { if (piece.title === 'Untitled') e.target.select() }} value={piece.title} placeholder="Untitled" onChange={(e) => changePiece(piece.id, { title: e.target.value.replace(/\n/g, ' ') })} />
             <GrowingText className="piece-summary" aria-label="Summary" value={piece.summary} placeholder="One line an AI tool sees on the map" onChange={(e) => changePiece(piece.id, { summary: e.target.value.replace(/\n/g, ' ') })} />
           </>
         )}

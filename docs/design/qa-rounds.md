@@ -453,3 +453,139 @@ Uncapped figures only show headroom, and they swing about twofold between runs o
 - The map fills more of the screen now, so an open panel covers more of it. With Product's panel open, Engineering is hidden and the zoom control sits on People's land.
 - On the empty map the longest-smoothed terrain rings are nearly plain circles, which reads a little like a target.
 
+
+## Round 4: land and water, then type, colour and spacing
+
+**What the map is now. Later rounds work from this.**
+
+The company is one country, and each area is a county of it. One coast runs round the whole map, and quiet dashed borders run where two areas meet. Each area's name stands on its own land, flush left with what's under it, and no longer in the sea.
+
+| You see | It means |
+| --- | --- |
+| One firm coast | The edge of the company |
+| A dashed line | Two areas meet |
+| A county in pink, yellow or hatched | The same states as before, with the same words. Its whole edge wears the colour |
+| Water lines | Nothing. They make it a chart |
+| A dot at the end of a name | Worth a look. It used to sit on the mark |
+
+**How the round started, because it went wrong.** My first list of faults was written when the shots hadn't reached me, from the brief's notes and the code, and prototypes started from it. I caught that, reverted the prototypes, read all 52 shots and two real charts, and rewrote the list, removing three claims the shots didn't support. So the tries in the table below came before the list below, and only the list is the round's dissection.
+
+**What I saw, worst first.** Written down before the land was rewritten.
+
+1. Critical. Six white pebbles. One smooth curve each, nothing smaller than the island, every one the same idea. At 480px the land said "blob" before it said anything else.
+2. Critical. Separate islands for the departments of one company were the wrong picture. That's why the sea between neighbours was about 18 px wide, why there were necks, and why the page read as packed bubbles.
+3. Critical. Water lines necked into fingers wherever two coasts came close. They were the most eye-catching curves on the page and meant nothing, and a live map made them darker.
+4. High. Names and notes stood in the sea, so water lines ran behind the words and each name bit them with a halo.
+5. High. Zoomed out on the big map, kinds sat at unrelated heights on half-empty land.
+6. High. Two columns in one area started at different heights. Round 3 did that on purpose, to read as neighbourhoods. On the screen it reads as a mistake.
+7. High. Rows in a mixed column broke rhythm, because the gap under a two-line row was tighter than the gap under a one-line row.
+8. High. Reader marks overlapped, and the first cut the second to a crescent. That's half of "who can read what".
+9. High. Pins stood where a kind's name goes and pushed it out of line, breaking the one straight edge an area has.
+10. High. Two alignment systems per area: name and note centred on the coast, everything inside left-aligned. Long notes hung past narrow islands.
+11. Medium. Black dots touched their marks. On the i and the § they read as a blot or another glyph.
+12. Medium. A small map was an egg with its contents off-centre, inside rings like a target.
+13. Medium. The empty map's terrain was nested rings, a different drawing from the land, and the first thing anyone sees.
+14. Medium. A hatched pebble with a seal: the right signal on the wrong shape.
+15. Medium. Faded marks stayed under the discs in both `$` overlays and looked like dirt.
+16. Medium. A stray black mark over a word in the list of needs, seen once.
+17. Low. The zoom control lands on the map with a panel open. A setup command breaks mid-word. Names land on discs in Towns at 60 services. All known from earlier rounds.
+
+**How the shape was decided.** Two charts were read beside it: a Scottish tourist map of 1892 and Admiralty Chart 1144 (1911). What they do that the page didn't: a country is one landmass divided into counties, a coast has features at every scale, sea reaches inland between counties, and water lines wander and stop. Tried on the real page, in order:
+
+| Try | Verdict |
+| --- | --- |
+| Separate islands, ridged noise along the shore | Spiky. Reads as a splat |
+| Separate islands, sea lochs cut in along the shore | A better edge on the same six things in a row |
+| The same, with a tone in the sea on the side away from the light, and a coastal wash on the land | A frosted biscuit. The tone did that, and it came out |
+| The same, with small rocks offshore | The rocks read as stray marks beside words |
+| **One country, counties by nearest land** | **Chosen.** It read as a map on first sight, and it removes the necks by leaving nothing to neck against |
+
+Seeds were then chosen by eye on the sample. Seed 23 has the long firth between Product and Engineering, the strongest single feature on the page.
+
+**How the land works.** `coastField` in `layout.ts` is one field over the ground, and above zero is land. The coast is its zero contour. An inlet is a crease in that field, so it runs inland to a point. At anything on the land a hard margin alone holds the field above zero, so **everything stands on land by construction, and Round 3's check-and-redraw is gone**. An area's land is the ground nearest what's on it, read through a slow warp, so a border falls midway between neighbours and wanders. Anything the coast encloses counts as land, so a click there always finds an area. The field is laid on the ground and comes from one fixed seed, so moving an item changes only the coast near it. There's a test.
+
+**What changed.**
+- One landmass with counties, replacing `shoreOf`, `capeOf`, `clusters` and the rest.
+- Names on their land, flush left. A long name is cut where the next area starts, and may cross a firth to get there, as a name does on any map. Its panel has all of it. The line under it says the longest thing that fits.
+- Columns start level, and there's a test. The gap under a two-line row now matches the gap under a one-line row.
+- Reader marks stand side by side.
+- A pin's head stands in the margin with its tip on the corner of its mark. A kind's name no longer moves for it.
+- A dot goes at the end of its item's name.
+- Zoomed out, each area's lines are one block under its name, moved towards the middle of its land where that's still land. Lines can use all the land under them, not only the part under the items.
+- The empty map and the locked page use the same coast, at the corners of the sheet, in place of nested rings.
+- A small map's features are drawn smaller, so three items don't get a big empty country.
+- In the `$` overlays anything without a price goes altogether. From the code, that also means it can't be clicked while prices show. It could before, at 15% opacity.
+- Towns and Soundings discs now move straight away from water or a neighbour's land, so they keep to their own where there's room.
+- `openVault`'s redraw now says **Tidied this map, so like things sit together** with Undo, which restores every position, and only if something really moved. Undo acts only on the map it was offered for, and opening another map takes it off the screen. Tested, and used on screen with a simulated old map.
+
+**Two bugs this round found, both older than it.**
+- On Round 3's build, typing after Add a note here pressed the button again on every space, because focus stayed on it. "one two three" made three Untitled notes and no title. Measured on both builds. A new note now focuses its title.
+- Sliding the map clear of a panel kept a running total that a refit never cleared, so sliding back threw the map sideways. Land on screen went from 37% to 26% on Round 3's build after adding a note. The cause comes from reading the code. The total now resets on a refit and on any move by hand, and an open item gets the same slide as an open area.
+
+**Mistakes in my own work, caught on the screen or by a test.**
+- That slide took land on screen to nothing on my first build of this round.
+- Discs drifted onto water in the new firths, because `landBetween` can span a bay. My first fix walked them towards the area's middle, where the biggest disc stands, and put Stripe's name on Xero's disc. They now move straight away from the water.
+- The coast crossed itself in the narrowest inlets, drawing a small hook on Engineering's east shore. It looked like a slip of the pen. A new test failed on it before the fix.
+- A kind's name over an item dragged far away got an island of its own.
+- My first zoomed-out block dropped Tools from Engineering on a phone, which Round 3 didn't.
+- A one-line replace removed `setHighlight` and `setGateHover`. Typecheck caught it.
+
+**Decisions and why.**
+- **This overturns Round 1's "each an island of land on a plain sea" and Round 3's coast.** The evidence is `02-main` before and after. It's more than a new coast, so the operator should know it was a choice.
+- **Round 3's column step is gone.** It's why two columns looked like a mistake.
+- **`MAP_LAYOUT` stays at 1.** A map Round 3 already stamped keeps its positions, because bumping would redraw every never-live map once more for a small gain. Maps really drawn by Round 3's build, one never live and one live, opened with 0 of 76 items moved and no toast. Their land is redrawn around the old positions.
+- **`SAMPLE_LAYOUT` is 4.**
+- **The contents page holds up as reading.** Round 3 asked for fresh eyes. As a picture it was a tidy grid with a curve round it, and neither had anything to do with the other. A county gives the grid a reason to be there. I kept it, because services and rules are what the operator likes and it's what fixed "jumbled".
+
+**Traps for later rounds.**
+- `holds` on a territory is what's on it, and `minX` to `maxX` is its land. The fit goes by `holds`, so land runs on under the panels, as a map runs off its sheet. Use `holds` for anything about content.
+- `outer` runs past the coast. Anything drawn with it needs `clip(coast)`, as `strokeArea` does.
+- `onLand` reads the grid, so it's cheap enough for a frame. `isPointInPath` isn't.
+- `LAND` is the drawing. Changing the seed or any figure redraws every map's coast.
+- The grid and the name's ground go up in steps with the map's size: cells at 2800, 5600 and 11200 units, and names every 40 units. A map crossing a step shifts its land a little everywhere, so the "only near it" promise holds between steps. I tested it on one map, within one step.
+- `mainGroup` is why one item dragged far away doesn't take the area's name or a kind's name with it, and gets its own islet.
+- `gateLabelPos` moves with the zoomed-out block through `overviewShift`. Anything that needs the name's place closer in wants `gateLabelBase`.
+- `shots.mjs`'s `25-area-crops` now uses fixed rectangles, because there are no separate islands to find. If the sample's layout moves, move them.
+- `shots.mjs`'s `12-area-panel` still finds land by brightness. Land is one colour across borders, so it finds whichever area comes first.
+- `<QA>/r4-all.sh` runs the round's whole check. `r4-alone.mjs` draws the land with nothing on it, alone and beside the charts.
+
+**Frame rate.** 300 items, 60 services, 374 links, 1440x900 at 2x, headless Chrome, one input per frame. JS time and frame spacing, not paint on a real GPU. These ran one build before the last three changes (a pin's lean, removing self-crossings, how discs leave water), except the drop, which ran on the final build.
+
+| | Round 3 | Round 4 |
+| --- | --- | --- |
+| Pan and zoom, capped, 4x CPU | 60fps, one frame over 20 ms in all (1x and 4x) | 60fps, none over 20 ms |
+| Zoom, uncapped, 4x | 149 to 295fps | 115 to 163fps |
+| Worst JS frame while zooming, 4x | 8 to 11 ms | 9.4 to 12 ms |
+| Dropping an item, long task, 1x and 4x | up to 55 ms, and 113 to 188 ms | 51 to 85 ms, and 179 to 241 ms |
+
+Dropping costs more, because the whole country is one field and it's all rebuilt. A slow machine can feel it. Dragging itself doesn't rebuild anything. Rebuilding only a window round the change is the obvious next step, and I didn't do it. Pointing and prices show the same long gaps Round 3 recorded, on both builds.
+
+**Verified.** Chrome on the shipped final build: all 52 fixed shots were taken again, and everything that differed from the previous build was read by eye again, with the land alone, each area alone and beside the charts. Used for real: land opens its area and the sea closes it; clicking a mark and the head of each kind of pin opens the right item; a drag inside an area moves only that item; a drag between areas moves the border, with Undo; Tidy up and its Undo; picking a reader and flipping an area; adding a note; a new area on an arranged map; a kind's line zoomed out goes there; closer in; an item dragged far away gets one islet. Sizes: 3 items in one area and in three, one item in each of six areas, 40 in one, 100 in six, 300 in six and in twelve, a phone with the sample and with 300, and opening zoom on windows from 800 to 1920 wide. Extreme content: long area names, a one-letter one, a Japanese one, a long title and long reader names. Both `$` overlays at 5 and 60 services, Towns in dark at 60, and reduced motion. Light and dark. No page errors. Firefox and WebKit: main page, prices and the big map, with no request leaving the machine. Firefox was clean. WebKit logged the one `page.screenshot` line from earlier rounds. 116 tests pass, 11 more than Round 3, and types are clean. `seal.ts`, the server, the CSP, the dependencies and `agent.ts` are untouched.
+
+**Not verified.**
+- No real person has seen this. Whether it reads as a country or as a torn sheet of paper is my judgement. Whether it's beautiful is the operator's.
+- Read with Claude, since there's no key, so real output wasn't seen.
+- A real map from before Round 3. I simulated a scatter.
+- More than two reader marks on one area.
+- Real Safari, a real phone, pinch, Windows, hosted mode and a screen reader. A new note now takes focus, and focus order wasn't audited.
+- Frame rate in Firefox and WebKit, and on a real graphics card.
+- `flow4`, `flow5`, `cross` and `touch2`, which still use old selectors.
+
+**Would I put it in front of the operator?** Yes, and I wouldn't have said that of anything I tried before the one country. It no longer reads as blobs. It reads as a country on an atlas sheet, with counties and firths. Beside the real charts it's still far simpler: the outline is a rounded block with a worked edge, there's no hachure, no county tint and no depth, and a small map reads as a torn scrap. What I'd try next is a very pale, different tint per county, which is what makes the 1892 sheet read at a glance. I didn't, because colour here means sealed or urgent, and tinting neighbours needs a palette that can't be taken for either. That's the operator's call.
+
+**Worst thing left.** Inside an area, place still only means "what kind of thing". The country fixes how it looks and not that. Nearby items aren't related and linked things can sit far apart, so it's a very good index on a good map, and not yet a map you learn.
+
+**Also left.**
+- Engineering's east shore has a run of even little lobes that looks mechanical, like the edge of a stamp. It's the weakest stretch of coast. Seen last, on the land alone, and left.
+- Every map shares one seed, so two companies of the same shape get the same country.
+- A small map's land is off-centre to its contents and reads as a torn scrap. An item dragged far away gets a plain islet.
+- A map still in an old scatter has items standing on a neighbour's land. Tidy up fixes it, and Tidy up is still only in ⌘K.
+- Water lines can still meet between pieces of land when a map comes apart, as an old scatter can.
+- In Towns, Xero's name sits on a bump in the coast on the sample. At 60 services a few names touch the coast (Deel, Framer, Neon), a disc can touch a border (Vanta), and names still land on the next disc (Google Workspace, OpenAI API).
+- Soundings' rings pile up at 60 services, and its figures can cross a border (Gusto).
+- At 1280x720 a dot at the end of a name nearly touches the next mark along (Anthropic API beside Cursor). A pin's head has about a pixel to spare, and with longer names beside it, it would fall back on a kind's name.
+- Neighbouring areas can say the same fact in different wordings, because each says the longest thing that fits. On the main page Brand says For Claude Code and Design contractor, and Product beside it says For Claude Code and 1 other. Under a picked reader it's the same with Can't read.
+- A line still strikes through its own item's summary, as Stripe's does.
+- On a phone a kind's line can drop out with nothing to say so. Engineering shows Tools and its pins, and not Rules, Plans or Facts. "For Accountant" touches the coast under Money.
+- The stray mark in the list of needs was seen once, in this round's first run on Round 3's build. A fresh run shows nothing on either build, and no after shot has it. Unexplained.
+- `docs/PRD.md` still says territories are drawn as topographic contours, which stopped being true in Round 3.

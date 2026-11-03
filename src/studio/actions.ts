@@ -4,7 +4,7 @@ import { AlteredBundle, generatePassword, newId, openBundle, openOwnerCopy, publ
 import { createEmptyVault, createSample } from '../core/sample.ts'
 import { snapshot } from '../core/status.ts'
 import type { Bundle, Cost, Gate, Password, Piece, Vault } from '../core/types.ts'
-import { layoutPieces } from './map/layout.ts'
+import { layoutPieces, restorePositions } from './map/layout.ts'
 import { getState, setState, storage, type Toast } from './store.ts'
 
 // Toasts
@@ -52,11 +52,11 @@ export function placeNewPieces(v: Vault, opts: { reflow?: boolean } = {}): Vault
 }
 
 /** Bump when the layout changes, so a sample already in this browser gets redrawn. Real maps keep their positions. */
-const SAMPLE_LAYOUT = 3
+const SAMPLE_LAYOUT = 4
 
 /**
- * A map drawn before areas had any order keeps a scatter nobody chose. One that has never gone live gets redrawn, once.
- * A live map isn't touched, because someone may know their way around it. Tidy up the map does it on request.
+ * A map drawn before areas had any order keeps a scatter nobody chose. One that has never gone live gets redrawn, once, and says so, with a way back,
+ * because it might be an arrangement someone made by hand. A live map isn't touched, because someone may know their way around it. Tidy up the map does it on request.
  */
 const MAP_LAYOUT = 1
 
@@ -67,15 +67,32 @@ export async function openVault(v: Vault) {
     await storage.set('sampleLayout', SAMPLE_LAYOUT)
   }
   const stamp = `mapLayout:${v.id}`
+  let redrawnFrom: Piece[] | null = null
   if (!v.sample && (await storage.get<number>(stamp)) !== MAP_LAYOUT) {
-    if (!v.published && v.pieces.some((p) => p.x !== undefined)) placed = placeNewPieces(placed, { reflow: true })
+    if (!v.published && v.pieces.some((p) => p.x !== undefined)) {
+      const redrawn = placeNewPieces(placed, { reflow: true })
+      const held = new Map(placed.pieces.map((p) => [p.id, p]))
+      // Worth saying only if something really moved. Positions are saved to a tenth.
+      if (redrawn.pieces.some((p) => Math.abs(p.x! - (held.get(p.id)?.x ?? p.x!)) >= 0.5 || Math.abs(p.y! - (held.get(p.id)?.y ?? p.y!)) >= 0.5)) redrawnFrom = placed.pieces
+      placed = redrawn
+    }
     await storage.set(stamp, MAP_LAYOUT)
   }
-  setState({ vault: placed, selected: null, lens: null, area: null, panel: null, dollars: false, agentView: false, mode: 'studio', view: null })
+  // An Undo still on screen is about the map being left. Pressed here it would act on this one, and deleting's Undo would overwrite it.
+  setState({ vault: placed, selected: null, lens: null, area: null, panel: null, dollars: false, agentView: false, mode: 'studio', view: null, toasts: getState().toasts.filter((t) => !t.action) })
   await storage.saveVault(placed)
   await storage.set('lastVault', placed.id)
   const all = await storage.vaults()
   refreshList(all)
+  if (redrawnFrom) {
+    const before = redrawnFrom
+    toast('Tidied this map, so like things sit together.', { label: 'Undo', run: () => putBack(placed.id, before) })
+  }
+}
+
+/** Undo for anything that redraws the map. By then the person may have gone to another map, which it mustn't touch. */
+function putBack(id: string, before: Piece[]) {
+  updateVault((vault) => (vault.id === id ? { ...vault, pieces: restorePositions(vault.pieces, before) } : vault))
 }
 
 export async function loadSample() {
@@ -166,7 +183,7 @@ export function tidyMap() {
   updateVault((vault) => placeNewPieces(vault, { reflow: true }))
   toast('Tidied the map.', {
     label: 'Undo',
-    run: () => updateVault((vault) => ({ ...vault, pieces: vault.pieces.map((p) => { const old = before.find((b) => b.id === p.id); return old ? { ...p, x: old.x, y: old.y } : p }) })),
+    run: () => putBack(v.id, before),
   })
 }
 
