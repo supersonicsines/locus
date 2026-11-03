@@ -71,7 +71,10 @@ function CompanyMenu({ close }: { close: () => void }) {
           </>
         )}
         <div className="menu-sep" />
-        <div className="menu-note">Vadere {server?.version}. Open source, MIT licensed.</div>
+        <div className="menu-note">
+          Vadere {server?.version}. Open source, MIT licensed. Logos belong to their owners.{' '}
+          <a href="/licenses/NOTICE.txt" target="_blank" rel="noreferrer noopener">Notices</a>
+        </div>
       </div>
     </>
   )

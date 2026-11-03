@@ -6,7 +6,7 @@ import { search } from '../../core/search.ts'
 import type { PieceKind } from '../../core/types.ts'
 import { addPiece, createPassword, deleteGate, downloadText, newMap, publish, setTheme, toast } from '../actions.ts'
 import { getState, setState, useStore } from '../store.ts'
-import { Symbol, useEscape } from './bits.tsx'
+import { PieceMark, useEscape } from './bits.tsx'
 import { contentOf } from './data.ts'
 import type { MapView } from '../map/MapView.ts'
 
@@ -146,7 +146,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
               <div key={item.id}>
                 {head && <div className="cmdk-group">{item.group}</div>}
                 <button className="cmdk-item" role="option" aria-selected={i === index} onMouseMove={() => setIndex(i)} onClick={() => run(item)}>
-                  {item.kind && <Symbol kind={item.kind} size={13} />}
+                  {item.kind && <PieceMark kind={item.kind} name={item.title} size={13} />}
                   <span className="title">
                     {item.title}
                     {item.note && <small>{item.note}</small>}

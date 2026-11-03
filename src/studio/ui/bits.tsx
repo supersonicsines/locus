@@ -3,6 +3,8 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { linkParts } from '../../core/links.ts'
 import type { PieceKind } from '../../core/types.ts'
+import { monogramOf } from '../logos/lookup.ts'
+import { logoSource, serviceFor, TILE_PADDING, TILE_RADIUS, useLogosVersion } from '../logos/store.ts'
 import { drawSymbol } from '../map/symbols.ts'
 import { useStore } from '../store.ts'
 
@@ -44,6 +46,32 @@ export function Symbol({ kind, size = 14 }: { kind: PieceKind; size?: number }) 
     drawSymbol(x, kind, size / 2, size / 2, size * 0.28)
   }, [kind, size, theme])
   return <canvas ref={ref} style={{ width: size, height: size, flex: 'none' }} aria-hidden="true" />
+}
+
+/** A service's logo on its tile, or a monogram that never pretends to be a brand. The same shape on the map. */
+export function ServiceMark({ name, size = 20 }: { name: string; size?: number }) {
+  useLogosVersion()
+  const service = serviceFor(name)
+  const src = service ? logoSource(service) : null
+  const borderRadius = size * TILE_RADIUS
+  if (!service || !src) {
+    return (
+      <span className="svc-tile svc-mono" style={{ width: size, height: size, borderRadius, fontSize: size * 0.5 }} aria-hidden="true">
+        {monogramOf(name)}
+      </span>
+    )
+  }
+  const inner = service.full ? size : size - 2 * Math.round(size * TILE_PADDING)
+  return (
+    <span className="svc-tile" style={{ width: size, height: size, borderRadius, background: service.tile ?? '#fff' }} aria-hidden="true">
+      <img src={src} width={inner} height={inner} alt="" draggable={false} />
+    </span>
+  )
+}
+
+/** What stands for a piece in a list: a service's mark, or any other piece's symbol. */
+export function PieceMark({ kind, name, size = 14 }: { kind: PieceKind; name: string; size?: number }) {
+  return kind === 'service' ? <ServiceMark name={name} size={Math.max(size + 4, 16)} /> : <Symbol kind={kind} size={size} />
 }
 
 /** A textarea that fits its content, for Notion-style editing in place. */

@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toCheck } from '../core/money.ts'
 import { needs } from '../core/status.ts'
 import { loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
+import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
 import { getState, setState, storage, useStore } from './store.ts'
 import { useEscape } from './ui/bits.tsx'
@@ -383,6 +384,11 @@ export function App() {
   })
 
   const hasMap = !!vault || !!view
+
+  // One file, whatever the map holds, and only once there's a map to show.
+  useEffect(() => {
+    if (hasMap) loadLogos()
+  }, [hasMap])
 
   return (
     <>

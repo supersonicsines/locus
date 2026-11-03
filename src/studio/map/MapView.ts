@@ -7,6 +7,8 @@ import { figure, monthly, soundingRadius, summarize, townRadius, trustOf, type M
 import type { Cost, Gate, Link, Piece } from '../../core/types.ts'
 import { buildEmptyTerrain, buildTerritories, type Territory } from './layout.ts'
 import { drawSymbol, makeWaxSeal } from './symbols.ts'
+import { TileCache } from './tiles.ts'
+import { onLogosLoaded, TILE_RADIUS } from '../logos/store.ts'
 
 export interface Palette {
   paper: string
@@ -82,6 +84,9 @@ const MAX_K = 3.5
 
 const SERIF = 'Lustria, Georgia, "Times New Roman", serif'
 
+/** A service's tile on the map, in screen pixels. It grows slowly with zoom, and stops at sizes a logo can still be read at. */
+const tileSize = (k: number) => Math.round(clamp(25 * Math.sqrt(k), 14, 30))
+
 export class MapView {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
@@ -109,6 +114,8 @@ export class MapView {
 
   private palette: Palette | null = null
   private wax = new Map<number, HTMLCanvasElement>()
+  private tiles: TileCache
+  private stopLogos: () => void
   private hatch: CanvasPattern | null = null
   private sealedHatch: CanvasPattern | null = null
 
@@ -151,6 +158,12 @@ export class MapView {
     this.ctx = canvas.getContext('2d', { alpha: false })!
     this.cb = cb
     this.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
+    this.tiles = new TileCache(() => this.invalidate())
+    // Logos arrive when they arrive. Tiles keep their size, so the swap moves nothing.
+    this.stopLogos = onLogosLoaded(() => {
+      this.tiles.reset()
+      this.invalidate()
+    })
 
     canvas.addEventListener('pointerdown', this.onDown)
     canvas.addEventListener('pointermove', this.onMove)
@@ -165,6 +178,7 @@ export class MapView {
 
   destroy() {
     cancelAnimationFrame(this.raf)
+    this.stopLogos()
     window.removeEventListener('keydown', this.onKey)
     window.removeEventListener('keyup', this.onKey)
   }
@@ -214,6 +228,7 @@ export class MapView {
   /** Called when fonts arrive, so canvas text and the wax mark use them. */
   fontsReady() {
     this.wax.clear()
+    this.tiles.reset()
     this.scheduleLabels(0)
     this.invalidate()
   }
@@ -479,16 +494,15 @@ export class MapView {
       if (n.alpha < 0.05) continue
       const [wx, wy] = this.displayPos(n)
       const [x, y] = this.toScreen(wx, wy)
-      let r = 10
+      let r = n.piece.kind === 'service' ? tileSize(k) / 2 + 3 : 10
       if (this.dollarOn && n.cost && this.dollarStyle === 'towns') r = this.townScreenRadius(n)
-      if (this.dollarOn && n.cost && this.dollarStyle === 'soundings') r = Math.max(10, Math.min(this.soundingScreenRadius(n), 24))
+      if (this.dollarOn && n.cost && this.dollarStyle === 'soundings') r = Math.max(r, Math.min(this.soundingScreenRadius(n), 24))
       const d = Math.hypot(sx - x, sy - y)
       if (d < r && d < bestD) {
         best = n
         bestD = d
       }
     }
-    void k
     return best
   }
 
@@ -922,10 +936,12 @@ export class MapView {
     const neighbours = this.activeNeighbours()
 
     // Symbols are obstacles too: a label must never sit on top of another piece.
+    const tile = tileSize(k)
     for (const n of this.nodes) {
       if (this.sealTarget.has(n.piece.gate)) continue
       const [x, y] = this.toScreen(n.tx, n.ty)
-      rects.push({ x: x - 6, y: y - 6, w: 12, h: 12 })
+      const half = n.piece.kind === 'service' ? tile / 2 + 1 : 6
+      rects.push({ x: x - half, y: y - half, w: half * 2, h: half * 2 })
     }
 
     const score = (n: Node) => {
@@ -952,11 +968,14 @@ export class MapView {
       const [x, y] = this.toScreen(n.tx, n.ty)
       if (x < -80 || y < -40 || x > this.w + 80 || y > this.h + 40) continue
       const w = this.measure(n.piece.title, FONT)
+      // Clear of the tile, and of the ring a tile wears when it's selected or needs you.
+      const ringed = n.piece.id === this.selected || this.data.flagged.has(n.piece.id)
+      const off = n.piece.kind === 'service' ? tile / 2 + (ringed ? 8 : 5) : 10
       const candidates: [number, number, CanvasTextAlign][] = [
-        [x + 10, y + 4, 'left'],
-        [x - 10, y + 4, 'right'],
-        [x, y - 11, 'center'],
-        [x, y + 19, 'center'],
+        [x + off, y + 4, 'left'],
+        [x - off, y + 4, 'right'],
+        [x, y - off - 1, 'center'],
+        [x, y + off + 9, 'center'],
       ]
       for (const [cx, cy, align] of candidates) {
         const left = align === 'left' ? cx : align === 'right' ? cx - w : cx - w / 2
@@ -997,10 +1016,11 @@ export class MapView {
     const nextFigures = new Map<string, PlacedLabel>()
 
     // Every service's mark is an obstacle for every other service's figure.
+    const tile = tileSize(this.cam.k)
     if (!towns) {
       for (const n of services) {
         const [x, y] = this.toScreen(n.tx, n.ty)
-        rects.push({ x: x - 7, y: y - 7, w: 14, h: 14 })
+        rects.push({ x: x - tile / 2, y: y - tile / 2, w: tile, h: tile })
       }
     }
 
@@ -1008,7 +1028,7 @@ export class MapView {
     for (const n of services) {
       const [wx, wy] = towns ? [n.townX, n.townY] : [n.tx, n.ty]
       const [x, y] = this.toScreen(wx, wy)
-      const r = towns ? this.townScreenRadius(n) : Math.max(this.soundingScreenRadius(n), 7)
+      const r = towns ? this.townScreenRadius(n) : Math.max(this.soundingScreenRadius(n), tile / 2 + 1)
       const font = this.figureFont(n)
       const text = figure(n.cost!, this.period)
       // A thing to check carries a small mark after the figure, which needs room too.
@@ -1027,9 +1047,11 @@ export class MapView {
       } else {
         const gap = 6
         const near = Math.min(r, 34)
+        // A figure to the left carries its check mark between it and the tile, so that needs room as well.
+        const leftGap = gap + (this.data.priceChecks.has(n.piece.id) ? 10 : 0)
         const candidates: [number, number, CanvasTextAlign][] = [
           [x + near + gap, y + 4, 'left'],
-          [x - near - gap, y + 4, 'right'],
+          [x - near - leftGap, y + 4, 'right'],
           [x, y - near - gap, 'center'],
           [x, y + near + gap + 9, 'center'],
           [x + near * 0.7 + gap, y - near * 0.7 - 2, 'left'],
@@ -1209,6 +1231,8 @@ export class MapView {
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
     ctx.fillStyle = p.paper
     ctx.fillRect(0, 0, this.w, this.h)
+    this.tiles.configure(p, this.dpr, this.sans)
+    this.tiles.beginFrame()
 
     if (!this.nodes.length) {
       this.drawEmpty()
@@ -1226,8 +1250,8 @@ export class MapView {
     if (this.dollarT > 0 && this.dollarStyle === 'soundings') this.drawSoundings(k)
     ctx.restore()
 
-    this.drawNodes()
-    if (this.dollarT > 0 && this.dollarStyle === 'towns') this.drawTowns()
+    this.drawNodes(now)
+    if (this.dollarT > 0 && this.dollarStyle === 'towns') this.drawTowns(now)
     this.drawLabels()
     if (this.dollarT > 0) this.drawFigures()
     this.drawGateLabels(now)
@@ -1358,23 +1382,77 @@ export class MapView {
     ctx.setLineDash([])
   }
 
-  private drawNodes() {
+  /** A service's tile, centred on (x, y), on whole device pixels so it stays sharp. */
+  private drawTile(name: string, x: number, y: number, size: number, alpha: number, now: number) {
+    const ctx = this.ctx
+    const { mono, logo, reveal } = this.tiles.tile(name, size, now)
+    const px = Math.round(size * this.dpr) / this.dpr
+    const left = Math.round((x - px / 2) * this.dpr) / this.dpr
+    const top = Math.round((y - px / 2) * this.dpr) / this.dpr
+    if (mono && reveal < 1) {
+      ctx.globalAlpha = alpha
+      ctx.drawImage(mono, left, top, px, px)
+    }
+    if (logo) {
+      ctx.globalAlpha = alpha * reveal
+      ctx.drawImage(logo, left, top, px, px)
+    } else if (mono && reveal >= 1) {
+      ctx.globalAlpha = alpha
+      ctx.drawImage(mono, left, top, px, px)
+    }
+  }
+
+  /** A ring that follows the tile's corners. */
+  private tileRing(x: number, y: number, size: number) {
+    const ctx = this.ctx
+    const half = size / 2
+    const r = size * TILE_RADIUS
+    ctx.beginPath()
+    ctx.moveTo(x - half + r, y - half)
+    ctx.arcTo(x + half, y - half, x + half, y + half, r)
+    ctx.arcTo(x + half, y + half, x - half, y + half, r)
+    ctx.arcTo(x - half, y + half, x - half, y - half, r)
+    ctx.arcTo(x - half, y - half, x + half, y - half, r)
+    ctx.closePath()
+  }
+
+  private drawNodes(now: number) {
     const ctx = this.ctx
     const p = this.palette!
     const r = clamp(3.6 * Math.pow(this.cam.k, 0.5), 1.5, 4.6)
     const towns = this.dollarStyle === 'towns' ? EASE(this.dollarT) : 0
+    const tile = tileSize(this.cam.k)
     for (const n of this.nodes) {
       if (n.alpha < 0.01) continue
       if (towns > 0.5 && n.cost) continue
       const [wx, wy] = this.displayPos(n)
       const [x, y] = this.toScreen(wx, wy)
-      if (x < -20 || y < -20 || x > this.w + 20 || y > this.h + 20) continue
+      if (x < -30 || y < -30 || x > this.w + 30 || y > this.h + 30) continue
       const appear = EASE(n.appear)
       const scale = 0.6 + appear * 0.4
       ctx.globalAlpha = n.alpha * appear
       ctx.fillStyle = p.ink
       ctx.strokeStyle = p.ink
       ctx.lineWidth = 1
+
+      if (n.piece.kind === 'service') {
+        const size = tile * scale
+        this.drawTile(n.piece.title, x, y, size, n.alpha * appear, now)
+        ctx.globalAlpha = n.alpha * appear
+        // A dotted ring is the chart's mark for a hazard.
+        if (this.data.flagged.has(n.piece.id) && !this.dollarOn && this.cam.k > 0.38) {
+          ctx.setLineDash([1.5, 2.5])
+          this.tileRing(x, y, size + 8)
+          ctx.stroke()
+          ctx.setLineDash([])
+        }
+        if (n.piece.id === this.selected) {
+          ctx.lineWidth = 1.25
+          this.tileRing(x, y, size + 7)
+          ctx.stroke()
+        }
+        continue
+      }
 
       // Paper behind each symbol, so links don't run through it.
       ctx.save()
@@ -1431,7 +1509,7 @@ export class MapView {
   }
 
   /** Discs with engraved hatching, the figure knocked out of the middle. */
-  private drawTowns() {
+  private drawTowns(now: number) {
     const ctx = this.ctx
     const p = this.palette!
     const scale = this.cam.k / this.fitK
@@ -1483,6 +1561,13 @@ export class MapView {
         ctx.arc(x, y, R + 4, 0, Math.PI * 2)
         ctx.stroke()
       }
+
+      // The service's logo. Where the figure sits inside the disc the logo stands above it. Otherwise it's in the middle.
+      const figure = this.figures.get(n.piece.id)
+      const inside = !!figure && Math.abs(figure.y) < R
+      const size = Math.round(clamp(R * (inside ? 0.62 : 1.05), 14, 30))
+      const lift = inside ? R * 0.5 : 0
+      this.drawTile(n.piece.title, x, y - lift, size, n.alpha * Math.min(1, t * 1.6), now)
     }
     ctx.globalAlpha = 1
   }

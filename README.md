@@ -113,4 +113,6 @@ Start with [docs/PRD.md](docs/PRD.md). [docs/PRD-QA.md](docs/PRD-QA.md) records 
 
 ## License
 
-MIT
+Vadere's code is MIT. The fonts and the service logos that ship with it are not: see [NOTICE.md](NOTICE.md).
+
+Logos are trademarks of their owners and aren't covered by the MIT licence. They're shown to identify the services a company uses, and no endorsement is implied.

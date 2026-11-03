@@ -1,7 +1,7 @@
 // Sheets: the few moments that deserve to interrupt the map.
 
 import { useEffect, useMemo, useState } from 'react'
-import { CATALOG, CATALOG_AS_OF } from '../../core/catalog.ts'
+import { CATALOG, CATALOG_AS_OF, findInCatalog, type CatalogEntry } from '../../core/catalog.ts'
 import { generateOwnerKey, looksLikeKey } from '../../core/seal.ts'
 import { shredLocally, DEFAULT_GATES } from '../../core/shred-local.ts'
 import { addPiece, copy, deleteCurrentMap, downloadText, lastPublishFailure, placeNewPieces, publish, refreshServer, setCost, signIn, siteAddress, toast, updateVault } from '../actions.ts'
@@ -10,7 +10,9 @@ import { estimateTokens, extract, type Extracted } from '../shred/extract.ts'
 import { merge } from '../shred/merge.ts'
 import { getState, setState, storage, useStore } from '../store.ts'
 import { newId } from '../../core/seal.ts'
-import { plural, useEscape } from './bits.tsx'
+import { normaliseName, type KnownService } from '../logos/lookup.ts'
+import { allServices, serviceFor, useLogosVersion } from '../logos/store.ts'
+import { plural, ServiceMark, useEscape } from './bits.tsx'
 
 function Sheet({ children, onClose, label }: { children: React.ReactNode; onClose?: () => void; label: string }) {
   useEscape(() => onClose?.(), !!onClose)
@@ -294,23 +296,62 @@ function RenameSheet() {
   )
 }
 
+/** Each kind of service lands in the gate it most likely belongs to, if the map has that gate. */
+const GATE_BY_CATEGORY: Record<string, string> = {
+  design: 'brand', marketing: 'brand', code: 'engineering', dev: 'engineering', cloud: 'engineering', hosting: 'engineering', data: 'engineering', ai: 'engineering', security: 'engineering',
+  payments: 'money', finance: 'money', legal: 'legal', people: 'people', workspace: 'people', comms: 'people', ops: 'people',
+}
+const CATEGORY_WORDS: Record<string, string> = {
+  cloud: 'hosting', dev: 'developer', ai: 'AI', data: 'data', analytics: 'analytics', product: 'product', design: 'design', workspace: 'workspace', comms: 'communication',
+  marketing: 'marketing', sales: 'sales', support: 'support', finance: 'finance', people: 'people', legal: 'legal', security: 'security', ops: 'operations', commerce: 'commerce',
+}
+const SHOWN_AT_ONCE = 60
+
+/** Where a known service has a checked price, that's the only place one comes from. */
+function catalogEntryFor(s: KnownService) {
+  for (const name of [s.name, ...s.aliases]) {
+    const entry = findInCatalog(name)
+    if (entry) return entry
+  }
+  return undefined
+}
+
 function AddServiceSheet() {
   const [q, setQ] = useState('')
   const vault = useStore((s) => s.vault)!
-  const have = useMemo(() => new Set(vault.pieces.filter((p) => p.kind === 'service').map((p) => p.title.toLowerCase())), [vault.pieces])
-  const list = CATALOG.filter((e) => e.name.toLowerCase().includes(q.trim().toLowerCase()) && !have.has(e.name.toLowerCase()))
+  useLogosVersion()
+  const have = useMemo(() => {
+    const titles = vault.pieces.filter((p) => p.kind === 'service').map((p) => p.title)
+    return { names: new Set(titles.map(normaliseName)), ids: new Set(titles.map((t) => serviceFor(t)?.id)) }
+  }, [vault.pieces])
+  const needle = normaliseName(q)
+  const known = allServices()
+  // Until the list arrives, the catalog is what there is.
+  const rows = known.length
+    ? known
+        .filter((s) => !have.ids.has(s.id) && !have.names.has(normaliseName(s.name)))
+        .filter((s) => !needle || normaliseName(s.name).includes(needle) || s.aliases.some((a) => normaliseName(a).includes(needle)))
+        .slice(0, SHOWN_AT_ONCE)
+        .map((s) => ({ name: s.name, service: s as KnownService | undefined, entry: catalogEntryFor(s) }))
+    : CATALOG.filter((e) => normaliseName(e.name).includes(needle) && !have.names.has(normaliseName(e.name))).map((e) => ({ name: e.name, service: undefined as KnownService | undefined, entry: e as CatalogEntry | undefined }))
+  const exact = !!needle && (rows.some((r) => normaliseName(r.name) === needle) || !!serviceFor(q))
 
-  const add = (name: string) => {
-    const entry = CATALOG.find((e) => e.name === name)
+  const add = (name: string, service?: KnownService, entry?: CatalogEntry) => {
+    const category = entry?.category ?? service?.category
+    const wanted = category ? GATE_BY_CATEGORY[category] ?? 'product' : 'product'
+    const gate = vault.gates.some((g) => g.id === wanted) ? wanted : (vault.gates[0]?.id ?? 'product')
     if (!entry) {
-      const id = addPiece({ title: name, kind: 'service', summary: 'A service the company uses.', gate: 'product' })
+      const id = addPiece({
+        title: name,
+        kind: 'service',
+        summary: service ? `The ${CATEGORY_WORDS[service.category]} service the company uses.` : 'A service the company uses.',
+        gate: service ? gate : 'product',
+        url: service ? `https://${service.domain}` : undefined,
+      })
       setCost(id, { amount: null, source: 'you', unit: 'flat' })
       close()
       return
     }
-    const gateByCat: Record<string, string> = { design: 'brand', code: 'engineering', hosting: 'engineering', data: 'engineering', ai: 'engineering', security: 'engineering', payments: 'money', finance: 'money', legal: 'legal', people: 'people', workspace: 'people' }
-    const wanted = gateByCat[entry.category] ?? 'product'
-    const gate = vault.gates.some((g) => g.id === wanted) ? wanted : vault.gates[0].id
     const id = addPiece({
       title: entry.name,
       kind: 'service',
@@ -334,17 +375,32 @@ function AddServiceSheet() {
     <Sheet label="Add a service" onClose={close}>
       <h2>Add a service</h2>
       <p>List prices were checked on {CATALOG_AS_OF}, and show as estimates until you drop an invoice or type your own.</p>
-      <input className="field" autoFocus placeholder="Find a service" aria-label="Find a service" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && q.trim()) add(list[0]?.name ?? q.trim()) }} />
+      <input
+        className="field"
+        autoFocus
+        placeholder="Find a service"
+        aria-label="Find a service"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter' || !q.trim()) return
+          const first = rows[0]
+          if (first) add(first.name, first.service, first.entry)
+          else add(q.trim())
+        }}
+      />
       <div className="catalog-list">
-        {list.map((e) => (
-          <button key={e.name} className="catalog-item" onClick={() => add(e.name)}>
-            <span>{e.name}</span>
-            <span className="meta">{e.amount === null ? e.plan : `$${e.amount}${e.unit === 'seat' ? ' a seat' : ''}`}</span>
+        {rows.map((r) => (
+          <button key={r.name} className="catalog-item" onClick={() => add(r.name, r.service, r.entry)}>
+            <ServiceMark name={r.name} size={20} />
+            <span className="grow">{r.name}</span>
+            {r.entry && <span className="meta">{r.entry.amount === null ? r.entry.plan : `$${r.entry.amount}${r.entry.unit === 'seat' ? ' a seat' : ''}`}</span>}
           </button>
         ))}
-        {q.trim() && !list.some((e) => e.name.toLowerCase() === q.trim().toLowerCase()) && (
+        {q.trim() && !exact && (
           <button className="catalog-item" onClick={() => add(q.trim())}>
-            <span>Add "{q.trim()}"</span>
+            <ServiceMark name={q.trim()} size={20} />
+            <span className="grow">Add "{q.trim()}"</span>
             <span className="meta">No price yet</span>
           </button>
         )}

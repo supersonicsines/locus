@@ -1,0 +1,893 @@
+rank,id,name,domain,source,file,licence,matched_by,note
+1,google-workspace,Google Workspace,workspace.google.com,https://github.com/gilbarbara/logos,google-icon.svg,CC0-1.0,looked at by hand,Google's own G. The pack's Workspace file is a wordmark
+2,slack,Slack,slack.com,https://github.com/gilbarbara/logos,slack-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+3,github,GitHub,github.com,https://github.com/gilbarbara/logos,github-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+4,aws,AWS,aws.amazon.com,https://github.com/glincker/thesvg,color.svg,MIT,"name, and the pack's URL matches the domain",
+5,stripe,Stripe,stripe.com,https://github.com/simple-icons/simple-icons,stripe.svg,CC0-1.0,looked at by hand,The S on its own colour. The newer flag mark is far less recognisable at 20px
+6,notion,Notion,notion.com,https://github.com/gilbarbara/logos,notion-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+7,figma,Figma,figma.com,https://github.com/pheralb/svgl,figma.svg,MIT,"name, and the pack's URL matches the domain",
+8,linear,Linear,linear.app,https://github.com/gilbarbara/logos,linear-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+9,vercel,Vercel,vercel.com,https://github.com/gilbarbara/logos,vercel-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+10,openai-api,OpenAI API,openai.com,https://github.com/gilbarbara/logos,openai-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+11,anthropic-api,Anthropic API,anthropic.com,https://github.com/gilbarbara/logos,anthropic-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+12,chatgpt,ChatGPT,chatgpt.com,https://github.com/homarr-labs/dashboard-icons,chatgpt.svg,Apache-2.0,"name, then looked at by hand",
+13,claude,Claude,claude.ai,https://github.com/gilbarbara/logos,claude-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+14,cursor,Cursor,cursor.com,https://github.com/gilbarbara/logos,cursor-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+15,google-cloud,Google Cloud,cloud.google.com,https://github.com/glincker/thesvg,color.svg,MIT,"name, and the pack's URL matches the domain",
+16,microsoft-365,Microsoft 365,microsoft.com,https://github.com/homarr-labs/dashboard-icons,microsoft-365.svg,Apache-2.0,"name, then looked at by hand",
+17,zoom,Zoom,zoom.com,https://github.com/gilbarbara/logos,zoom-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+18,hubspot,HubSpot,hubspot.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+19,salesforce,Salesforce,salesforce.com,https://github.com/pheralb/svgl,salesforce.svg,MIT,"name, and the pack's URL matches the domain",
+20,jira,Jira,atlassian.com,https://github.com/gilbarbara/logos,jira.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+21,confluence,Confluence,atlassian.com,https://github.com/gilbarbara/logos,confluence.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+22,cloudflare,Cloudflare,cloudflare.com,https://github.com/gilbarbara/logos,cloudflare-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+23,datadog,Datadog,datadoghq.com,https://github.com/gilbarbara/logos,datadog-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+24,sentry,Sentry,sentry.io,https://github.com/pheralb/svgl,sentry.svg,MIT,"name, and the pack's URL matches the domain",
+25,supabase,Supabase,supabase.com,https://github.com/gilbarbara/logos,supabase-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+26,intercom,Intercom,intercom.com,https://github.com/gilbarbara/logos,intercom-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+27,zendesk,Zendesk,zendesk.com,https://github.com/gilbarbara/logos,zendesk-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+28,posthog,PostHog,posthog.com,https://github.com/gilbarbara/logos,posthog-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+29,mixpanel,Mixpanel,mixpanel.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+30,amplitude,Amplitude,amplitude.com,https://github.com/gilbarbara/logos,amplitude-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+31,google-analytics,Google Analytics,analytics.google.com,https://github.com/pheralb/svgl,google-analytics.svg,MIT,"name, and the pack's URL matches the domain",
+32,segment,Segment,segment.com,https://github.com/gilbarbara/logos,segment-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+33,snowflake,Snowflake,snowflake.com,https://github.com/gilbarbara/logos,snowflake-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+34,bigquery,BigQuery,cloud.google.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+35,dbt,dbt,getdbt.com,https://github.com/gilbarbara/logos,dbt-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+36,mongodb,MongoDB,mongodb.com,https://github.com/devicons/devicon,mongodb-original.svg,MIT,looked at by hand,The green leaf on white
+37,postgresql,PostgreSQL,postgresql.org,https://github.com/pheralb/svgl,postgresql.svg,MIT,"name, and the pack's URL matches the domain",
+38,neon,Neon,neon.com,https://github.com/gilbarbara/logos,neon-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+39,redis,Redis,redis.io,https://github.com/pheralb/svgl,redis.svg,MIT,"name, and the pack's URL matches the domain",
+40,docker,Docker,docker.com,https://github.com/gilbarbara/logos,docker-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+41,kubernetes,Kubernetes,kubernetes.io,https://github.com/pheralb/svgl,kubernetes.svg,MIT,"name, and the pack's URL matches the domain",
+42,terraform,Terraform,terraform.io,https://github.com/gilbarbara/logos,terraform-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+43,gitlab,GitLab,gitlab.com,https://github.com/gilbarbara/logos,gitlab-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+44,github-copilot,GitHub Copilot,github.com,https://github.com/pheralb/svgl,copilot.svg,MIT,"name, and the pack's URL matches the domain",
+45,gusto,Gusto,gusto.com,https://github.com/gilbarbara/logos,gusto.svg,CC0-1.0,looked at by hand,"The g from the wordmark, as Gusto's own small mark uses"
+46,rippling,Rippling,rippling.com,https://www.rippling.com/favicons/favicon.svg,rippling.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+47,deel,Deel,deel.com,https://website-media.deel.com/logo_revamp_164ddaed0c.svg,deel.svg,"None. The owner's own file, shown to identify it",looked at by hand,Deel's mark is its wordmark
+48,carta,Carta,carta.com,https://carta.com/favicon.svg,carta.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+49,mercury,Mercury,mercury.com,https://mercury.com/favicon.svg,mercury.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+50,brex,Brex,brex.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+51,ramp,Ramp,ramp.com,https://github.com/homarr-labs/dashboard-icons,ramp.svg,Apache-2.0,"name, then looked at by hand",
+52,quickbooks,QuickBooks,quickbooks.intuit.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+53,xero,Xero,xero.com,https://github.com/gilbarbara/logos,xero.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+54,netsuite,NetSuite,netsuite.com,https://github.com/homarr-labs/dashboard-icons,netsuite.svg,Apache-2.0,"name, then looked at by hand",
+55,docusign,DocuSign,docusign.com,https://github.com/homarr-labs/dashboard-icons,docusign.svg,Apache-2.0,"name, then looked at by hand",
+56,vanta,Vanta,vanta.com,https://cdn.prod.website-files.com/64009032676f24f376f002fc/6400ac82429afb0f7b31fa6c_vanta-logo.svg,vanta.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+57,drata,Drata,drata.com,,,,,monogram: no usable logo found
+58,1password,1Password,1password.com,https://github.com/pheralb/svgl,1password-light.svg,MIT,"name, and the pack's URL matches the domain",
+59,okta,Okta,okta.com,https://github.com/gilbarbara/logos,okta-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+60,auth0,Auth0,auth0.com,https://github.com/gilbarbara/logos,auth0-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+61,clerk,Clerk,clerk.com,https://github.com/gilbarbara/logos,clerk-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+62,twilio,Twilio,twilio.com,https://github.com/gilbarbara/logos,twilio-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+63,sendgrid,SendGrid,sendgrid.com,https://github.com/gilbarbara/logos,sendgrid-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+64,resend,Resend,resend.com,https://github.com/gilbarbara/logos,resend-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+65,postmark,Postmark,postmarkapp.com,https://postmarkapp.com/images/logo-stamp-simple.svg,postmark.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+66,mailchimp,Mailchimp,mailchimp.com,https://github.com/gilbarbara/logos,mailchimp-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+67,customer-io,Customer.io,customer.io,https://github.com/gilbarbara/logos,customerio-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+68,loops,Loops,loops.so,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+69,webflow,Webflow,webflow.com,https://github.com/pheralb/svgl,webflow.svg,MIT,"name, and the pack's URL matches the domain",
+70,framer,Framer,framer.com,https://github.com/pheralb/svgl,framer.svg,MIT,"name, and the pack's URL matches the domain",
+71,canva,Canva,canva.com,https://github.com/pheralb/svgl,canva.svg,MIT,"name, and the pack's URL matches the domain",
+72,adobe-creative-cloud,Adobe Creative Cloud,adobe.com,https://github.com/gilbarbara/logos,adobe-icon.svg,CC0-1.0,looked at by hand,The parent company's mark
+73,loom,Loom,loom.com,https://github.com/gilbarbara/logos,loom-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+74,asana,Asana,asana.com,https://github.com/gilbarbara/logos,asana-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+75,airtable,Airtable,airtable.com,https://github.com/gilbarbara/logos,airtable.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+76,monday,Monday.com,monday.com,https://github.com/gilbarbara/logos,monday-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+77,trello,Trello,trello.com,https://github.com/pheralb/svgl,trello.svg,MIT,"name, and the pack's URL matches the domain",
+78,calendly,Calendly,calendly.com,https://github.com/pheralb/svgl,calendly.svg,MIT,"name, and the pack's URL matches the domain",
+79,cal-com,Cal.com,cal.com,https://github.com/homarr-labs/dashboard-icons,cal-com.svg,Apache-2.0,"name, then looked at by hand",
+80,dropbox,Dropbox,dropbox.com,https://github.com/pheralb/svgl,dropbox.svg,MIT,"name, and the pack's URL matches the domain",
+81,box,Box,box.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+82,microsoft-teams,Microsoft Teams,teams.microsoft.com,https://github.com/pheralb/svgl,microsoft-teams.svg,MIT,"name, and the pack's URL matches the domain",
+83,discord,Discord,discord.com,https://github.com/pheralb/svgl,discord.svg,MIT,"name, and the pack's URL matches the domain",
+84,retool,Retool,retool.com,https://github.com/gilbarbara/logos,retool-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+85,zapier,Zapier,zapier.com,https://github.com/simple-icons/simple-icons,zapier.svg,CC0-1.0,"name, then looked at by hand",
+86,make,Make,make.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+87,n8n,n8n,n8n.io,https://github.com/gilbarbara/logos,n8n-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+88,netlify,Netlify,netlify.com,https://github.com/gilbarbara/logos,netlify-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+89,render,Render,render.com,https://github.com/pheralb/svgl,render_black.svg,MIT,"name, and the pack's URL matches the domain",
+90,railway,Railway,railway.com,https://github.com/pheralb/svgl,railway.svg,MIT,"name, and the pack's URL matches the domain",
+91,fly-io,Fly.io,fly.io,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+92,digitalocean,DigitalOcean,digitalocean.com,https://github.com/gilbarbara/logos,digital-ocean-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+93,azure,Microsoft Azure,azure.microsoft.com,https://github.com/pheralb/svgl,azure.svg,MIT,"name, and the pack's URL matches the domain",
+94,heroku,Heroku,heroku.com,https://github.com/gilbarbara/logos,heroku-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+95,pagerduty,PagerDuty,pagerduty.com,https://github.com/gilbarbara/logos,pagerduty-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+96,launchdarkly,LaunchDarkly,launchdarkly.com,https://github.com/gilbarbara/logos,launchdarkly-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+97,algolia,Algolia,algolia.com,https://github.com/devicons/devicon,algolia-original.svg,MIT,"name, then looked at by hand",
+98,gemini,Google Gemini,gemini.google.com,https://github.com/pheralb/svgl,gemini.svg,MIT,"name, and the pack's URL matches the domain",
+99,apollo-io,Apollo.io,apollo.io,https://github.com/pheralb/svgl,apollo-io.svg,MIT,"name, and the pack's URL matches the domain",
+100,gong,Gong,gong.io,https://www.gong.io/marketing-assets/favicon.svg,gong.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+101,attio,Attio,attio.com,https://attio.com/brand/v1/attio-logomark.svg,attio.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+102,ashby,Ashby,ashbyhq.com,https://www.ashbyhq.com/,ashby.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+103,greenhouse,Greenhouse,greenhouse.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+104,linkedin,LinkedIn,linkedin.com,https://github.com/gilbarbara/logos,linkedin-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+105,google-ads,Google Ads,ads.google.com,https://github.com/gilbarbara/logos,google-ads.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+106,meta-ads,Meta Ads,meta.com,https://github.com/gilbarbara/logos,meta-icon.svg,CC0-1.0,looked at by hand,The parent company's mark
+107,shopify,Shopify,shopify.com,https://github.com/pheralb/svgl,shopify.svg,MIT,"name, and the pack's URL matches the domain",
+108,elevenlabs,ElevenLabs,elevenlabs.io,https://github.com/gilbarbara/logos,elevenlabs-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+109,midjourney,Midjourney,midjourney.com,https://github.com/pheralb/svgl,midjourney.svg,MIT,"name, and the pack's URL matches the domain",
+110,perplexity,Perplexity,perplexity.ai,https://github.com/gilbarbara/logos,perplexity-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+111,mistral,Mistral AI,mistral.ai,https://github.com/gilbarbara/logos,mistral-ai-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+112,hugging-face,Hugging Face,huggingface.co,https://github.com/gilbarbara/logos,hugging-face-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+113,replicate,Replicate,replicate.com,https://github.com/pheralb/svgl,replicate_light.svg,MIT,"name, and the pack's URL matches the domain",
+114,pinecone,Pinecone,pinecone.io,https://github.com/gilbarbara/logos,pinecone-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+115,gmail,Gmail,mail.google.com,https://github.com/homarr-labs/dashboard-icons,gmail.svg,Apache-2.0,"name, then looked at by hand",
+116,google-drive,Google Drive,drive.google.com,https://github.com/pheralb/svgl,drive.svg,MIT,"name, and the pack's URL matches the domain",
+117,google-docs,Google Docs,docs.google.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+118,google-sheets,Google Sheets,sheets.google.com,https://github.com/pheralb/svgl,google-sheets.svg,MIT,"name, and the pack's URL matches the domain",
+119,google-calendar,Google Calendar,calendar.google.com,https://github.com/pheralb/svgl,google-calendar.svg,MIT,"name, and the pack's URL matches the domain",
+120,google-meet,Google Meet,meet.google.com,https://github.com/pheralb/svgl,google-meet.svg,MIT,"name, and the pack's URL matches the domain",
+121,windsurf,Windsurf,windsurf.com,https://github.com/pheralb/svgl,windsurf-light.svg,MIT,"name, and the pack's URL matches the domain",
+122,visual-studio-code,Visual Studio Code,code.visualstudio.com,https://github.com/pheralb/svgl,vscode.svg,MIT,"name, and the pack's URL matches the domain",
+123,jetbrains,JetBrains,jetbrains.com,https://github.com/gilbarbara/logos,jetbrains-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+124,replit,Replit,replit.com,https://github.com/gilbarbara/logos,replit-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+125,lovable,Lovable,lovable.dev,https://github.com/gilbarbara/logos,lovable-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+126,v0,v0,v0.app,https://github.com/pheralb/svgl,v0_light.svg,MIT,"name, and the pack's URL matches the domain",
+127,bolt-new,Bolt.new,bolt.new,https://github.com/homarr-labs/dashboard-icons,boltnew.svg,Apache-2.0,"name, then looked at by hand",
+128,postman,Postman,postman.com,https://github.com/homarr-labs/dashboard-icons,postman.svg,Apache-2.0,"name, then looked at by hand",
+129,circleci,CircleCI,circleci.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+130,github-actions,GitHub Actions,github.com,https://github.com/gilbarbara/logos,github-actions.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+131,grafana,Grafana,grafana.com,https://github.com/pheralb/svgl,grafana.svg,MIT,"name, and the pack's URL matches the domain",
+132,new-relic,New Relic,newrelic.com,https://github.com/gilbarbara/logos,new-relic-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+133,better-stack,Better Stack,betterstack.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+134,statsig,Statsig,statsig.com,https://statsig.com/images/favicons/favicon.svg,statsig.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+135,incident-io,incident.io,incident.io,https://incident.io/,incident-io.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+136,upstash,Upstash,upstash.com,https://github.com/gilbarbara/logos,upstash-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+137,planetscale,PlanetScale,planetscale.com,https://github.com/pheralb/svgl,planetscale.svg,MIT,"name, and the pack's URL matches the domain",
+138,clickhouse,ClickHouse,clickhouse.com,https://github.com/homarr-labs/dashboard-icons,clickhouse.svg,Apache-2.0,"name, then looked at by hand",
+139,databricks,Databricks,databricks.com,https://github.com/gilbarbara/logos,databricks-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+140,fivetran,Fivetran,fivetran.com,https://cdn.prod.website-files.com/6130fa1501794ed4d11867ba/63d9599008ad50523f8ce26a_logo.svg,fivetran.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+141,airbyte,Airbyte,airbyte.com,https://github.com/gilbarbara/logos,airbyte-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+142,hightouch,Hightouch,hightouch.com,https://hightouch.com/,hightouch.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+143,looker,Looker,looker.com,https://github.com/gilbarbara/logos,looker-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+144,metabase,Metabase,metabase.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+145,tableau,Tableau,tableau.com,https://github.com/gilbarbara/logos,tableau-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+146,power-bi,Power BI,powerbi.microsoft.com,https://github.com/homarr-labs/dashboard-icons,powerbi.svg,Apache-2.0,"name, then looked at by hand",
+147,hex,Hex,hex.tech,https://hex.tech/favicon.svg,hex.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+148,aws-s3,Amazon S3,aws.amazon.com,https://github.com/gilbarbara/logos,aws-s3.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+149,aws-ec2,Amazon EC2,aws.amazon.com,https://github.com/gilbarbara/logos,aws-ec2.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+150,aws-rds,Amazon RDS,aws.amazon.com,https://github.com/gilbarbara/logos,aws-rds.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+151,aws-lambda,AWS Lambda,aws.amazon.com,https://github.com/gilbarbara/logos,aws-lambda.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+152,aws-ses,Amazon SES,aws.amazon.com,https://github.com/gilbarbara/logos,aws-ses.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+153,aws-bedrock,Amazon Bedrock,aws.amazon.com,https://github.com/lobehub/lobe-icons,bedrock-color.svg,MIT,"name, then looked at by hand",
+154,aws-cloudfront,Amazon CloudFront,aws.amazon.com,https://github.com/gilbarbara/logos,aws-cloudfront.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+155,aws-dynamodb,Amazon DynamoDB,aws.amazon.com,https://github.com/gilbarbara/logos,aws-dynamodb.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+156,azure-openai,Azure OpenAI,azure.microsoft.com,https://github.com/glincker/thesvg,default.svg,MIT,looked at by hand,
+157,vertex-ai,Vertex AI,cloud.google.com,https://github.com/lobehub/lobe-icons,vertexai-color.svg,MIT,"name, then looked at by hand",
+158,firebase,Firebase,firebase.google.com,https://github.com/pheralb/svgl,firebase.svg,MIT,"name, and the pack's URL matches the domain",
+159,groq,Groq,groq.com,https://github.com/pheralb/svgl,groq.svg,MIT,"name, and the pack's URL matches the domain",
+160,grok,Grok,x.ai,https://github.com/homarr-labs/dashboard-icons,grok.svg,Apache-2.0,"name, then looked at by hand",
+161,cohere,Cohere,cohere.com,https://github.com/gilbarbara/logos,cohere-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+162,deepseek,DeepSeek,deepseek.com,https://github.com/gilbarbara/logos,deepseek-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+163,together-ai,Together AI,together.ai,https://github.com/gilbarbara/logos,togetherai-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+164,fireworks-ai,Fireworks AI,fireworks.ai,https://github.com/gilbarbara/logos,fireworks-ai.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+165,openrouter,OpenRouter,openrouter.ai,https://github.com/gilbarbara/logos,openrouter-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+166,deepgram,Deepgram,deepgram.com,https://github.com/gilbarbara/logos,deepgram-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+167,assemblyai,AssemblyAI,assemblyai.com,https://github.com/glincker/thesvg,color.svg,MIT,"name, and the pack's URL matches the domain",
+168,langchain,LangChain,langchain.com,https://github.com/gilbarbara/logos,langchain-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+169,langsmith,LangSmith,smith.langchain.com,https://github.com/lobehub/lobe-icons,langsmith-color.svg,MIT,"name, then looked at by hand",
+170,langfuse,Langfuse,langfuse.com,https://github.com/gilbarbara/logos,langfuse-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+171,weights-biases,Weights & Biases,wandb.ai,https://github.com/gilbarbara/logos,wandb-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+172,modal,Modal,modal.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+173,runpod,RunPod,runpod.io,https://github.com/homarr-labs/dashboard-icons,runpod.svg,Apache-2.0,"name, then looked at by hand",
+174,granola,Granola,granola.ai,https://github.com/pheralb/svgl,granola-light.svg,MIT,"name, and the pack's URL matches the domain",
+175,fireflies,Fireflies.ai,fireflies.ai,https://fireflies.ai/images/logo-full-color.svg,fireflies.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+176,otter,Otter.ai,otter.ai,https://otter.ai/,otter.svg,"None. The owner's own file, shown to identify it",looked at by hand,"Wide, but it is the mark"
+177,fathom-ai,Fathom AI,fathom.video,https://cdn.prod.website-files.com/6899da9beccbdbe92be49b5d/68e7961ff28d093095bdf392_logotype-new.svg,fathom-ai.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+178,descript,Descript,descript.com,https://github.com/gilbarbara/logos,descript-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+179,gamma,Gamma,gamma.app,https://static.gamma.app/favicons/favicon_light.svg,gamma.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+180,grammarly,Grammarly,grammarly.com,https://github.com/gilbarbara/logos,grammarly-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+181,superhuman,Superhuman,superhuman.com,https://superhumanstatic.com/super-funnel/main/public/images/v4/favicons/superhuman-icon.svg,superhuman.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+182,deepl,DeepL,deepl.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+183,glean,Glean,glean.com,https://cdn.prod.website-files.com/6127a84dfe068e153ef20572/66ded1bc82df72f2e1d56eb7_Glean%20Logomark%20Blue.svg,glean.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+184,clickup,ClickUp,clickup.com,https://github.com/gilbarbara/logos,clickup-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+185,shortcut,Shortcut,shortcut.com,https://github.com/gilbarbara/logos,shortcut-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+186,productboard,Productboard,productboard.com,https://github.com/gilbarbara/logos,productboard-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+187,canny,Canny,canny.io,https://canny.io/,canny.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+188,miro,Miro,miro.com,https://github.com/gilbarbara/logos,miro-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+189,lucidchart,Lucidchart,lucidchart.com,https://github.com/simple-icons/simple-icons,lucid.svg,CC0-1.0,"name, then looked at by hand",
+190,coda,Coda,coda.io,https://github.com/gilbarbara/logos,coda-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+191,obsidian,Obsidian,obsidian.md,https://github.com/gilbarbara/logos,obsidian-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+192,smartsheet,Smartsheet,smartsheet.com,https://www.smartsheet.com/sites/default/files/favicons/safari-pinned-tab.svg,smartsheet.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+193,pipedrive,Pipedrive,pipedrive.com,https://www.pipedrive.com/,pipedrive.svg,"None. The owner's own file, shown to identify it",looked at by hand,"The p from the wordmark, in its green"
+194,close,Close,close.com,https://github.com/gilbarbara/logos,close.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+195,clay,Clay,clay.com,,,,,monogram: no usable logo found
+196,outreach,Outreach,outreach.io,https://www.outreach.ai/,outreach.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+197,salesloft,Salesloft,salesloft.com,https://www.salesloft.com/icon.svg,salesloft.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+198,zoominfo,ZoomInfo,zoominfo.com,https://www.zoominfo.com/,zoominfo.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+199,linkedin-sales-navigator,LinkedIn Sales Navigator,linkedin.com,https://github.com/gilbarbara/logos,linkedin-icon.svg,CC0-1.0,looked at by hand,The parent product's mark
+200,instantly,Instantly,instantly.ai,https://cdn.prod.website-files.com/63860c8c65e7bef4a1eeebeb/69ca26b762fc7501bb87ec19_Instantly%20Logo%202%20(5)%20(1).svg,instantly.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+201,lemlist,lemlist,lemlist.com,https://www.lemlist.com/footer/lemlist-logo-light.svg,lemlist.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+202,pandadoc,PandaDoc,pandadoc.com,https://images.ctfassets.net/a4zep9yar86b/4eqW0p16A4cHs80dWvZvcN/9608620c23febb59a19701f71ffd312e/PandaDoc-mobile.svg,pandadoc.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+203,chili-piper,Chili Piper,chilipiper.com,https://www.chilipiper.com/logo.svg,chili-piper.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+204,freshdesk,Freshdesk,freshdesk.com,,,,,monogram: no usable logo found
+205,help-scout,Help Scout,helpscout.com,https://github.com/gilbarbara/logos,helpscout-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+206,front,Front,front.com,https://github.com/glincker/thesvg,default.svg,MIT,looked at by hand,"The file has a white disc behind the mark, framed out here"
+207,crisp,Crisp,crisp.chat,https://crisp.chat/en/,crisp.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain","White on its blue, as in its favicon"
+208,gorgias,Gorgias,gorgias.com,https://cdn.prod.website-files.com/5e4ff204e7b6f80e402d407a/669a5ab4a69be50c3a94800a_Gorgias%20Logo%20-%20Black.svg,gorgias.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+209,plain,Plain,plain.com,,,,,monogram: no usable logo found
+210,pylon,Pylon,usepylon.com,https://www.usepylon.com/,pylon.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain","Its header logo is white, so it's drawn in ink"
+211,statuspage,Statuspage,statuspage.io,https://github.com/gilbarbara/logos,statuspage.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+212,klaviyo,Klaviyo,klaviyo.com,https://www.klaviyo.com/es/,klaviyo.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+213,braze,Braze,braze.com,https://github.com/gilbarbara/logos,braze-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+214,iterable,Iterable,iterable.com,https://iterable.com/wp-content/uploads/2026/04/iterable-logo-light.svg,iterable.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain","Its header logo is white, so it's drawn in ink"
+215,activecampaign,ActiveCampaign,activecampaign.com,https://github.com/gilbarbara/logos,active-campaign-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+216,marketo,Marketo,business.adobe.com,,,,,monogram: no usable logo found
+217,mailgun,Mailgun,mailgun.com,https://github.com/gilbarbara/logos,mailgun-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+218,brevo,Brevo,brevo.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+219,beehiiv,beehiiv,beehiiv.com,https://github.com/glincker/thesvg,default.svg,Unlicense,"name, and the pack's URL matches the domain",
+220,substack,Substack,substack.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+221,semrush,Semrush,semrush.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+222,ahrefs,Ahrefs,ahrefs.com,https://github.com/pheralb/svgl,ahrefs.svg,MIT,"name, and the pack's URL matches the domain",
+223,buffer,Buffer,buffer.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+224,hootsuite,Hootsuite,hootsuite.com,https://github.com/gilbarbara/logos,hootsuite-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+225,hotjar,Hotjar,hotjar.com,https://github.com/gilbarbara/logos,hotjar-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+226,fullstory,FullStory,fullstory.com,https://www.fullstory.com/favicon.svg,fullstory.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+227,logrocket,LogRocket,logrocket.com,https://logrocket.com/favicon/favicon.svg,logrocket.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+228,heap,Heap,heap.io,https://www.heap.io/,heap.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+229,pendo,Pendo,pendo.io,https://www.pendo.io/icon.svg,pendo.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+230,plausible,Plausible,plausible.io,https://github.com/homarr-labs/dashboard-icons,plausible.svg,Apache-2.0,"name, then looked at by hand",
+231,microsoft-clarity,Microsoft Clarity,clarity.microsoft.com,,,,,monogram: no usable logo found
+232,typeform,Typeform,typeform.com,https://github.com/gilbarbara/logos,typeform-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+233,tally,Tally,tally.so,https://tally.so/favicon.svg,tally.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+234,surveymonkey,SurveyMonkey,surveymonkey.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+235,appcues,Appcues,appcues.com,https://cdn.prod.website-files.com/6a3458f1671a8f55edaa1863/6a43c26db04cdc43983f425d_Logo%20Lockup.svg,appcues.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+236,appsflyer,AppsFlyer,appsflyer.com,https://www.appsflyer.com/favicon.svg,appsflyer.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+237,revenuecat,RevenueCat,revenuecat.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+238,paddle,Paddle,paddle.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+239,lemon-squeezy,Lemon Squeezy,lemonsqueezy.com,https://github.com/pheralb/svgl,lemonsqueezy.svg,MIT,"name, and the pack's URL matches the domain",
+240,paypal,PayPal,paypal.com,https://github.com/pheralb/svgl,paypal.svg,MIT,"name, and the pack's URL matches the domain",
+241,wise,Wise,wise.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+242,chargebee,Chargebee,chargebee.com,https://github.com/gilbarbara/logos,chargebee-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+243,recurly,Recurly,recurly.com,https://images.ctfassets.net/wob906kz2qeo/6TRJKzEmy5z9HrMW8E0Dz0/84d8b535d39547881abda7d4c4be3bdf/recurly_full_logo_black.svg,recurly.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+244,bill-com,BILL,bill.com,https://cdn.prod.website-files.com/63e3da3df35cd62f54751985/63ed277edf8ff349f0d93f1d_logo-bdc-new.svg,bill-com.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+245,expensify,Expensify,expensify.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+246,navan,Navan,navan.com,https://navan.com/,navan.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+247,freshbooks,FreshBooks,freshbooks.com,https://github.com/homarr-labs/dashboard-icons,freshbooks.svg,Apache-2.0,"name, then looked at by hand",
+248,pilot,Pilot,pilot.com,https://pilot.com/,pilot.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain","Its header logo is white, so it's drawn in ink"
+249,plaid,Plaid,plaid.com,https://plaid.com/assets/img/favicons/safari-pinned-tab.svg,plaid.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+250,avalara,Avalara,avalara.com,https://www.avalara.com/etc.clientlibs/avalara/clientlibs/clientlib-ava-26-site/resources/favicons/favicon.svg,avalara.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+251,anrok,Anrok,anrok.com,https://cdn.prod.website-files.com/6a21f79213f446e3c87533b9/6a31ac29cc2f9fabde35de4d_anrok-logo.svg,anrok.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+252,remote,Remote,remote.com,https://remote.com/remote-symbol.svg,remote.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+253,justworks,Justworks,justworks.com,,,,,monogram: no usable logo found
+254,adp,ADP,adp.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+255,bamboohr,BambooHR,bamboohr.com,https://www.bamboohr.com/icons/bamboohr-favicon.svg,bamboohr.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+256,hibob,HiBob,hibob.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+257,personio,Personio,personio.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+258,lattice,Lattice,lattice.com,https://cdn.prod.website-files.com/64ad6f1aef87635bd23449f1/66ed6200f5f22a3486307da2_logo-color-lattice.svg,lattice.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+259,culture-amp,Culture Amp,cultureamp.com,https://www.cultureamp.com/assets/slices/main/assets/public/media/icons/full-platform-c58d343cb1c8076797b8.svg,culture-amp.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+260,lever,Lever,lever.co,,,,,monogram: no usable logo found
+261,workable,Workable,workable.com,https://www.workable.com/static/favicon.svg,workable.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+262,checkr,Checkr,checkr.com,https://checkr.com/icon.svg,checkr.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+263,ironclad,Ironclad,ironcladapp.com,https://ironcladapp.com/wp-content/uploads/2025/04/main-logo.svg,ironclad.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+264,dropbox-sign,Dropbox Sign,sign.dropbox.com,https://cdn.prod.website-files.com/64412cfef2e5476af2f044bd/64480a9b8d4d3b8674406303_sign-logo.svg,dropbox-sign.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+265,clerky,Clerky,clerky.com,https://cdn.prod.website-files.com/64bfd4a79278e7a8fe5b8d39/64bfd4a79278e7a8fe5b8d6b_logo_clerky.svg,clerky.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+266,stripe-atlas,Stripe Atlas,stripe.com,https://images.stripeassets.com/fzn2n1nzq965/1hgcBNd12BfT9VLgbId7By/01d91920114b124fb4cf6d448f9f06eb/favicon.svg,stripe-atlas.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+267,workos,WorkOS,workos.com,https://github.com/gilbarbara/logos,workos-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+268,stytch,Stytch,stytch.com,https://stytch.com/,stytch.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+269,snyk,Snyk,snyk.io,https://github.com/gilbarbara/logos,snyk.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+270,wiz,Wiz,wiz.io,https://github.com/homarr-labs/dashboard-icons,wiz.svg,Apache-2.0,looked at by hand,Wiz's mark is its wordmark
+271,crowdstrike,CrowdStrike,crowdstrike.com,https://github.com/homarr-labs/dashboard-icons,crowdstrike.svg,Apache-2.0,"name, then looked at by hand",
+272,tailscale,Tailscale,tailscale.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+273,kandji,Kandji,kandji.io,,,,,monogram: no usable logo found
+274,jamf,Jamf,jamf.com,https://github.com/homarr-labs/dashboard-icons,jamf.svg,Apache-2.0,"name, then looked at by hand",
+275,doppler,Doppler,doppler.com,,,,,monogram: could not confirm the packs' mark is this Doppler
+276,bitwarden,Bitwarden,bitwarden.com,https://github.com/pheralb/svgl,bitwarden.svg,MIT,"name, and the pack's URL matches the domain",
+277,lastpass,LastPass,lastpass.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+278,hashicorp-vault,HashiCorp Vault,vaultproject.io,https://github.com/homarr-labs/dashboard-icons,hashicorp-vault.svg,Apache-2.0,"name, then looked at by hand",
+279,apple-developer,Apple Developer Program,developer.apple.com,https://developer.apple.com/apple-logo.svg,apple-developer.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+280,google-play-console,Google Play Console,play.google.com,https://github.com/gilbarbara/logos,google-play-console-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+281,expo,Expo,expo.dev,https://github.com/gilbarbara/logos,expo-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+282,mintlify,Mintlify,mintlify.com,https://github.com/pheralb/svgl,mintlify.svg,MIT,"name, and the pack's URL matches the domain",
+283,readme,ReadMe,readme.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+284,gitbook,GitBook,gitbook.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+285,contentful,Contentful,contentful.com,https://github.com/gilbarbara/logos,contentful.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+286,sanity,Sanity,sanity.io,https://github.com/pheralb/svgl,sanity-light.svg,MIT,"name, and the pack's URL matches the domain",
+287,wordpress,WordPress,wordpress.com,https://github.com/gilbarbara/logos,wordpress-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+288,ghost,Ghost,ghost.org,https://github.com/simple-icons/simple-icons,ghost.svg,CC0-1.0,looked at by hand,
+289,vimeo,Vimeo,vimeo.com,https://github.com/gilbarbara/logos,vimeo-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+290,wistia,Wistia,wistia.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+291,mux,Mux,mux.com,https://www.mux.com/icon-pwu6ef.svg?icon.302p-5ql3kvw_.svg,mux.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+292,cloudinary,Cloudinary,cloudinary.com,https://github.com/gilbarbara/logos,cloudinary-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+293,hetzner,Hetzner,hetzner.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+294,ovhcloud,OVHcloud,ovhcloud.com,https://github.com/homarr-labs/dashboard-icons,ovh.svg,Apache-2.0,"name, then looked at by hand",
+295,backblaze,Backblaze,backblaze.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+296,godaddy,GoDaddy,godaddy.com,https://github.com/simple-icons/simple-icons,godaddy.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+297,namecheap,Namecheap,namecheap.com,https://github.com/gilbarbara/logos,namecheap.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+298,raycast,Raycast,raycast.com,https://github.com/pheralb/svgl,raycast.svg,MIT,"name, and the pack's URL matches the domain",
+299,sketch,Sketch,sketch.com,https://github.com/devicons/devicon,sketch-original.svg,MIT,looked at by hand,Full colour
+300,adobe-photoshop,Adobe Photoshop,adobe.com,https://github.com/gilbarbara/logos,adobe-photoshop.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+301,adobe-illustrator,Adobe Illustrator,adobe.com,https://github.com/gilbarbara/logos,adobe-illustrator.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+302,unsplash,Unsplash,unsplash.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+303,x-twitter,X,x.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+304,youtube,YouTube,youtube.com,https://github.com/gilbarbara/logos,youtube-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+305,tiktok,TikTok,tiktok.com,https://github.com/gilbarbara/logos,tiktok-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+306,instagram,Instagram,instagram.com,https://github.com/pheralb/svgl,instagram-icon.svg,MIT,looked at by hand,Full colour
+307,facebook,Facebook,facebook.com,https://github.com/pheralb/svgl,facebook-icon.svg,MIT,"name, and the pack's URL matches the domain",
+308,reddit,Reddit,reddit.com,https://github.com/gilbarbara/logos,reddit-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+309,product-hunt,Product Hunt,producthunt.com,https://github.com/pheralb/svgl,producthunt.svg,MIT,"name, and the pack's URL matches the domain",
+310,g2,G2,g2.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+311,stack-overflow,Stack Overflow,stackoverflow.com,https://github.com/gilbarbara/logos,stackoverflow-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+312,whatsapp,WhatsApp Business,whatsapp.com,https://github.com/gilbarbara/logos,whatsapp-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+313,telegram,Telegram,telegram.org,https://github.com/pheralb/svgl,telegram.svg,MIT,"name, and the pack's URL matches the domain",
+314,aircall,Aircall,aircall.io,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+315,ringcentral,RingCentral,ringcentral.com,https://www.ringcentral.com/,ringcentral.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+316,dialpad,Dialpad,dialpad.com,https://www.dialpad.com/assets/images/logo/dark_dialpad.svg,dialpad.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+317,quo,Quo,quo.com,https://cdn.prod.website-files.com/6899ec2c2b29c1edf8c20f15/690cc288998d6ee0ff32c586_quo-logo.svg,quo.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+318,aws-route53,Amazon Route 53,aws.amazon.com,https://github.com/gilbarbara/logos,aws-route53.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+319,aws-sqs,Amazon SQS,aws.amazon.com,https://github.com/gilbarbara/logos,aws-sqs.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+320,aws-sns,Amazon SNS,aws.amazon.com,https://github.com/gilbarbara/logos,aws-sns.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+321,aws-ecs,Amazon ECS,aws.amazon.com,https://github.com/gilbarbara/logos,aws-ecs.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+322,aws-eks,Amazon EKS,aws.amazon.com,https://github.com/gilbarbara/logos,aws-eks.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+323,aws-iam,AWS IAM,aws.amazon.com,https://github.com/gilbarbara/logos,aws-iam.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+324,aws-cloudwatch,Amazon CloudWatch,aws.amazon.com,https://github.com/gilbarbara/logos,aws-cloudwatch.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+325,aws-redshift,Amazon Redshift,aws.amazon.com,https://github.com/gilbarbara/logos,aws-redshift.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+326,oracle-cloud,Oracle Cloud,oracle.com,https://github.com/homarr-labs/dashboard-icons,oracle-cloud.svg,Apache-2.0,"name, then looked at by hand",
+327,oracle,Oracle,oracle.com,https://github.com/homarr-labs/dashboard-icons,oracle.svg,Apache-2.0,"name, then looked at by hand",
+328,ibm-cloud,IBM Cloud,ibm.com,https://github.com/gilbarbara/logos,ibm.svg,CC0-1.0,looked at by hand,IBM's mark is its wordmark
+329,alibaba-cloud,Alibaba Cloud,alibabacloud.com,https://github.com/lobehub/lobe-icons,alibabacloud-color.svg,MIT,"name, then looked at by hand",
+330,scaleway,Scaleway,scaleway.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+331,linode,Linode,linode.com,https://github.com/gilbarbara/logos,linode.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+332,vultr,Vultr,vultr.com,https://github.com/gilbarbara/logos,vultr-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+333,wasabi,Wasabi,wasabi.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+334,fastly,Fastly,fastly.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+335,akamai,Akamai,akamai.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+336,bunny-net,Bunny.net,bunny.net,https://github.com/gilbarbara/logos,bunny-net-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+337,northflank,Northflank,northflank.com,,,,,monogram: no usable logo found
+338,porter,Porter,porter.run,,,,,monogram: no usable logo found
+339,coolify,Coolify,coolify.io,https://github.com/homarr-labs/dashboard-icons,coolify.svg,Apache-2.0,"name, then looked at by hand",
+340,ngrok,ngrok,ngrok.com,https://github.com/homarr-labs/dashboard-icons,ngrok.svg,Apache-2.0,"name, then looked at by hand",
+341,pulumi,Pulumi,pulumi.com,https://github.com/gilbarbara/logos,pulumi-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+342,ansible,Ansible,ansible.com,https://github.com/gilbarbara/logos,ansible.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+343,red-hat,Red Hat,redhat.com,https://github.com/gilbarbara/logos,redhat-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+344,helm,Helm,helm.sh,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+345,nginx,NGINX,nginx.org,https://github.com/pheralb/svgl,nginx.svg,MIT,"name, and the pack's URL matches the domain",
+346,traefik,Traefik,traefik.io,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+347,kong,Kong,konghq.com,https://github.com/gilbarbara/logos,kong-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+348,deno,Deno,deno.com,https://github.com/pheralb/svgl,deno.svg,MIT,"name, and the pack's URL matches the domain",
+349,tigris,Tigris,tigrisdata.com,,,,,monogram: no usable logo found
+350,imgix,imgix,imgix.com,,,,,monogram: no usable logo found
+351,uploadcare,Uploadcare,uploadcare.com,https://uploadcare.com/favicon.svg,uploadcare.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+352,uploadthing,UploadThing,uploadthing.com,,,,,monogram: no usable logo found
+353,transloadit,Transloadit,transloadit.com,,,,,monogram: no usable logo found
+354,pusher,Pusher,pusher.com,https://github.com/gilbarbara/logos,pusher-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+355,ably,Ably,ably.com,https://ably.com/favicon.svg,ably.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+356,temporal,Temporal,temporal.io,https://github.com/gilbarbara/logos,temporal-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+357,inngest,Inngest,inngest.com,https://www.inngest.com/favicon-june-2025-light.svg,inngest.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+358,trigger-dev,Trigger.dev,trigger.dev,,,,,monogram: no usable logo found
+359,cloud-run,Google Cloud Run,cloud.google.com,https://github.com/gilbarbara/logos,google-cloud-run.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+360,azure-devops,Azure DevOps,azure.microsoft.com,https://github.com/homarr-labs/dashboard-icons,azure-devops.svg,Apache-2.0,"name, then looked at by hand",
+361,gitpod,Gitpod,gitpod.io,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+362,github-codespaces,GitHub Codespaces,github.com,https://github.com/glincker/thesvg,default.svg,MIT,"name, then looked at by hand",
+363,bitbucket,Bitbucket,bitbucket.org,https://github.com/gilbarbara/logos,bitbucket.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+364,sourcegraph,Sourcegraph,sourcegraph.com,https://github.com/pheralb/svgl,sourcegraph.svg,MIT,"name, and the pack's URL matches the domain",
+365,devin,Devin,devin.ai,https://github.com/gilbarbara/logos,devin.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+366,cline,Cline,cline.bot,https://github.com/gilbarbara/logos,cline-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+367,tabnine,Tabnine,tabnine.com,,,,,monogram: no usable logo found
+368,zed,Zed,zed.dev,https://github.com/pheralb/svgl,zed-logo.svg,MIT,"name, and the pack's URL matches the domain",
+369,warp,Warp,warp.dev,https://github.com/pheralb/svgl,warp.svg,MIT,"name, and the pack's URL matches the domain",
+370,intellij,IntelliJ IDEA,jetbrains.com,https://github.com/pheralb/svgl,intellijidea.svg,MIT,"name, and the pack's URL matches the domain",
+371,xcode,Xcode,developer.apple.com,https://github.com/simple-icons/simple-icons,xcode.svg,CC0-1.0,looked at by hand,
+372,swagger,Swagger,swagger.io,https://github.com/pheralb/svgl,swagger.svg,MIT,"name, and the pack's URL matches the domain",
+373,fern,Fern,buildwithfern.com,,,,,monogram: no usable logo found
+374,speakeasy,Speakeasy,speakeasy.com,,,,,monogram: no usable logo found
+375,stainless,Stainless,stainless.com,,,,,monogram: no usable logo found
+376,jenkins,Jenkins,jenkins.io,https://github.com/devicons/devicon,jenkins-original.svg,MIT,looked at by hand,
+377,buildkite,Buildkite,buildkite.com,https://github.com/gilbarbara/logos,buildkite-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+378,travis-ci,Travis CI,travis-ci.com,https://github.com/gilbarbara/logos,travis-ci.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+379,depot,Depot,depot.dev,https://github.com/pheralb/svgl,depot-light.svg,MIT,"name, and the pack's URL matches the domain",
+380,blacksmith,Blacksmith,blacksmith.sh,https://www.blacksmith.sh/icon.svg?icon.426bjam5j1j9a.svg,blacksmith.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+381,graphite,Graphite,graphite.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+382,coderabbit,CodeRabbit,coderabbit.ai,https://github.com/gilbarbara/logos,coderabbit-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+383,greptile,Greptile,greptile.com,https://github.com/glincker/thesvg,color.svg,MIT,"name, and the pack's URL matches the domain",
+384,sonarqube,SonarQube,sonarsource.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+385,codecov,Codecov,codecov.io,https://github.com/gilbarbara/logos,codecov-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+386,npm,npm,npmjs.com,https://github.com/gilbarbara/logos,npm-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+387,jfrog,JFrog,jfrog.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+388,storybook,Storybook,storybook.js.org,https://github.com/gilbarbara/logos,storybook-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+389,chromatic,Chromatic,chromatic.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+390,playwright,Playwright,playwright.dev,https://github.com/pheralb/svgl,playwright.svg,MIT,"name, and the pack's URL matches the domain",
+391,cypress,Cypress,cypress.io,https://github.com/gilbarbara/logos,cypress-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+392,browserstack,BrowserStack,browserstack.com,https://github.com/gilbarbara/logos,browserstack.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+393,sauce-labs,Sauce Labs,saucelabs.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+394,lambdatest,LambdaTest,lambdatest.com,,,,,monogram: no usable logo found
+395,checkly,Checkly,checklyhq.com,,,,,monogram: no usable logo found
+396,qa-wolf,QA Wolf,qawolf.com,https://www.qawolf.com/images/favicon.svg,qa-wolf.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+397,testflight,TestFlight,testflight.apple.com,,,,,monogram: no usable logo found
+398,bugsnag,Bugsnag,bugsnag.com,https://github.com/gilbarbara/logos,bugsnag.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+399,rollbar,Rollbar,rollbar.com,https://github.com/gilbarbara/logos,rollbar-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+400,honeybadger,Honeybadger,honeybadger.io,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+401,prometheus,Prometheus,prometheus.io,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+402,dynatrace,Dynatrace,dynatrace.com,https://github.com/gilbarbara/logos,dynatrace-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+403,honeycomb,Honeycomb,honeycomb.io,,,,,monogram: no usable logo found
+404,splunk,Splunk,splunk.com,https://github.com/homarr-labs/dashboard-icons,splunk.svg,Apache-2.0,"name, then looked at by hand",
+405,elastic,Elastic,elastic.co,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+406,papertrail,Papertrail,papertrailapp.com,,,,,monogram: no usable logo found
+407,sumo-logic,Sumo Logic,sumologic.com,,,,,monogram: no usable logo found
+408,axiom,Axiom,axiom.co,https://github.com/pheralb/svgl,axiom-light.svg,MIT,"name, and the pack's URL matches the domain",
+409,pingdom,Pingdom,pingdom.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+410,uptimerobot,UptimeRobot,uptimerobot.com,https://github.com/homarr-labs/dashboard-icons,uptimerobot.svg,Apache-2.0,"name, then looked at by hand",
+411,instatus,Instatus,instatus.com,https://github.com/pheralb/svgl,instatus.svg,MIT,"name, and the pack's URL matches the domain",
+412,rootly,Rootly,rootly.com,https://rootly.com/brand/favicon.svg,rootly.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+413,firehydrant,FireHydrant,firehydrant.com,https://firehydrant.com/favicon.svg,firehydrant.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+414,opsgenie,Opsgenie,atlassian.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+415,split,Split,split.io,,,,,monogram: no usable logo found
+416,flagsmith,Flagsmith,flagsmith.com,,,,,monogram: no usable logo found
+417,growthbook,GrowthBook,growthbook.io,https://github.com/gilbarbara/logos,growth-book-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+418,optimizely,Optimizely,optimizely.com,https://github.com/gilbarbara/logos,optimizely-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+419,vwo,VWO,vwo.com,,,,,monogram: no usable logo found
+420,appsmith,Appsmith,appsmith.com,,,,,monogram: no usable logo found
+421,superblocks,Superblocks,superblocks.com,,,,,monogram: no usable logo found
+422,bubble,Bubble,bubble.io,https://github.com/gilbarbara/logos,bubble-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+423,workato,Workato,workato.com,,,,,monogram: no usable logo found
+424,tray-io,Tray.ai,tray.ai,https://tray.ai/favicon.svg,tray-io.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+425,pipedream,Pipedream,pipedream.com,,,,,monogram: no usable logo found
+426,hasura,Hasura,hasura.io,https://github.com/gilbarbara/logos,hasura-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+427,apollo-graphql,Apollo GraphQL,apollographql.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+428,prisma,Prisma,prisma.io,https://github.com/pheralb/svgl,prisma.svg,MIT,"name, and the pack's URL matches the domain",
+429,convex,Convex,convex.dev,https://github.com/pheralb/svgl,convex.svg,MIT,"name, and the pack's URL matches the domain",
+430,appwrite,Appwrite,appwrite.io,https://github.com/pheralb/svgl,appwrite.svg,MIT,"name, and the pack's URL matches the domain",
+431,strapi,Strapi,strapi.io,https://github.com/gilbarbara/logos,strapi-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+432,storyblok,Storyblok,storyblok.com,https://github.com/gilbarbara/logos,storyblok-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+433,prismic,Prismic,prismic.io,https://github.com/gilbarbara/logos,prismic-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+434,hygraph,Hygraph,hygraph.com,,,,,monogram: no usable logo found
+435,tailwind,Tailwind CSS,tailwindcss.com,https://github.com/gilbarbara/logos,tailwindcss-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+436,codesandbox,CodeSandbox,codesandbox.io,https://github.com/gilbarbara/logos,codesandbox-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+437,stackblitz,StackBlitz,stackblitz.com,https://github.com/gilbarbara/logos,stackblitz-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+438,tuple,Tuple,tuple.app,https://tuple.app/favicon.svg?2024,tuple.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+439,ollama,Ollama,ollama.com,https://github.com/pheralb/svgl,ollama_light.svg,MIT,"name, and the pack's URL matches the domain",
+440,lm-studio,LM Studio,lmstudio.ai,https://github.com/glincker/thesvg,mono.svg,MIT,"name, and the pack's URL matches the domain",
+441,nvidia,NVIDIA,nvidia.com,https://github.com/pheralb/svgl,nvidia-icon-light.svg,MIT,"name, and the pack's URL matches the domain",
+442,coreweave,CoreWeave,coreweave.com,https://github.com/gilbarbara/logos,coreweave-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+443,lambda-labs,Lambda Labs,lambda.ai,https://lambda.ai/hubfs/favicon-48x48-1.svg,lambda-labs.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+444,baseten,Baseten,baseten.co,https://github.com/gilbarbara/logos,baseten-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+445,cerebras,Cerebras,cerebras.ai,https://github.com/gilbarbara/logos,cerebras-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+446,meta-llama,Meta Llama,llama.com,,,,,monogram: no usable logo found
+447,qwen,Qwen,qwen.ai,https://github.com/gilbarbara/logos,qwen-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+448,moonshot,Moonshot AI,moonshot.ai,https://github.com/gilbarbara/logos,moonshot-ai-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+449,stability-ai,Stability AI,stability.ai,https://github.com/gilbarbara/logos,stability-ai-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+450,black-forest-labs,Black Forest Labs,bfl.ai,https://github.com/homarr-labs/dashboard-icons,black-forest-labs.svg,Apache-2.0,"name, then looked at by hand",
+451,ideogram,Ideogram,ideogram.ai,https://github.com/glincker/thesvg,mono.svg,MIT,"name, and the pack's URL matches the domain",
+452,leonardo-ai,Leonardo AI,leonardo.ai,,,,,monogram: no usable logo found
+453,runway-ml,Runway ML,runwayml.com,,,,,monogram: no usable logo found
+454,pika,Pika,pika.art,https://github.com/glincker/thesvg,mono.svg,MIT,"name, and the pack's URL matches the domain",
+455,luma-ai,Luma AI,lumalabs.ai,https://github.com/lobehub/lobe-icons,luma-color.svg,MIT,looked at by hand,
+456,synthesia,Synthesia,synthesia.io,,,,,monogram: no usable logo found
+457,heygen,HeyGen,heygen.com,,,,,monogram: no usable logo found
+458,suno,Suno,suno.com,https://github.com/pheralb/svgl,suno.svg,MIT,"name, and the pack's URL matches the domain",
+459,jasper,Jasper,jasper.ai,,,,,monogram: no usable logo found
+460,copy-ai,Copy.ai,copy.ai,,,,,monogram: no usable logo found
+461,writer,Writer,writer.com,,,,,monogram: no usable logo found
+462,harvey,Harvey,harvey.ai,,,,,monogram: no usable logo found
+463,sierra,Sierra,sierra.ai,https://sierra.ai/icon.svg,sierra.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+464,decagon,Decagon,decagon.ai,https://decagon.ai/icon.svg,decagon.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+465,vapi,Vapi,vapi.ai,https://github.com/gilbarbara/logos,vapi-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+466,retell-ai,Retell AI,retellai.com,,,,,monogram: no usable logo found
+467,bland-ai,Bland AI,bland.ai,,,,,monogram: no usable logo found
+468,livekit,LiveKit,livekit.io,https://github.com/gilbarbara/logos,livekit-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+469,weaviate,Weaviate,weaviate.io,https://github.com/gilbarbara/logos,weaviate-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+470,qdrant,Qdrant,qdrant.tech,https://github.com/gilbarbara/logos,qdrant-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+471,chroma,Chroma,trychroma.com,https://github.com/glincker/thesvg,default.svg,Apache-2.0,"name, and the pack's URL matches the domain",
+472,milvus,Milvus,milvus.io,https://github.com/gilbarbara/logos,milvus-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+473,llamaindex,LlamaIndex,llamaindex.ai,https://github.com/gilbarbara/logos,llama-index-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+474,helicone,Helicone,helicone.ai,,,,,monogram: no usable logo found
+475,braintrust,Braintrust,braintrust.dev,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+476,arize,Arize,arize.com,,,,,monogram: no usable logo found
+477,scale-ai,Scale AI,scale.com,https://github.com/gilbarbara/logos,scale-ai-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+478,exa,Exa,exa.ai,https://github.com/gilbarbara/logos,exa-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+479,tavily,Tavily,tavily.com,https://github.com/glincker/thesvg,color.svg,MIT,"name, and the pack's URL matches the domain",
+480,firecrawl,Firecrawl,firecrawl.dev,https://github.com/gilbarbara/logos,firecrawl-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+481,browserbase,Browserbase,browserbase.com,https://github.com/gilbarbara/logos,browserbase-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+482,apify,Apify,apify.com,https://github.com/gilbarbara/logos,apify-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+483,e2b,E2B,e2b.dev,,,,,monogram: no usable logo found
+484,composio,Composio,composio.dev,https://github.com/gilbarbara/logos,composio-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+485,microsoft-copilot,Microsoft Copilot,copilot.microsoft.com,https://github.com/pheralb/svgl,microsoft-copilot.svg,MIT,"name, and the pack's URL matches the domain",
+486,lindy,Lindy,lindy.ai,,,,,monogram: no usable logo found
+487,relevance-ai,Relevance AI,relevanceai.com,,,,,monogram: no usable logo found
+488,crewai,CrewAI,crewai.com,https://github.com/lobehub/lobe-icons,crewai-color.svg,MIT,"name, then looked at by hand",
+489,dust,Dust,dust.tt,,,,,monogram: no usable logo found
+490,read-ai,Read AI,read.ai,,,,,monogram: no usable logo found
+491,tldv,tl;dv,tldv.io,,,,,monogram: no usable logo found
+492,krisp,Krisp,krisp.ai,,,,,monogram: no usable logo found
+493,avoma,Avoma,avoma.com,,,,,monogram: no usable logo found
+494,notebooklm,NotebookLM,notebooklm.google.com,https://github.com/homarr-labs/dashboard-icons,notebook-lm.svg,Apache-2.0,"name, then looked at by hand",
+495,google-ai-studio,Google AI Studio,aistudio.google.com,https://github.com/gilbarbara/logos,google-aistudio.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+496,sora,Sora,sora.com,https://github.com/lobehub/lobe-icons,sora-color.svg,MIT,"name, then looked at by hand",
+497,codex,Codex,openai.com,https://github.com/pheralb/svgl,codex_light.svg,MIT,"name, and the pack's URL matches the domain",
+498,ai21,AI21 Labs,ai21.com,,,,,monogram: no usable logo found
+499,fal,fal,fal.ai,https://github.com/glincker/thesvg,color.svg,MIT,"name, and the pack's URL matches the domain",
+500,cartesia,Cartesia,cartesia.ai,https://github.com/gilbarbara/logos,cartesia-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+501,beautiful-ai,Beautiful.ai,beautiful.ai,,,,,monogram: no usable logo found
+502,pitch,Pitch,pitch.com,https://github.com/pheralb/svgl,pitch.svg,MIT,"name, and the pack's URL matches the domain",
+503,mysql,MySQL,mysql.com,https://github.com/gilbarbara/logos,mysql-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+504,sqlite,SQLite,sqlite.org,https://github.com/devicons/devicon,sqlite-original.svg,MIT,"name, then looked at by hand",
+505,turso,Turso,turso.tech,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+506,cockroachdb,CockroachDB,cockroachlabs.com,https://github.com/pheralb/svgl,cockroachlabs-light.svg,MIT,"name, and the pack's URL matches the domain",
+507,timescale,Timescale,timescale.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+508,singlestore,SingleStore,singlestore.com,https://github.com/gilbarbara/logos,singlestore-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+509,aiven,Aiven,aiven.io,https://aiven.io/favicon.svg,aiven.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+510,microsoft-sql-server,Microsoft SQL Server,microsoft.com,https://github.com/pheralb/svgl,sql-server.svg,MIT,"name, and the pack's URL matches the domain",
+511,kafka,Apache Kafka,kafka.apache.org,https://github.com/gilbarbara/logos,kafka-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+512,confluent,Confluent,confluent.io,https://github.com/homarr-labs/dashboard-icons,confluent.svg,Apache-2.0,"name, then looked at by hand",
+513,rabbitmq,RabbitMQ,rabbitmq.com,https://github.com/gilbarbara/logos,rabbitmq-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+514,spark,Apache Spark,spark.apache.org,https://github.com/glincker/thesvg,default.svg,Apache-2.0,"name, and the pack's URL matches the domain",
+515,airflow,Apache Airflow,airflow.apache.org,https://github.com/gilbarbara/logos,airflow-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+516,dagster,Dagster,dagster.io,https://github.com/glincker/thesvg,default.svg,Apache-2.0,"name, and the pack's URL matches the domain",
+517,prefect,Prefect,prefect.io,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+518,stitch,Stitch,stitchdata.com,https://github.com/gilbarbara/logos,stitch.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+519,census,Census,getcensus.com,,,,,monogram: no usable logo found
+520,rudderstack,RudderStack,rudderstack.com,https://github.com/gilbarbara/logos,rudderstack-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+521,mparticle,mParticle,mparticle.com,https://github.com/gilbarbara/logos,mparticle-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+522,tealium,Tealium,tealium.com,https://github.com/gilbarbara/logos,tealium-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+523,mode,Mode,mode.com,,,,,monogram: no usable logo found
+524,sigma,Sigma,sigmacomputing.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+525,lightdash,Lightdash,lightdash.com,,,,,monogram: no usable logo found
+526,superset,Apache Superset,superset.apache.org,https://github.com/gilbarbara/logos,apache-superset-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+527,omni-analytics,Omni Analytics,omni.co,,,,,monogram: no usable logo found
+528,monte-carlo,Monte Carlo,montecarlodata.com,,,,,monogram: no usable logo found
+529,atlan,Atlan,atlan.com,https://atlan.com/favicon.svg,atlan.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+530,alation,Alation,alation.com,,,,,monogram: no usable logo found
+531,typesense,Typesense,typesense.org,https://github.com/gilbarbara/logos,typesense-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+532,meilisearch,Meilisearch,meilisearch.com,https://github.com/gilbarbara/logos,meilisearch.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+533,duckdb,DuckDB,duckdb.org,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+534,motherduck,MotherDuck,motherduck.com,,,,,monogram: no usable logo found
+535,domo,Domo,domo.com,,,,,monogram: no usable logo found
+536,qlik,Qlik,qlik.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+537,tinybird,Tinybird,tinybird.co,,,,,monogram: no usable logo found
+538,thoughtspot,ThoughtSpot,thoughtspot.com,https://www.thoughtspot.com/favicon.svg,thoughtspot.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+539,google-tag-manager,Google Tag Manager,tagmanager.google.com,https://github.com/gilbarbara/logos,google-tag-manager.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+540,google-search-console,Google Search Console,search.google.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+541,matomo,Matomo,matomo.org,https://github.com/gilbarbara/logos,matomo-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+542,fathom-analytics,Fathom Analytics,usefathom.com,https://usefathom.com/assets/src/favicon.svg,fathom-analytics.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+543,simple-analytics,Simple Analytics,simpleanalytics.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+544,crazy-egg,Crazy Egg,crazyegg.com,,,,,monogram: no usable logo found
+545,contentsquare,Contentsquare,contentsquare.com,,,,,monogram: no usable logo found
+546,sprig,Sprig,sprig.com,,,,,monogram: no usable logo found
+547,maze,Maze,maze.co,https://github.com/simple-icons/simple-icons,maze.svg,CC0-1.0,"name, then looked at by hand",
+548,dovetail,Dovetail,dovetail.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+549,usertesting,UserTesting,usertesting.com,https://github.com/gilbarbara/logos,user-testing-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+550,qualtrics,Qualtrics,qualtrics.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+551,google-forms,Google Forms,forms.google.com,https://github.com/homarr-labs/dashboard-icons,google-forms.svg,Apache-2.0,"name, then looked at by hand",
+552,jotform,Jotform,jotform.com,,,,,monogram: no usable logo found
+553,delighted,Delighted,delighted.com,https://github.com/gilbarbara/logos,delighted-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+554,userpilot,Userpilot,userpilot.com,,,,,monogram: no usable logo found
+555,chameleon,Chameleon,chameleon.io,,,,,monogram: no usable logo found
+556,userflow,Userflow,userflow.com,,,,,monogram: no usable logo found
+557,branch,Branch,branch.io,https://github.com/gilbarbara/logos,branch-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+558,adjust,Adjust,adjust.com,,,,,monogram: no usable logo found
+559,singular,Singular,singular.net,,,,,monogram: no usable logo found
+560,aha,Aha!,aha.io,,,,,monogram: no usable logo found
+561,basecamp,Basecamp,basecamp.com,https://github.com/gilbarbara/logos,basecamp-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+562,wrike,Wrike,wrike.com,,,,,monogram: no usable logo found
+563,mural,Mural,mural.co,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+564,whimsical,Whimsical,whimsical.com,,,,,monogram: no usable logo found
+565,excalidraw,Excalidraw,excalidraw.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+566,todoist,Todoist,todoist.com,https://github.com/gilbarbara/logos,todoist-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+567,harvest,Harvest,getharvest.com,https://www.getharvest.com/hubfs/Harvest_2026.svg,harvest.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+568,toggl,Toggl,toggl.com,https://github.com/homarr-labs/dashboard-icons,toggl.svg,Apache-2.0,"name, then looked at by hand",
+569,clockify,Clockify,clockify.me,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+570,teamwork,Teamwork,teamwork.com,https://github.com/gilbarbara/logos,teamwork-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+571,atlassian,Atlassian,atlassian.com,https://github.com/pheralb/svgl,atlassian.svg,MIT,"name, and the pack's URL matches the domain",
+572,jira-service-management,Jira Service Management,atlassian.com,https://github.com/gilbarbara/logos,jira.svg,CC0-1.0,looked at by hand,Jira's mark
+573,plane,Plane,plane.so,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+574,slite,Slite,slite.com,,,,,monogram: no usable logo found
+575,guru,Guru,getguru.com,,,,,monogram: no usable logo found
+576,evernote,Evernote,evernote.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+577,microsoft-onedrive,Microsoft OneDrive,onedrive.live.com,https://github.com/homarr-labs/dashboard-icons,microsoft-onedrive.svg,Apache-2.0,"name, then looked at by hand",
+578,microsoft-sharepoint,Microsoft SharePoint,microsoft.com,https://github.com/pheralb/svgl,microsoft-sharepoint.svg,MIT,"name, and the pack's URL matches the domain",
+579,microsoft-excel,Microsoft Excel,microsoft.com,https://github.com/pheralb/svgl,microsoft-excel.svg,MIT,"name, and the pack's URL matches the domain",
+580,microsoft-word,Microsoft Word,microsoft.com,https://github.com/pheralb/svgl,microsoft-word.svg,MIT,"name, and the pack's URL matches the domain",
+581,microsoft-powerpoint,Microsoft PowerPoint,microsoft.com,https://github.com/pheralb/svgl,microsoft-powerpoint.svg,MIT,"name, and the pack's URL matches the domain",
+582,microsoft-outlook,Microsoft Outlook,outlook.com,https://github.com/homarr-labs/dashboard-icons,microsoft-outlook.svg,Apache-2.0,"name, then looked at by hand",
+583,google-slides,Google Slides,slides.google.com,https://github.com/pheralb/svgl,google-slides.svg,MIT,"name, and the pack's URL matches the domain",
+584,icloud,iCloud,icloud.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+585,zoho-workplace,Zoho,zoho.com,https://github.com/gilbarbara/logos,zoho.svg,CC0-1.0,looked at by hand,
+586,fastmail,Fastmail,fastmail.com,https://github.com/homarr-labs/dashboard-icons,fastmail.svg,Apache-2.0,"name, then looked at by hand",
+587,proton,Proton,proton.me,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+588,adobe-acrobat,Adobe Acrobat,adobe.com,https://github.com/selfhst/icons,adobe-acrobat.svg,CC-BY-4.0,"name, then looked at by hand",
+589,arc,Arc Browser,arc.net,https://github.com/pheralb/svgl,arc_browser.svg,MIT,"name, and the pack's URL matches the domain",
+590,adobe-after-effects,Adobe After Effects,adobe.com,https://github.com/gilbarbara/logos,adobe-after-effects.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+591,adobe-premiere,Adobe Premiere Pro,adobe.com,https://github.com/gilbarbara/logos,adobe-premiere.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+592,adobe-indesign,Adobe InDesign,adobe.com,https://github.com/gilbarbara/logos,adobe-indesign.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+593,adobe-lightroom,Adobe Lightroom,adobe.com,https://github.com/gilbarbara/logos,adobe-lightroom.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+594,adobe-fonts,Adobe Fonts,fonts.adobe.com,https://github.com/pheralb/svgl,fonts.svg,MIT,"name, and the pack's URL matches the domain",
+595,spline,Spline,spline.design,,,,,monogram: no usable logo found
+596,rive,Rive,rive.app,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+597,lottiefiles,LottieFiles,lottiefiles.com,https://github.com/pheralb/svgl,lottiefiles.svg,MIT,"name, and the pack's URL matches the domain",
+598,zeplin,Zeplin,zeplin.io,https://github.com/gilbarbara/logos,zeplin.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+599,balsamiq,Balsamiq,balsamiq.com,https://balsamiq.com/assets/favicon/safari-pinned-tab.svg,balsamiq.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+600,protopie,ProtoPie,protopie.io,,,,,monogram: no usable logo found
+601,penpot,Penpot,penpot.app,https://github.com/gilbarbara/logos,penpot-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+602,affinity,Affinity,affinity.studio,,,,,monogram: no usable logo found
+603,blender,Blender,blender.org,https://github.com/pheralb/svgl,blender.svg,MIT,"name, and the pack's URL matches the domain",
+604,shutterstock,Shutterstock,shutterstock.com,,,,,monogram: no usable logo found
+605,getty-images,Getty Images,gettyimages.com,,,,,monogram: no usable logo found
+606,pexels,Pexels,pexels.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+607,envato,Envato,envato.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+608,font-awesome,Font Awesome,fontawesome.com,https://github.com/gilbarbara/logos,font-awesome.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+609,google-fonts,Google Fonts,fonts.google.com,https://github.com/gilbarbara/logos,google-fonts-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+610,dribbble,Dribbble,dribbble.com,https://github.com/gilbarbara/logos,dribbble-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+611,behance,Behance,behance.net,https://github.com/pheralb/svgl,behance.svg,MIT,"name, and the pack's URL matches the domain",
+612,capcut,CapCut,capcut.com,https://github.com/glincker/thesvg,mono.svg,MIT,"name, and the pack's URL matches the domain",
+613,figjam,FigJam,figma.com,https://github.com/pheralb/svgl,figma.svg,MIT,looked at by hand,The parent product's mark
+614,webex,Webex,webex.com,,,,,monogram: no usable logo found
+615,mattermost,Mattermost,mattermost.com,https://github.com/gilbarbara/logos,mattermost-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+616,rocket-chat,Rocket.Chat,rocket.chat,https://github.com/gilbarbara/logos,rocket-chat-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+617,signal,Signal,signal.org,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+618,google-chat,Google Chat,chat.google.com,https://github.com/pheralb/svgl,google-chat.svg,MIT,"name, and the pack's URL matches the domain",
+619,vonage,Vonage,vonage.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+620,bird,Bird,bird.com,https://bird.com/favicon.svg,bird.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+621,plivo,Plivo,plivo.com,https://www.plivo.com/favicon/favicon.svg,plivo.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+622,sinch,Sinch,sinch.com,,,,,monogram: no usable logo found
+623,telnyx,Telnyx,telnyx.com,,,,,monogram: no usable logo found
+624,justcall,JustCall,justcall.io,,,,,monogram: no usable logo found
+625,whereby,Whereby,whereby.com,,,,,monogram: no usable logo found
+626,riverside,Riverside,riverside.com,https://github.com/homarr-labs/dashboard-icons,riverside-fm.svg,Apache-2.0,"name, then looked at by hand",
+627,streamyard,StreamYard,streamyard.com,,,,,monogram: no usable logo found
+628,luma-events,Lu.ma,lu.ma,,,,,"monogram: the packs' Luma is Luma AI, a different company"
+629,eventbrite,Eventbrite,eventbrite.com,https://github.com/gilbarbara/logos,eventbrite-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+630,missive,Missive,missiveapp.com,,,,,monogram: no usable logo found
+631,daily,Daily,daily.co,https://github.com/gilbarbara/logos,daily-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+632,agora,Agora,agora.io,,,,,monogram: no usable logo found
+633,sendbird,Sendbird,sendbird.com,,,,,monogram: no usable logo found
+634,stream,Stream,getstream.io,,,,,monogram: no usable logo found
+635,goto,GoTo,goto.com,https://github.com/simple-icons/simple-icons,gotomeeting.svg,CC0-1.0,"name, then looked at by hand",
+636,bluesky,Bluesky,bsky.app,https://github.com/gilbarbara/logos,bluesky.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+637,pinterest,Pinterest,pinterest.com,https://github.com/pheralb/svgl,pinterest.svg,MIT,"name, and the pack's URL matches the domain",
+638,linkedin-ads,LinkedIn Ads,linkedin.com,https://github.com/gilbarbara/logos,linkedin-icon.svg,CC0-1.0,looked at by hand,The parent product's mark
+639,microsoft-advertising,Microsoft Advertising,ads.microsoft.com,https://github.com/gilbarbara/logos,microsoft-icon.svg,CC0-1.0,looked at by hand,The parent company's mark
+640,apple-search-ads,Apple Search Ads,searchads.apple.com,https://github.com/pheralb/svgl,apple.svg,MIT,looked at by hand,The parent company's mark
+641,pardot,Pardot,salesforce.com,,,,,monogram: no usable logo found
+642,kit,Kit,kit.com,,,,,monogram: no usable logo found
+643,constant-contact,Constant Contact,constantcontact.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+644,campaign-monitor,Campaign Monitor,campaignmonitor.com,https://github.com/gilbarbara/logos,campaignmonitor-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+645,sparkpost,SparkPost,sparkpost.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+646,mailjet,Mailjet,mailjet.com,https://github.com/gilbarbara/logos,mailjet-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+647,mailtrap,Mailtrap,mailtrap.io,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+648,onesignal,OneSignal,onesignal.com,https://github.com/gilbarbara/logos,onesignal.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+649,sprout-social,Sprout Social,sproutsocial.com,https://media.sproutsocial.com/uploads/favicon_browser.svg,sprout-social.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+650,later,Later,later.com,,,,,monogram: no usable logo found
+651,moz,Moz,moz.com,,,,,monogram: no usable logo found
+652,squarespace,Squarespace,squarespace.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+653,wix,Wix,wix.com,https://github.com/gilbarbara/logos,wix.svg,CC0-1.0,looked at by hand,Wix's mark is its wordmark
+654,unbounce,Unbounce,unbounce.com,https://github.com/gilbarbara/logos,unbounce-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+655,mutiny,Mutiny,mutinyhq.com,,,,,monogram: no usable logo found
+656,clearbit,Clearbit,clearbit.com,https://clearbit.com/logo.svg,clearbit.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+657,demandbase,Demandbase,demandbase.com,,,,,monogram: no usable logo found
+658,6sense,6sense,6sense.com,,,,,monogram: no usable logo found
+659,capterra,Capterra,capterra.com,,,,,monogram: no usable logo found
+660,trustpilot,Trustpilot,trustpilot.com,https://github.com/simple-icons/simple-icons,trustpilot.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+661,rewardful,Rewardful,rewardful.com,,,,,monogram: no usable logo found
+662,firstpromoter,FirstPromoter,firstpromoter.com,,,,,monogram: no usable logo found
+663,partnerstack,PartnerStack,partnerstack.com,,,,,monogram: no usable logo found
+664,impact,Impact.com,impact.com,,,,,monogram: no usable logo found
+665,bitly,Bitly,bitly.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+666,dub,Dub,dub.co,https://github.com/glincker/thesvg,default.svg,MIT,looked at by hand,
+667,typefully,Typefully,typefully.com,https://typefully.com/icon/safari-pinned-tab.svg,typefully.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+668,kajabi,Kajabi,kajabi.com,,,,,monogram: no usable logo found
+669,teachable,Teachable,teachable.com,,,,,monogram: no usable logo found
+670,thinkific,Thinkific,thinkific.com,,,,,monogram: no usable logo found
+671,gumroad,Gumroad,gumroad.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+672,patreon,Patreon,patreon.com,https://github.com/pheralb/svgl,patreon.svg,MIT,"name, and the pack's URL matches the domain",
+673,spotify,Spotify,spotify.com,https://github.com/gilbarbara/logos,spotify-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+674,surfer,Surfer,surferseo.com,https://surfer.ai/favicon.svg,surfer.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+675,hunter,Hunter,hunter.io,,,,,monogram: no usable logo found
+676,lusha,Lusha,lusha.com,,,,,monogram: no usable logo found
+677,cognism,Cognism,cognism.com,,,,,monogram: no usable logo found
+678,smartlead,Smartlead,smartlead.ai,,,,,monogram: no usable logo found
+679,reply-io,Reply.io,reply.io,,,,,monogram: no usable logo found
+680,copper,Copper,copper.com,,,,,monogram: no usable logo found
+681,zoho-crm,Zoho CRM,zoho.com,,,,,monogram: no usable logo found
+682,freshsales,Freshsales,freshworks.com,,,,,monogram: no usable logo found
+683,folk,Folk,folk.app,,,,,monogram: no usable logo found
+684,streak,Streak,streak.com,,,,,monogram: no usable logo found
+685,affinity-crm,Affinity CRM,affinity.co,,,,,monogram: no usable logo found
+686,qwilr,Qwilr,qwilr.com,https://qwilr.com/icon.svg,qwilr.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+687,drift,Drift,drift.com,,,,,monogram: no usable logo found
+688,qualified,Qualified,qualified.com,,,,,monogram: no usable logo found
+689,dock,Dock,dock.us,,,,,monogram: no usable logo found
+690,seismic,Seismic,seismic.com,,,,,monogram: no usable logo found
+691,highspot,Highspot,highspot.com,,,,,monogram: no usable logo found
+692,clari,Clari,clari.com,,,,,monogram: no usable logo found
+693,common-room,Common Room,commonroom.io,,,,,monogram: no usable logo found
+694,koala,Koala,getkoala.com,https://getkoala.com/favicon.svg,koala.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+695,microsoft-dynamics,Microsoft Dynamics 365,dynamics.microsoft.com,,,,,monogram: no usable logo found
+696,twenty,Twenty,twenty.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+697,vidyard,Vidyard,vidyard.com,https://www.vidyard.com/wp-content/themes/vidyard-fp/favicon/favicon.svg?v=2,vidyard.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+698,docsend,DocSend,docsend.com,,,,,monogram: no usable logo found
+699,papermark,Papermark,papermark.com,,,,,monogram: could not confirm the packs' mark
+700,tidio,Tidio,tidio.com,,,,,monogram: no usable logo found
+701,tawk-to,tawk.to,tawk.to,,,,,monogram: no usable logo found
+702,livechat,LiveChat,livechat.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+703,kustomer,Kustomer,kustomer.com,,,,,monogram: no usable logo found
+704,reamaze,Re:amaze,reamaze.com,,,,,monogram: no usable logo found
+705,zoho-desk,Zoho Desk,zoho.com,https://github.com/homarr-labs/dashboard-icons,zoho-desk.svg,Apache-2.0,"name, then looked at by hand",
+706,salesforce-service-cloud,Salesforce Service Cloud,salesforce.com,https://github.com/pheralb/svgl,salesforce.svg,MIT,looked at by hand,The parent company's mark
+707,gainsight,Gainsight,gainsight.com,https://gainsight.com/icon.svg,gainsight.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+708,churnzero,ChurnZero,churnzero.com,,,,,monogram: no usable logo found
+709,vitally,Vitally,vitally.io,,,,,monogram: no usable logo found
+710,planhat,Planhat,planhat.com,,,,,monogram: no usable logo found
+711,ada,Ada,ada.cx,,,,,monogram: no usable logo found
+712,forethought,Forethought,forethought.ai,,,,,monogram: no usable logo found
+713,uservoice,UserVoice,uservoice.com,https://github.com/gilbarbara/logos,uservoice-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+714,frill,Frill,frill.co,,,,,monogram: no usable logo found
+715,featurebase,Featurebase,featurebase.app,https://www.featurebase.app/favicon.svg,featurebase.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+716,beamer,Beamer,getbeamer.com,,,,,monogram: no usable logo found
+717,servicenow,ServiceNow,servicenow.com,,,,,monogram: no usable logo found
+718,freshservice,Freshservice,freshservice.com,,,,,monogram: no usable logo found
+719,chatwoot,Chatwoot,chatwoot.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+720,adyen,Adyen,adyen.com,https://www.adyen.com/icon.svg,adyen.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+721,braintree,Braintree,braintreepayments.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+722,square,Square,squareup.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+723,checkout-com,Checkout.com,checkout.com,,,,,monogram: no usable logo found
+724,gocardless,GoCardless,gocardless.com,,,,,monogram: no usable logo found
+725,razorpay,Razorpay,razorpay.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+726,mollie,Mollie,mollie.com,,,,,monogram: no usable logo found
+727,klarna,Klarna,klarna.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",Black on its pink. Pink on white can't be read at 20px
+728,affirm,Affirm,affirm.com,,,,,monogram: no usable logo found
+729,afterpay,Afterpay,afterpay.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+730,american-express,American Express,americanexpress.com,https://github.com/gilbarbara/logos,amex.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+731,revolut,Revolut,revolut.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+732,rho,Rho,rho.co,,,,,monogram: no usable logo found
+733,divvy,Divvy,getdivvy.com,,,,,monogram: no usable logo found
+734,pleo,Pleo,pleo.io,https://www.pleo.io/favicon.svg,pleo.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+735,spendesk,Spendesk,spendesk.com,,,,,monogram: no usable logo found
+736,payhawk,Payhawk,payhawk.com,,,,,monogram: no usable logo found
+737,qonto,Qonto,qonto.com,,,,,monogram: no usable logo found
+738,svb,Silicon Valley Bank,svb.com,,,,,monogram: no usable logo found
+739,chase,Chase,chase.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+740,bank-of-america,Bank of America,bankofamerica.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+741,wells-fargo,Wells Fargo,wellsfargo.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+742,hsbc,HSBC,hsbc.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+743,barclays,Barclays,barclays.com,https://github.com/simple-icons/simple-icons,barclays.svg,CC0-1.0,"name, then looked at by hand",
+744,monzo,Monzo,monzo.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+745,starling,Starling Bank,starlingbank.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+746,tide,Tide,tide.co,https://www.tide.co/favicon.svg,tide.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+747,freeagent,FreeAgent,freeagent.com,https://www.freeagent.com/icon.svg,freeagent.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+748,sage,Sage,sage.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+749,wave,Wave,waveapps.com,,,,,monogram: no usable logo found
+750,zoho-books,Zoho Books,zoho.com,,,,,monogram: no usable logo found
+751,digits,Digits,digits.com,https://digits.com/favicon/favicon.svg?v=3,digits.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+752,mosaic,Mosaic,mosaic.tech,,,,,monogram: no usable logo found
+753,pigment,Pigment,pigment.com,,,,,monogram: no usable logo found
+754,runway-financial,Runway Financial,runway.com,,,,,monogram: no usable logo found
+755,cube-software,Cube Software,cubesoftware.com,,,,,monogram: no usable logo found
+756,anaplan,Anaplan,anaplan.com,https://github.com/homarr-labs/dashboard-icons,anaplan.svg,Apache-2.0,"name, then looked at by hand",
+757,maxio,Maxio,maxio.com,,,,,monogram: no usable logo found
+758,zuora,Zuora,zuora.com,,,,,monogram: no usable logo found
+759,orb,Orb,withorb.com,,,,,monogram: the packs' Orb is a different product
+760,metronome,Metronome,metronome.com,,,,,monogram: no usable logo found
+761,lago,Lago,getlago.com,,,,,monogram: no usable logo found
+762,baremetrics,Baremetrics,baremetrics.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+763,chartmogul,ChartMogul,chartmogul.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+764,taxjar,TaxJar,taxjar.com,,,,,monogram: no usable logo found
+765,pulley,Pulley,pulley.com,,,,,monogram: no usable logo found
+766,angellist,AngelList,angellist.com,,,,,monogram: no usable logo found
+767,modern-treasury,Modern Treasury,moderntreasury.com,,,,,monogram: no usable logo found
+768,increase,Increase,increase.com,https://increase.com/favicon.svg,increase.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+769,dwolla,Dwolla,dwolla.com,,,,,monogram: no usable logo found
+770,marqeta,Marqeta,marqeta.com,https://www.marqeta.com/favicon.svg,marqeta.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+771,unit,Unit,unit.co,https://cdn.prod.website-files.com/67ab6f3014e9ebd84ecef25a/67ab6f3014e9ebd84ecef419_favicon.svg,unit.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+772,coinbase,Coinbase,coinbase.com,https://github.com/pheralb/svgl,coinbase.svg,MIT,"name, and the pack's URL matches the domain",
+773,circle,Circle,circle.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+774,payoneer,Payoneer,payoneer.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+775,zip,Zip,ziphq.com,,,,,monogram: no usable logo found
+776,tipalti,Tipalti,tipalti.com,,,,,monogram: no usable logo found
+777,concur,SAP Concur,concur.com,https://www.concur.com/themes/custom/sap_component/favicon.svg,concur.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+778,sap,SAP,sap.com,https://github.com/gilbarbara/logos,sap.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+779,oyster,Oyster HR,oysterhr.com,,,,,monogram: no usable logo found
+780,trinet,TriNet,trinet.com,https://www.trinet.com/favicon.svg,trinet.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+781,paychex,Paychex,paychex.com,,,,,monogram: no usable logo found
+782,paylocity,Paylocity,paylocity.com,,,,,monogram: no usable logo found
+783,workday,Workday,workday.com,https://github.com/glincker/thesvg,default.svg,MIT,"name, and the pack's URL matches the domain",
+784,fifteen-five,15Five,15five.com,,,,,monogram: no usable logo found
+785,leapsome,Leapsome,leapsome.com,,,,,monogram: no usable logo found
+786,breezy-hr,Breezy HR,breezy.hr,,,,,monogram: no usable logo found
+787,jazzhr,JazzHR,jazzhr.com,,,,,monogram: no usable logo found
+788,linkedin-recruiter,LinkedIn Recruiter,linkedin.com,https://github.com/gilbarbara/logos,linkedin-icon.svg,CC0-1.0,looked at by hand,The parent product's mark
+789,indeed,Indeed,indeed.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+790,wellfound,Wellfound,wellfound.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+791,dover,Dover,dover.com,,,,,monogram: no usable logo found
+792,gem,Gem,gem.com,https://www.gem.com/favicon.svg,gem.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+793,zenefits,Zenefits,zenefits.com,,,,,monogram: no usable logo found
+794,pave,Pave,pave.com,,,,,monogram: no usable logo found
+795,trainual,Trainual,trainual.com,,,,,monogram: no usable logo found
+796,safetywing,SafetyWing,safetywing.com,,,,,monogram: no usable logo found
+797,vouch,Vouch,vouch.us,,,,,monogram: no usable logo found
+798,embroker,Embroker,embroker.com,,,,,monogram: no usable logo found
+799,glassdoor,Glassdoor,glassdoor.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+800,juro,Juro,juro.com,,,,,monogram: no usable logo found
+801,legalzoom,LegalZoom,legalzoom.com,,,,,monogram: no usable logo found
+802,signnow,SignNow,signnow.com,,,,,monogram: no usable logo found
+803,clio,Clio,clio.com,,,,,monogram: no usable logo found
+804,termly,Termly,termly.io,,,,,monogram: no usable logo found
+805,iubenda,iubenda,iubenda.com,,,,,monogram: no usable logo found
+806,onetrust,OneTrust,onetrust.com,,,,,monogram: no usable logo found
+807,trustarc,TrustArc,trustarc.com,,,,,monogram: no usable logo found
+808,osano,Osano,osano.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+809,cookiebot,Cookiebot,cookiebot.com,https://www.cookiebot.com/favicon.svg,cookiebot.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+810,firstbase,Firstbase,firstbase.io,,,,,monogram: no usable logo found
+811,secureframe,Secureframe,secureframe.com,,,,,monogram: no usable logo found
+812,sprinto,Sprinto,sprinto.com,,,,,monogram: no usable logo found
+813,thoropass,Thoropass,thoropass.com,,,,,monogram: no usable logo found
+814,dashlane,Dashlane,dashlane.com,https://github.com/gilbarbara/logos,dashlane-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+815,frontegg,Frontegg,frontegg.com,,,,,monogram: no usable logo found
+816,supertokens,SuperTokens,supertokens.com,https://github.com/gilbarbara/logos,supertokens-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+817,keycloak,Keycloak,keycloak.org,https://github.com/pheralb/svgl,keycloak.svg,MIT,"name, and the pack's URL matches the domain",
+818,ping-identity,Ping Identity,pingidentity.com,,,,,monogram: no usable logo found
+819,duo,Duo Security,duo.com,,,,,monogram: no usable logo found
+820,jumpcloud,JumpCloud,jumpcloud.com,,,,,monogram: no usable logo found
+821,microsoft-entra,Microsoft Entra ID,entra.microsoft.com,https://github.com/selfhst/icons,microsoft-entra-id.svg,CC-BY-4.0,"name, then looked at by hand",
+822,lacework,Lacework,lacework.com,,,,,monogram: no usable logo found
+823,orca,Orca Security,orca.security,,,,,monogram: no usable logo found
+824,sentinelone,SentinelOne,sentinelone.com,,,,,monogram: no usable logo found
+825,zscaler,Zscaler,zscaler.com,https://github.com/selfhst/icons,zscaler.svg,CC-BY-4.0,"name, then looked at by hand",
+826,palo-alto,Palo Alto Networks,paloaltonetworks.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+827,twingate,Twingate,twingate.com,https://github.com/homarr-labs/dashboard-icons,twingate.svg,Apache-2.0,"name, then looked at by hand",
+828,nordlayer,NordLayer,nordlayer.com,,,,,monogram: no usable logo found
+829,mosyle,Mosyle,mosyle.com,,,,,monogram: no usable logo found
+830,fleet,Fleet,fleetdm.com,,,,,"monogram: the packs' Fleet is Rancher Fleet, a different product"
+831,infisical,Infisical,infisical.com,https://github.com/glincker/thesvg,default.svg,MIT,"name, and the pack's URL matches the domain",
+832,gitguardian,GitGuardian,gitguardian.com,,,,,monogram: no usable logo found
+833,semgrep,Semgrep,semgrep.dev,,,,,monogram: no usable logo found
+834,socket,Socket,socket.dev,https://github.com/simple-icons/simple-icons,socket.svg,CC0-1.0,"name, then looked at by hand",
+835,aikido,Aikido Security,aikido.dev,,,,,monogram: no usable logo found
+836,cobalt,Cobalt,cobalt.io,https://github.com/gilbarbara/logos,cobalt.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+837,hackerone,HackerOne,hackerone.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+838,bugcrowd,Bugcrowd,bugcrowd.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+839,abnormal,Abnormal Security,abnormal.ai,,,,,monogram: no usable logo found
+840,proofpoint,Proofpoint,proofpoint.com,,,,,monogram: no usable logo found
+841,mimecast,Mimecast,mimecast.com,,,,,monogram: no usable logo found
+842,knowbe4,KnowBe4,knowbe4.com,,,,,monogram: no usable logo found
+843,yubico,Yubico,yubico.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+844,cisco,Cisco,cisco.com,https://github.com/pheralb/svgl,cisco_light.svg,MIT,"name, and the pack's URL matches the domain",
+845,porkbun,Porkbun,porkbun.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+846,gandi,Gandi,gandi.net,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+847,dnsimple,DNSimple,dnsimple.com,https://github.com/homarr-labs/dashboard-icons,dnsimple.svg,Apache-2.0,"name, then looked at by hand",
+848,reclaim,Reclaim.ai,reclaim.ai,,,,,monogram: no usable logo found
+849,clockwise,Clockwise,getclockwise.com,,,,,monogram: no usable logo found
+850,motion,Motion,usemotion.com,https://www.usemotion.com/favicon.svg,motion.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+851,savvycal,SavvyCal,savvycal.com,,,,,monogram: no usable logo found
+852,doodle,Doodle,doodle.com,,,,,monogram: no usable logo found
+853,travelperk,TravelPerk,travelperk.com,https://github.com/pheralb/svgl,travelperk-light.svg,MIT,"name, and the pack's URL matches the domain",
+854,uber,Uber for Business,uber.com,https://github.com/simple-icons/simple-icons,uber.svg,CC0-1.0,looked at by hand,Uber's mark is its wordmark
+855,wework,WeWork,wework.com,,,,,monogram: no usable logo found
+856,amazon-business,Amazon Business,amazon.com,https://github.com/homarr-labs/dashboard-icons,amazon.svg,Apache-2.0,"name, then looked at by hand",
+857,apple,Apple,apple.com,https://github.com/pheralb/svgl,apple.svg,MIT,"name, and the pack's URL matches the domain",
+858,google,Google,google.com,https://github.com/gilbarbara/logos,google-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+859,microsoft,Microsoft,microsoft.com,https://github.com/gilbarbara/logos,microsoft-icon.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+860,ifttt,IFTTT,ifttt.com,https://ifttt.com/favicon.svg,ifttt.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+861,woocommerce,WooCommerce,woocommerce.com,https://github.com/homarr-labs/dashboard-icons,woocommerce.svg,Apache-2.0,"name, then looked at by hand",
+862,bigcommerce,BigCommerce,bigcommerce.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+863,magento,Magento,business.adobe.com,https://github.com/glincker/thesvg,default.svg,MIT,"name, then looked at by hand",
+864,etsy,Etsy,etsy.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+865,amazon-seller,Amazon Seller Central,sellercentral.amazon.com,,,,,monogram: no usable logo found
+866,shipstation,ShipStation,shipstation.com,,,,,monogram: no usable logo found
+867,shipbob,ShipBob,shipbob.com,,,,,monogram: no usable logo found
+868,recharge,Recharge,getrecharge.com,,,,,monogram: no usable logo found
+869,yotpo,Yotpo,yotpo.com,,,,,monogram: no usable logo found
+870,shippo,Shippo,goshippo.com,,,,,monogram: no usable logo found
+871,easypost,EasyPost,easypost.com,https://www.easypost.com/wp-content/uploads/2025/03/icon.svg,easypost.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+872,ebay,eBay,ebay.com,https://github.com/pheralb/svgl,ebay.svg,MIT,looked at by hand,eBay's mark is its wordmark
+873,hostinger,Hostinger,hostinger.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+874,kinsta,Kinsta,kinsta.com,,,,,monogram: no usable logo found
+875,wp-engine,WP Engine,wpengine.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+876,bluehost,Bluehost,bluehost.com,,,,,monogram: no usable logo found
+877,crunchbase,Crunchbase,crunchbase.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+878,pitchbook,PitchBook,pitchbook.com,,,,,monogram: no usable logo found
+879,visible,Visible,visible.vc,https://visible.vc/favicon.svg,visible.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+880,upwork,Upwork,upwork.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+881,fiverr,Fiverr,fiverr.com,,,,,monogram: no usable logo found
+882,toptal,Toptal,toptal.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+883,contra,Contra,contra.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+884,mailerlite,MailerLite,mailerlite.com,,,,,monogram: no usable logo found
+885,drip,Drip,drip.com,,,,,monogram: no usable logo found
+886,aweber,AWeber,aweber.com,https://assets.aweber-static.com/www/assets/metadata/mask.cb73d066.svg,aweber.svg,"None. The owner's own file, shown to identify it","name, and the pack's URL matches the domain",
+887,getresponse,GetResponse,getresponse.com,,,,,monogram: no usable logo found
+888,ortto,Ortto,ortto.com,,,,,monogram: no usable logo found
+889,honeybook,HoneyBook,honeybook.com,,,,,monogram: no usable logo found
+890,bonsai,Bonsai,hellobonsai.com,,,,,monogram: no usable logo found
+891,gitkraken,GitKraken,gitkraken.com,https://github.com/glincker/thesvg,default.svg,CC0-1.0,"name, and the pack's URL matches the domain",
+892,screen-studio,Screen Studio,screen.studio,,,,,monogram: no usable logo found

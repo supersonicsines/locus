@@ -8,7 +8,7 @@ import { PIECE_KINDS } from '../../core/types.ts'
 import { changePiece, deletePiece, setCost } from '../actions.ts'
 import { KIND_LABELS } from '../map/symbols.ts'
 import { setState, useStore } from '../store.ts'
-import { GrowingText, Icon, Markdown, plural, Symbol, useEscape } from './bits.tsx'
+import { GrowingText, Icon, Markdown, PieceMark, plural, useEscape } from './bits.tsx'
 import { contentOf } from './data.ts'
 
 const LINK_NOTE: Record<string, string> = { conflicts: 'Conflicts', governs: 'Governs', uses: 'Uses' }
@@ -119,7 +119,7 @@ export function Peek() {
     <aside className="side panel" aria-label={piece.title} key={piece.id}>
       <div className="side-head">
         <span className="piece-kind grow">
-          <Symbol kind={piece.kind} />
+          <PieceMark kind={piece.kind} name={piece.title} size={piece.kind === 'service' ? 20 : 14} />
           {readOnly ? (
             KIND_LABELS[piece.kind]
           ) : (
@@ -267,7 +267,7 @@ export function Peek() {
                 return (
                   <li key={i}>
                     <button className="link-item" onClick={() => setState({ selected: other.id })}>
-                      <Symbol kind={other.kind} size={12} />
+                      <PieceMark kind={other.kind} name={other.title} size={12} />
                       <span>{other.title}</span>
                       {LINK_NOTE[l.kind] && <span className="note">{LINK_NOTE[l.kind]}</span>}
                     </button>

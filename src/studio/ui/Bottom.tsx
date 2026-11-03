@@ -6,7 +6,7 @@ import { PIECE_KINDS } from '../../core/types.ts'
 import type { MapView } from '../map/MapView.ts'
 import { KIND_LABELS } from '../map/symbols.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon, Symbol } from './bits.tsx'
+import { Icon, ServiceMark, Symbol } from './bits.tsx'
 import { contentOf } from './data.ts'
 
 export function Cartouche() {
@@ -98,7 +98,7 @@ function Legend() {
     <div className="legend panel" aria-label="Legend">
       {PIECE_KINDS.map((k) => (
         <div className="legend-row" key={k}>
-          <Symbol kind={k} size={14} />
+          {k === 'service' ? <ServiceMark name="Service" size={14} /> : <Symbol kind={k} size={14} />}
           {KIND_LABELS[k]}
         </div>
       ))}

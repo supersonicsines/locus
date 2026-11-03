@@ -761,7 +761,7 @@ a {
 
 .link-item {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   width: 100%;
   padding: 5px 6px;
@@ -1014,6 +1014,10 @@ a {
     background: var(--wash);
     cursor: pointer;
   }
+}
+
+.need > .svc-tile {
+  margin-top: 1px;
 }
 
 .need-mark {
@@ -1361,6 +1365,53 @@ a {
   max-width: 280px;
 }
 
+/* A service's tile. Same shape as on the map. The tile stays light in dark mode, so a dark mark never vanishes. */
+
+.svc-tile {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(21, 25, 30, 0.14);
+}
+
+.svc-tile img {
+  display: block;
+  animation: logo-in 180ms ease-out;
+}
+
+:root[data-theme='dark'] .svc-tile {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* A monogram is plainly not a logo: paper, a hairline, and the first letter. */
+
+.svc-tile.svc-mono {
+  background: var(--paper);
+  color: var(--soft);
+  font-family: var(--sans);
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(21, 25, 30, 0.26);
+}
+
+:root[data-theme='dark'] .svc-tile.svc-mono {
+  box-shadow: inset 0 0 0 1px rgba(232, 230, 223, 0.3);
+}
+
+@keyframes logo-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .svc-tile img {
+    animation: none;
+  }
+}
+
 /* Command palette. Opens instantly, because it opens a hundred times a day. */
 
 .cmdk {
@@ -1652,8 +1703,8 @@ a {
 
 .catalog-item {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   padding: 6px 8px;
   border-radius: 5px;
@@ -1664,6 +1715,11 @@ a {
   .catalog-item:hover {
     background: var(--wash);
   }
+}
+
+.catalog-item .grow {
+  flex: 1;
+  min-width: 0;
 }
 
 .catalog-item .meta {

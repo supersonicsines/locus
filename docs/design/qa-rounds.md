@@ -49,3 +49,55 @@ A narrow step before the rounds. It replaced the font and nothing else.
 **Not verified.** Windows and Linux rendering. These files have no hinting, so 1x on Windows may look softer than the 1x shots here, which came from macOS. Firefox and Safari weren't run.
 
 **Worst thing left.** At 480px wide the page looks the same as it did before. A better font was overdue, but it doesn't make the page answer anything at a glance.
+
+## Foundation: service logos
+
+A second narrow step before the rounds: real logos wherever a service appears, so the rounds judge the real thing. It didn't redesign the page.
+
+**What was wrong.** Every service on the map was the same ring with a dot, and you had to find its label to know which one it was. The label budget hid the rest, so on the sample map about half the services were anonymous.
+
+**The list.** `src/studio/logos/services.ts` has 892 services, each with an id, display name, aliases, category and domain. The order is editorial judgement and says so. The first block is hand-ordered, and after that it's grouped by category. Every domain resolves in DNS, which catches typos but doesn't prove it's the right company. It holds no prices. The catalog stays the only source of those, and a service with no checked price stays unknown in the Add a service list.
+
+**The file.** `src/studio/logos/logos.bundle.json` is one file holding the list and every logo: 645 KB raw and 212 KB gzipped, against a budget of 1.5 MB. The largest logo is 8,986 bytes, under a cap of 9,000. Vite emits it hashed under `assets/`, so it caches for good. It's fetched whole, once a map is open, whatever the map holds. A locked or empty page doesn't ask for it. The main JS grew by 7 KB because the list isn't in it. The CSP is unchanged: `connect-src 'self'` covers the fetch and `img-src data:` covers the images.
+
+**Sources.** Checked by reading each licence, not from a list.
+
+| Source | Terms | Logos |
+| --- | --- | --- |
+| gilbarbara/logos | CC0 | 234 |
+| theSVG | Per icon. Only CC0, MIT, Apache, BSD, ISC, Unlicense and CC BY pass | 146 |
+| svgl | MIT for the project. Logos remain their owners' | 93 |
+| Dashboard Icons | Apache 2.0 | 42 |
+| Simple Icons | CC0 unless the icon says otherwise, which is checked per icon | 12 |
+| Lobe Icons | MIT | 7 |
+| Devicon | MIT | 5 |
+| selfh.st | CC BY 4.0 | 3 |
+| Companies' own sites | None. The last resort | 111 |
+
+Turned down after reading their terms: VectorLogoZone (AGPL, and logos stay with their owners), 2FA Directory (its images are explicitly outside its licence), and Airbyte's connector icons (Elastic License). theSVG entries marked Trademark, Fair Use, brand-use or proprietary were refused one by one.
+
+**Coverage.** 653 of 892. Top 100: 99. Top 300: 290. Without the companies' own files it would be 542, 92 and 228, which is why they're there. `node scripts/build-logos.mjs --strip-official` takes them out without needing any downloads, because shipping them is a decision the operator may want to make for themselves.
+
+**Decisions and why.**
+- Tiles stay near-white in dark mode. It removes dark-on-dark with no per-logo work, and it reads like app icons. A white mark gets a dark or brand tile, and a mark too pale for white gets its brand colour as the tile.
+- A monogram is paper, a hairline and a letter, so it can't be taken for a brand. It has the same shape as a logo tile, so the swap moves nothing.
+- Aliases only count where a service's own name finds nothing in a pack. Without that rule, the alias "Cloudflare Workers" gave Cloudflare the wrong logo.
+- Where one word means two companies, neither gets it: Runway, Lambda, Fathom, Luma, Apollo, Cube, Copilot. The bare word stays a monogram.
+- Stripe is the S on its own colour, because its newer flag mark doesn't read at 20px. A later round can overturn this one.
+- Lockups are cropped to their symbol, with a clip so the square frame can't show the neighbouring letter.
+
+**Traps for later rounds.**
+- SVGO's `inlineStyles` leaves a class used twice in its stylesheet by default. The allowlist then dropped the stylesheet and the mark turned black. It's fixed with `onlyMatchedOnce: false`, but it's the kind of bug only a contact sheet shows.
+- Sites' logo links and "logo" SVGs are often customers' logos. Every file from a site was picked by eye for this reason. A scripted pick would have given Clari and Drift the Salesloft logo, since their sites now redirect there.
+- Firefox needs width and height on an SVG before it will draw it on a canvas, and Safari needs `decode()` first. The bundle has the first and `tiles.ts` does the second.
+- Canvas tiles are drawn once per device-pixel size on whole pixels, or they blur. `RASTER_BUDGET` limits how many are drawn fresh per frame, so zooming can't hitch.
+- Playwright's `page.screenshot` injects a `<style>`, which WebKit reports as a CSP refusal. It isn't the app's. Measure CSP before screenshotting.
+- Opening a piece in WebKit logs two `style-src-attr` refusals. They're the same on the build before this step, so they aren't from logos, and they're still unexplained.
+
+**Verified.** In Chrome 156, Firefox 157 and WebKit 27.2 on the shipped build: one logo request, same origin, and none on a locked or empty page. No request names a service, nothing goes to a third party, and there are no CSP violations at load. Logos appear on the map, in the side panel, in ⌘K, in Add a service, in what needs you, in both `$` overlays and for a read-only reader who unlocked by password. Agent text and MCP output carry none. With the file held back the map shows monograms, and the swap moves nothing around it. With the file blocked the page works. Services called `__proto__`, `constructor` and `<svg onload=...>` get monograms, and nothing runs. Crops at 1x, 1.5x, 2x and 3x stay sharp in all three.
+
+A map with 60 services and 300 pieces, panning under 4x CPU throttling: JS per frame went from 1.4 ms to 2.3 ms at the median and from 4.3 ms to 5.2 ms at worst. Zooming's worst frame went from 2.3 ms to 6.5 ms. Frame spacing didn't change. Those figures are JS time in headless Chrome, not paint time.
+
+**Not verified.** Real Safari (only Playwright's WebKit). A real phone. Windows. `npm run dev`. Each company's brand terms for the 111 files from their own sites. Which logos are out of date: a logo that's the right company but an old mark wouldn't show on a contact sheet.
+
+**Worst thing left.** The map now says which services a company uses, but every other piece is still a tiny unexplained symbol, and labels are chosen by a budget nobody can predict. Tiles also crowd on a phone at fit zoom, where they sit at their 14px floor. That's work for the layout rounds.

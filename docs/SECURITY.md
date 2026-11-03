@@ -8,6 +8,7 @@ What Vadere protects, how, and what it doesn't. **This code has not had a profes
 - A password opens only the gates it was given keys for. That's cryptography, not a permission check.
 - A reader checks everything it reads against what the owner sealed for that password, so neither the host nor another password's holder can change it undetected. The one exception is below.
 - When an agent reads through the host, the host does see the password and the plaintext, in memory, for that one request. If that's not acceptable, decrypt on your own machine or turn **Remote access** off for that password.
+- Which services a company uses stays sealed. Logos come as one file, fetched whole from the same address whatever the map holds, so the request says nothing about what's on the map. No logo is ever fetched from anywhere else.
 
 ## Who can read what
 

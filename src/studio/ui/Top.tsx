@@ -3,7 +3,7 @@
 import { needs, pending, sortNeeds, type Need, type NeedKind } from '../../core/status.ts'
 import { changePiece, copy, publish, siteAddress, updateVault } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
-import { plural, useEscape } from './bits.tsx'
+import { plural, ServiceMark, useEscape } from './bits.tsx'
 
 function hostOf(address: string) {
   return address.replace(/^https?:\/\//, '')
@@ -121,6 +121,13 @@ export function NeedsPanel() {
 
   const dismiss = (n: Need) => updateVault((v) => ({ ...v, findings: v.findings.map((f) => (f.id === n.id ? { ...f, dismissed: true } : f)) }))
 
+  // Where a need is about one service, its logo says which at a glance.
+  const serviceOf = (n: Need) => {
+    if (n.pieces.length !== 1) return null
+    const p = vault.pieces.find((x) => x.id === n.pieces[0])
+    return p?.kind === 'service' ? p.title : null
+  }
+
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, zIndex: 11 }} onClick={() => setState({ panel: null, highlight: null })} />
@@ -134,7 +141,7 @@ export function NeedsPanel() {
             onMouseLeave={() => setState({ highlight: null })}
             onClick={() => focus(n)}
           >
-            <span className="need-mark" aria-hidden="true" />
+            {serviceOf(n) ? <ServiceMark name={serviceOf(n)!} size={18} /> : <span className="need-mark" aria-hidden="true" />}
             <div>
               {list[i - 1]?.kind !== n.kind && <span className="need-kind">{KIND_NAMES[n.kind]}</span>}
               {n.message}
