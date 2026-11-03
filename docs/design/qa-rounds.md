@@ -367,7 +367,7 @@ Where the land can't hold all its lines they give way in steps: fewer logos, the
 - Pins lean away from whatever they'd stand on, as one does pushed into a real map, and what's on the head stays upright. A kind's name moves along to make way for a pin.
 - The fork replaces the signpost for a decision. A page with a stamp replaces the page with a squiggle for a contract.
 - Lines bend slightly, stop short of both marks, and keep their own colour. Names keep their ground while lines show, but see what's left.
-- Both price overlays now spread services over the land to make room, with each disc kept whole on its own land. It used to be Towns only, and Soundings' rings ran off the coast.
+- Both price overlays now spread services over the land to make room. It used to be Towns only, and Soundings' rings ran off the coast. Each stays on its own land where there's room for it, on the sample all of them. At 60 services a disc or two still cross the coast, Gusto for one.
 - At most 90% on opening, so a small map doesn't balloon.
 - A map still exactly as it was drawn is drawn again with a newcomer in it, so it stays in order. Once something has been moved by hand, what's placed stays put and a new item joins its own kind.
 - ⌘K has Tidy up the map, with Undo.
@@ -388,7 +388,7 @@ Compared with real cartography, not with the old shapes: it is a generalised coa
 
 **Decisions and why.**
 - **Round 1 said real maps never reflow, and I've overturned part of that.** A map that has never gone live gets redrawn once, because what it holds is a scatter nobody chose. The cost is that one someone arranged by hand loses that arrangement, once, with no Undo. A live map isn't touched, because someone may know their way around it, so it keeps the jumble until someone finds Tidy up the map. Moving things asks nobody to publish, because position isn't content.
-- **A coast's noise is laid over the ground, not along the line.** Noise along the line would redraw the whole island whenever its length changed, and spatial memory is the point. Moving an item changes the coast near it and the far side stays within a few units. It's seeded by the area's id, so renaming an area moves nothing. Both are tested.
+- **A coast's noise is laid over the ground, not along the line.** Noise along the line would redraw the whole island whenever its length changed, and spatial memory is the point. In the test, moving an item 60 units leaves the coast more than 420 units away within 24 units of where it was, about 12 px at the usual zoom. It's seeded by the area's id, so renaming an area moves nothing. Both are tested. A move that makes the island much larger, or makes the finished line fail its check, can shift more of it, because that redraws the gesture.
 - **Names always go right, even near the shore.** Flipping one breaks the column it's in, and the coast is drawn to hold every name on that side, so it never has to.
 - **Below 40%, no pictures without names.** That's what ends the wall of pictures, and a stranger gets "Documents 12" where they used to get twelve identical pages.
 - **Dragging is off below 40%.** Things stand in a line there and not where they live, so there's nowhere meaningful to drag from. Clicking still opens them.
@@ -416,19 +416,19 @@ Compared with real cartography, not with the old shapes: it is a generalised coa
 | Pan at fit, uncapped, 1x | 1295fps | 698 to 1656 across runs |
 | Pan at fit, uncapped, 4x | 323fps | 243 to 666 |
 | Zoom, uncapped, 4x | 284fps | 149 to 295 |
-| Worst JS frame while zooming, 4x | 2.4 ms | 8 to 10 ms |
-| Pointer handler, 95th percentile and worst, 4x | 1.3 and 1.9 ms | 1 to 1.3 and 1.5 to 2.2 ms at fit |
-| Dropping an item, long task, 1x and 4x | not measured | up to 55 ms, and 120 to 188 ms |
+| Worst JS frame while zooming, 4x | 2.4 ms | 8 to 11 ms, and once 13 ms at 1x |
+| Pointer handler at fit, 95th percentile and worst, 4x | 4.3 and 5 ms | 0.9 to 1.3 and 1.3 to 2.2 ms |
+| Dropping an item, long task, 1x and 4x | not measured | up to 55 ms, and 113 to 188 ms |
 
-Uncapped figures only show headroom, and they swing about twofold between runs of the same build, so I wouldn't read the small differences. Pointing and prices show gaps of up to 200 and 700 ms, on both builds. I read those as nothing to draw, since JS stays under 6 ms, but I didn't prove it. The drop is the real new cost: it rebuilds every coast and the water lines, and a slow machine can feel it. Rebuilding only the changed area is the obvious fix and I didn't do it.
+Uncapped figures only show headroom, and they swing about twofold between runs of the same build, so I wouldn't read the small differences. Pointing and prices show gaps of up to 300 and 750 ms, on both builds, which is also why their capped figures read 23 to 40fps. I read those as nothing to draw, since the map only draws on demand and JS stays under 10 ms, but I didn't prove it. The drop is the real new cost: it rebuilds every coast and the water lines, and a slow machine can feel it. Rebuilding only the changed area is the obvious fix and I didn't do it.
 
-**Verified.** Chrome on the shipped build: all 36 fixed shots, the 8 glance states and both sheets, plus the new states, each area at 1x and 2x, read by eye. The empty terrain changed after the last full run, so `shots.mjs` and the use script were rerun on the final build; the crops, sizes, stress, cross-browser, frame rates and old-map checks ran on the build before it, whose map code is the same. Used for real: opening an item by search; pointing at one with links; dragging one, where only it moved; adding a note after that, where nothing else moved; adding one to an untouched map, which stayed in order; Tidy up and its Undo; dragging between areas and Undo; zooming out and clicking a kind's line, which goes there; picking a reader; dropping real documents on an empty map with no AI, then a second lot. Sizes: 3 items in one area and in three, 40 in one, 100 in six, 300 in six and in twelve, a phone with the sample and with 300, and windows from 800 to 1920 wide. Both `$` overlays at 5 and 60 services, light and dark, and reduced motion. A simulated old map: a live one is untouched, a never-live one is redrawn once, and a move after that survives reopening. No page errors. Firefox and WebKit: main page, prices and the big map read by eye, with no request leaving the machine. Firefox was clean. WebKit logged the one `page.screenshot` line from earlier rounds. 105 tests pass and types are clean. `seal.ts`, the server, the CSP and `agent.ts` are untouched.
+**Verified.** Chrome on the shipped build: all 36 fixed shots, the 8 glance states and both sheets, plus the new states, each area at 1x and 2x, read by eye. The last change touched the empty terrain and how water lines are smoothed, so `shots.mjs` and the use script were rerun on the final build; the crops, sizes, stress, cross-browser, frame rates, reduced motion and old-map checks ran on the build before it. On the final build I reread the main page, first run, laptop, phone, dark, squint, Soundings, the big and small maps, the area panel, the list, the reader's view, the exposed state, both state sheets and the one shape; the rest were read one build earlier. Seven of the eight glance states were read on the sheet and not full size. Used for real: opening an item by search; pointing at one with links; dragging one, where only it moved; adding a note after that, where nothing else moved; adding one to an untouched map, which stayed in order; Tidy up and its Undo; dragging between areas and Undo; zooming out and clicking a kind's line, which goes there; picking a reader; dropping real documents on an empty map with no AI, then a second lot. Sizes: 3 items in one area and in three, 40 in one, 100 in six, 300 in six and in twelve, a phone with the sample and with 300, and windows from 800 to 1920 wide. Both `$` overlays at 5 and 60 services, Towns in dark at 60, and reduced motion, zoomed out and with prices. A simulated old map: a live one is untouched, a never-live one is redrawn once, and a move after that survives reopening. No page errors. Firefox and WebKit: main page, prices and the big map read by eye, with no request leaving the machine. Firefox was clean. WebKit logged the one `page.screenshot` line from earlier rounds. 105 tests pass and types are clean. `seal.ts`, the server, the CSP and `agent.ts` are untouched.
 
 **Not verified.**
 - No real person has seen this. Whether it's calm or merely tidy is my judgement.
 - A real map from an older build. I simulated a scatter and its land spacing is my guess. In that simulation islands overlap and names land on land, so old live maps may look worse than they did until tidied.
 - Read with Claude, since there's no key, so real output with its long titles and many of one kind wasn't seen. Long titles in the fixtures and a 60-character title in the tests were.
-- An item dragged far enough to get its own islet. Tested as geometry, never looked at.
+- An item dragged far enough to get its own islet. Never looked at, and no test builds its coast.
 - Real Safari, a real phone, pinch at the new zoom floor, Windows, hosted mode and a screen reader.
 - Frame rate in Firefox and WebKit, and on a real graphics card.
 
@@ -445,4 +445,11 @@ Uncapped figures only show headroom, and they swing about twofold between runs o
 - A pin on a first row pushes its kind's name out of line, as at Tools in Product.
 - Zoomed out, Plans can sit lower than Facts in one area and higher in another, because lines go where they fit.
 - Old live maps, and that Tidy up is only in ⌘K.
+- Zoomed out, names can still touch the coast: Deploy process and Plans 1 at 32%, and Deploy process on a phone.
+- On a phone, kinds drop out with nothing to say so. People shows Tools, Rules and Plans, and its Documents and Facts are out of sight until you zoom in. Tools 8 sits over 5 logos, which at least counts them.
+- At 800px wide, area names run into each other's lines: People's wax touches For Accountant, and its red line touches Money's mark.
+- A few items in an area get a big oval with the item off-centre. Better than the old triangle, still not designed.
+- Close in, a summary cut to fit can say nothing: "Analytics the..." under Sentry, "Payments the..." under Stripe.
+- The map fills more of the screen now, so an open panel covers more of it. With Product's panel open, Engineering is hidden and the zoom control sits on People's land.
+- On the empty map the longest-smoothed terrain rings are nearly plain circles, which reads a little like a target.
 
