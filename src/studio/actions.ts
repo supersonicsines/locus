@@ -42,20 +42,34 @@ export function updateVault(change: (v: Vault) => Vault) {
   }, 180)
 }
 
+/** The shape of the room the map has on this screen: its width over its height, once what floats over it is taken off. */
+const mapRoom = () => (window.innerWidth <= 720 ? (window.innerWidth - 32) / Math.max(1, window.innerHeight - 210) : (window.innerWidth - 328) / Math.max(1, window.innerHeight - 134))
+
 export function placeNewPieces(v: Vault, opts: { reflow?: boolean } = {}): Vault {
-  const moved = layoutPieces(v.gates, v.pieces, v.links, { wide: window.innerWidth > window.innerHeight, ...opts })
+  const moved = layoutPieces(v.gates, v.pieces, { wide: window.innerWidth > window.innerHeight, room: mapRoom(), ...opts })
   if (!moved.size) return v
   return { ...v, pieces: v.pieces.map((p) => (moved.has(p.id) ? { ...p, ...moved.get(p.id) } : p)) }
 }
 
 /** Bump when the layout changes, so a sample already in this browser gets redrawn. Real maps keep their positions. */
-const SAMPLE_LAYOUT = 2
+const SAMPLE_LAYOUT = 3
+
+/**
+ * A map drawn before areas had any order keeps a scatter nobody chose. One that has never gone live gets redrawn, once.
+ * A live map isn't touched, because someone may know their way around it. Tidy up the map does it on request.
+ */
+const MAP_LAYOUT = 1
 
 export async function openVault(v: Vault) {
   let placed = placeNewPieces(v)
   if (v.sample && (await storage.get<number>('sampleLayout')) !== SAMPLE_LAYOUT) {
     placed = placeNewPieces(placed, { reflow: true })
     await storage.set('sampleLayout', SAMPLE_LAYOUT)
+  }
+  const stamp = `mapLayout:${v.id}`
+  if (!v.sample && (await storage.get<number>(stamp)) !== MAP_LAYOUT) {
+    if (!v.published && v.pieces.some((p) => p.x !== undefined)) placed = placeNewPieces(placed, { reflow: true })
+    await storage.set(stamp, MAP_LAYOUT)
   }
   setState({ vault: placed, selected: null, lens: null, area: null, panel: null, dollars: false, agentView: false, mode: 'studio', view: null })
   await storage.saveVault(placed)
@@ -141,6 +155,18 @@ export function deletePiece(id: string) {
   toast(`Deleted ${piece?.title ?? 'that item'}.`, {
     label: 'Undo',
     run: () => updateVault((x) => ({ ...x, ...before })),
+  })
+}
+
+/** Puts everything back in order, area by area, for a map that's been dragged about or was drawn long ago. */
+export function tidyMap() {
+  const v = getState().vault
+  if (!v) return
+  const before = v.pieces
+  updateVault((vault) => placeNewPieces(vault, { reflow: true }))
+  toast('Tidied the map.', {
+    label: 'Undo',
+    run: () => updateVault((vault) => ({ ...vault, pieces: vault.pieces.map((p) => { const old = before.find((b) => b.id === p.id); return old ? { ...p, x: old.x, y: old.y } : p }) })),
   })
 }
 
@@ -369,7 +395,7 @@ export async function unlockViewer(name: string, key: string): Promise<string | 
     if (!res.ok) return `The host answered ${res.status}.`
     const view = await openBundle((await res.json()) as Bundle, key.trim())
     // A reader gets a map of what they can see, drawn fresh, with no gaps where closed gates sit.
-    const moved = layoutPieces(view.gates, view.pieces, view.links, { wide: window.innerWidth > window.innerHeight })
+    const moved = layoutPieces(view.gates, view.pieces, { wide: window.innerWidth > window.innerHeight, room: mapRoom() })
     setState({ view: { ...view, pieces: view.pieces.map((p) => ({ ...p, ...moved.get(p.id) })) }, mode: 'viewer' })
     return null
   } catch (e) {

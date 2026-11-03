@@ -80,6 +80,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
         const s = getState()
         if (s.zoom !== k || s.fitZoom !== fitK) setState({ zoom: k, fitZoom: fitK })
       },
+      covers: () => Array.from(document.querySelectorAll('.left-col > *'), (el) => el.getBoundingClientRect()),
     })
     map.current = view
     view.setPalette(PALETTES[getState().theme])

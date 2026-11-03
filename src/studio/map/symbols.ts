@@ -23,16 +23,16 @@ const ICONS: Record<Exclude<PieceKind, 'clause'>, string> = {
   rule: 'M8 1.7l5 1.9v4.1c0 3.2-2.1 5.3-5 6.6-2.9-1.3-5-3.4-5-6.6V3.6zM5.6 7.9l1.8 1.8 3-3.4',
   // The information sign.
   fact: 'M8 14.2a6.2 6.2 0 1 0 0-12.4 6.2 6.2 0 0 0 0 12.4zM8 7.4V11M8 4.9v.02',
-  // A signpost: which way we went.
-  decision: 'M8 1.8v12.4M8 3.2h4.3L14 4.9l-1.7 1.7H8M8 7.8H3.7L2 9.5l1.7 1.7H8',
+  // A fork in the road, and the way we went.
+  decision: 'M8 14.2V9.4M8 9.4 3.6 5M8 9.4l4.4-4.4M12.4 8.4V5H9',
   // A clipboard of requirements.
   spec: 'M5.6 3H4.2a1.1 1.1 0 0 0-1.1 1.1v9a1.1 1.1 0 0 0 1.1 1.1h7.6a1.1 1.1 0 0 0 1.1-1.1v-9A1.1 1.1 0 0 0 11.8 3h-1.4M6 1.8h4v2.4H6zM5.6 7.6h4.8M5.6 10.6h4.8',
   // A drop of colour.
   token: 'M8 1.9s-4.7 4.9-4.7 8.1a4.7 4.7 0 0 0 9.4 0C12.7 6.8 8 1.9 8 1.9z',
   // A box, for a service with no tile.
   service: 'M3 3h10v10H3z',
-  // A page with a signature on it.
-  contract: `${PAGE}M5.5 11.2c.8-1.5 1.4-1.5 1.8-.4s.9 1 1.5.2.9-.6 1.7-.1`,
+  // A page with a stamp on it, which is what makes it binding.
+  contract: `${PAGE}M5.6 6.8h2.2M8 12.6a1.9 1.9 0 1 0 0-3.8 1.9 1.9 0 0 0 0 3.8z`,
   // A head and shoulders.
   person: 'M8 7.7a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6zM2.7 14.1c.4-3 2.7-4.5 5.3-4.5s4.9 1.5 5.3 4.5',
   // A page with lines on it.
@@ -95,17 +95,19 @@ export function drawAvatar(ctx: CanvasRenderingContext2D, x: number, y: number, 
  * A map pin, the one thing everyone knows means "here". The tip stands on the spot.
  * r is the head's radius. Returns nothing, and leaves the context as it found it.
  */
-export function drawPin(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, glyph: string, edge: string, mark: '!' | '?', font: string) {
+export function drawPin(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, glyph: string, edge: string, mark: '!' | '?', font: string, lean = 0) {
   const reach = r * 2.35
-  const cy = y - reach
   // Where the sides leave the head, tangent to the circle, so the shape has no corner.
   const a = Math.asin(r / reach)
   const start = Math.PI / 2 + a
   const end = Math.PI / 2 - a
   ctx.save()
+  // A pin can lean, as one does pushed into a real map. What's on its head stays upright, or a `!` stops reading as one.
+  ctx.translate(x, y)
+  ctx.rotate(lean)
   ctx.beginPath()
-  ctx.moveTo(x, y)
-  ctx.arc(x, cy, r, start, end)
+  ctx.moveTo(0, 0)
+  ctx.arc(0, -reach, r, start, end)
   ctx.closePath()
   ctx.lineJoin = 'round'
   ctx.lineWidth = 3
@@ -113,6 +115,9 @@ export function drawPin(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
   ctx.stroke()
   ctx.fillStyle = fill
   ctx.fill()
+  ctx.rotate(-lean)
+  const hx = Math.sin(lean) * reach
+  const hy = -Math.cos(lean) * reach
   ctx.fillStyle = glyph
   if (mark === '!') {
     const w = r * 0.3
@@ -120,17 +125,17 @@ export function drawPin(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
     ctx.lineWidth = w
     ctx.lineCap = 'round'
     ctx.beginPath()
-    ctx.moveTo(x, cy - r * 0.6 + w / 2)
-    ctx.lineTo(x, cy + r * 0.14 - w / 2)
+    ctx.moveTo(hx, hy - r * 0.6 + w / 2)
+    ctx.lineTo(hx, hy + r * 0.14 - w / 2)
     ctx.stroke()
     ctx.beginPath()
-    ctx.arc(x, cy + r * 0.5, w * 0.62, 0, Math.PI * 2)
+    ctx.arc(hx, hy + r * 0.5, w * 0.62, 0, Math.PI * 2)
     ctx.fill()
   } else {
     ctx.font = `500 ${r * 1.34}px ${font}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText('?', x, cy + r * 0.07)
+    ctx.fillText('?', hx, hy + r * 0.07)
   }
   ctx.restore()
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { llmsFull, viewFor } from '../../core/agent.ts'
 import { search } from '../../core/search.ts'
 import type { PieceKind } from '../../core/types.ts'
-import { addArea, addPiece, createPassword, deleteGate, downloadText, newMap, publish, setTheme, toast } from '../actions.ts'
+import { addArea, addPiece, createPassword, deleteGate, downloadText, newMap, publish, setTheme, tidyMap, toast } from '../actions.ts'
 import { getState, setState, useStore } from '../store.ts'
 import { PieceMark, useEscape } from './bits.tsx'
 import { contentOf } from './data.ts'
@@ -46,6 +46,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
         { id: 'add-service', group: 'Actions', title: 'Add a service', run: () => setState({ sheet: { kind: 'add-service' } }) },
         { id: 'add-area', group: 'Actions', title: 'Add an area', run: () => addArea() },
         { id: 'needs', group: 'Actions', title: 'Things that need you', run: () => setState({ panel: 'needs' }) },
+        { id: 'tidy', group: 'Actions', title: 'Tidy up the map', run: () => { tidyMap(); map.current?.fit() } },
         {
           id: 'export',
           group: 'Actions',

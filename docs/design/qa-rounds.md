@@ -321,3 +321,128 @@ On a map with 300 items, 60 services and 374 links, in headless Chrome, JS time 
 - "Only service names and prices can be read" is true and takes a moment. It's the longest thing the map says about most sealed areas.
 - A secret on a map that has never gone live still sets off the amber, by design, so the first thing a new user of the sample sees is an alarm.
 - Reader colours go by list position, and two logos side by side overlap at the edges under Brand and Product.
+
+## Round 3: the map itself
+
+**What the map does now. Later rounds work from this.**
+
+An area is a small plan of itself, the same in every area. Tools run across the top, the other kinds sit under them in one or two columns, each kind has its name on the land, and every item's name reads to the right of its mark.
+
+| On the land | What it holds |
+| --- | --- |
+| Tools | Services |
+| Rules | Rules |
+| Documents | Contracts, documents, clauses |
+| Plans | Specs, decisions |
+| Facts | Facts, people, design tokens |
+
+The map changes in kind as you zoom, as a real map does.
+
+| Zoom | What you see |
+| --- | --- |
+| 85% and closer | Every item, its name and its one line |
+| 40% to 85% | Every item and its name. The sample opens here on a laptop |
+| Below 40% | Each kind gathers into one line with a count, and clicking the line goes there. Logos stay, because a logo says something alone. Anything wearing a pin stays with its name. A black dot on a line says something inside is worth a look |
+| Furthest out | 60% of the whole map, and no further. There's nothing out there |
+
+Where the land can't hold all its lines they give way in steps: fewer logos, then the least important line first. Pins never go, and land is never left empty.
+
+**What I saw, worst first.** Written down before any code changed.
+
+1. Critical. No order inside an area. Logos drifted along the top, and rules, clipboards and an i wandered the rest. Nothing said why a thing was where it was, so finding Stack meant reading every label. This is the operator's "jumbled". It was a physics result with a tilt, not an arrangement.
+2. Critical. 22 of 76 marks had no name and nothing said what they were. A name budget and a collision test decided, so it was a lottery. A dot on a nameless mark says something is wrong with something.
+3. Critical. Names went any of four ways, so nothing could be read along and ownership was a guess. "Copy support logs to HelpSync" sat between two shields and read as the wrong one's name.
+4. Critical. 300 items at fit was 240 identical pictures in a hex pack and fewer than 30 names. It said nothing about the company. On a phone it was a field of dots.
+5. Critical, from the operator: "blob shapes are just...ugly". The coast was a blur of what stood on the land, so its lumps were accidents of where physics dropped things, and it hugged marks and not their words. Inland contours added the most lines to an already busy shape.
+6. High. Zoom wasn't a map's zoom. Labels only dropped out by budget, so at 34% Figma had a name and Stripe didn't, and two names hung over the sea.
+7. High. Pins stood on their neighbours. On a phone the amber pin covered Vercel and Cursor.
+8. Medium. The signed page and the lined page were the same shape at 1x, and the signpost read as a flag.
+9. Medium. A line ran through "Runway" and struck it out.
+10. Medium. On a 3-item map the land was a huge triangle at 125%.
+
+**What changed.**
+- The force layout is gone, and `d3-force` with it. `layoutPieces` sets each kind in true columns, and picks whichever arrangement of one or two columns gives the island the shape the screen wants, so the whole map fills the room and the names keep theirs.
+- All 76 items on the sample have a name at fit, on 1440x900 at 53% and on 1280x720 at 42%. Counted by eye.
+- A new coast, with its own section below.
+- Pins lean away from whatever they'd stand on, as one does pushed into a real map, and what's on the head stays upright. A kind's name moves along to make way for a pin.
+- The fork replaces the signpost for a decision. A page with a stamp replaces the page with a squiggle for a contract.
+- Lines bend slightly, stop short of both marks, and keep their own colour. Names keep their ground while lines show, but see what's left.
+- Both price overlays now spread services over the land to make room, with each disc kept whole on its own land. It used to be Towns only, and Soundings' rings ran off the coast.
+- At most 90% on opening, so a small map doesn't balloon.
+- A map still exactly as it was drawn is drawn again with a newcomer in it, so it stays in order. Once something has been moved by hand, what's placed stays put and a new item joins its own kind.
+- ⌘K has Tidy up the map, with Undo.
+
+**The coast.** I put five ways of drawing it on the real page and read each: a fractal natural shore, a pebble, a pebble with a rough edge, cut-paper facets, and a schematic with edges at eight compass points. The natural shore was nervous beside the words. The pebble ignored what was on the land and all islands looked alike. Facets and the schematic read as a diagram, which is the one thing it mustn't be. What's there now takes the method a cartographer uses to generalise a coast:
+
+1. Draw a line at one distance from what's on the land, words included, with narrow inlets filled in. So it comes in where there's nothing to hold and goes out around what's there, and the shape means something.
+2. Smooth it along its length, which keeps bays and headlands and loses lumps. This is the step a blur can't do.
+3. Add a slow wander, then put back anything that has come too close to the words.
+4. Add a little fine unevenness, only in stretches, as a hand would.
+5. Check the finished line holds what's on it, and draw a quieter one if not.
+
+An island with room for it also gets one cape of empty land, so a full area isn't a box.
+
+Inland contours are gone. Water lines replace them: three fine lines in the sea, close to the shore and fading outward, as an engraver ran them. Where two islands are near, their lines meet between them and can't cross. The empty map's terrain is redrawn in the same hand, without its little rings.
+
+Compared with real cartography, not with the old shapes: it is a generalised coast and not a coast. A real one has small irregularity everywhere, and this has long curves and very little else, so it's at its best on Money and Product and at its worst on Engineering, which comes out as a rounded trapezoid. The water lines do more to say "chart" than the coast does. It's a clear step up, and I can't promise it's beautiful. That's the operator's call.
+
+**Decisions and why.**
+- **Round 1 said real maps never reflow, and I've overturned part of that.** A map that has never gone live gets redrawn once, because what it holds is a scatter nobody chose. The cost is that one someone arranged by hand loses that arrangement, once, with no Undo. A live map isn't touched, because someone may know their way around it, so it keeps the jumble until someone finds Tidy up the map. Moving things asks nobody to publish, because position isn't content.
+- **A coast's noise is laid over the ground, not along the line.** Noise along the line would redraw the whole island whenever its length changed, and spatial memory is the point. Moving an item changes the coast near it and the far side stays within a few units. It's seeded by the area's id, so renaming an area moves nothing. Both are tested.
+- **Names always go right, even near the shore.** Flipping one breaks the column it's in, and the coast is drawn to hold every name on that side, so it never has to.
+- **Below 40%, no pictures without names.** That's what ends the wall of pictures, and a stranger gets "Documents 12" where they used to get twelve identical pages.
+- **Dragging is off below 40%.** Things stand in a line there and not where they live, so there's nowhere meaningful to drag from. Clicking still opens them.
+- **A dot on a logo moves to the Tools line when zoomed out**, because the logo has no name there.
+- **Below about 1150px wide the whole-map view is lines and not names.** 1180x820 opens at 42% with names, 1024x768 at 35% and 800x700 at 24% without. The Studio is for laptops.
+
+**Traps for later rounds.**
+- **`textWidth` in `layout.ts` estimates a name's width, and the coast is drawn from it**, so geography doesn't depend on whether a font has loaded. Change the size or face of item names and update it, or names will run towards the shore. The test that everything stands on its land uses the same estimate, so it won't notice. Look at the shots.
+- `SAMPLE_LAYOUT` is 3. `MAP_LAYOUT` is new and per map: bumping it redraws every never-live map, including arranged ones, so think before you do.
+- Island shape comes from the window at the moment it's drawn. The same company in a differently shaped window gets a different first drawing, and then it's saved. On another window the "still as drawn" check fails, which only means a new item joins in place.
+- `covers` reads the left card's rectangles from the page during label placement. If the card moves, change the selector in `App.tsx`.
+- `landBetween` gives the land's furthest reach at a height, and that can be a cape on the far side of a bay. Walk along the line if it matters, as `roomFrom` does.
+- `layoutOverview` runs inside a frame, so it only recomputes when zoom has moved 1.2%. It accounts for the worst zoom frame below.
+- A label keeps nothing from what it said before. `{ ...l, sub: undefined, lines: undefined, ...n }` is deliberate: without it a summary from a closer zoom lands on the next row at fit.
+- Measure frame rate against a blank-page control. On one run this machine paced headless Chrome at 30fps for a blank page too, and it looked like a slow map. `<QA>/r3-fps.mjs` prints the control first, and drives one input per frame from inside the page.
+- `shots.mjs` has three new steps: `23-big-map` (fit, closer, prices), `24-small-map` and `25-area-crops` (each area at 2x and 1x). `scalemap.mjs` builds maps of any size. `stress.mjs` is updated. `flow4`, `flow5`, `cross` and `touch2` still use old selectors.
+
+**Frame rate.** 300 items, 60 services, 374 links, 1440x900 at 2x, headless Chrome, one input per frame. JS time and frame spacing, not paint on a real GPU.
+
+| | Before | After |
+| --- | --- | --- |
+| Blank page, the control | 58 | 56 to 58 uncapped, 60 capped |
+| Pan, capped, 1x and 4x CPU | not comparable, the control read 30 on that run | 60fps, one frame over 20 ms in all |
+| Zoom, capped, 1x and 4x CPU | not comparable | 60fps, none over 20 ms |
+| Pan at fit, uncapped, 1x | 1295fps | 698 to 1656 across runs |
+| Pan at fit, uncapped, 4x | 323fps | 243 to 666 |
+| Zoom, uncapped, 4x | 284fps | 149 to 295 |
+| Worst JS frame while zooming, 4x | 2.4 ms | 8 to 10 ms |
+| Pointer handler, 95th percentile and worst, 4x | 1.3 and 1.9 ms | 1 to 1.3 and 1.5 to 2.2 ms at fit |
+| Dropping an item, long task, 1x and 4x | not measured | up to 55 ms, and 120 to 188 ms |
+
+Uncapped figures only show headroom, and they swing about twofold between runs of the same build, so I wouldn't read the small differences. Pointing and prices show gaps of up to 200 and 700 ms, on both builds. I read those as nothing to draw, since JS stays under 6 ms, but I didn't prove it. The drop is the real new cost: it rebuilds every coast and the water lines, and a slow machine can feel it. Rebuilding only the changed area is the obvious fix and I didn't do it.
+
+**Verified.** Chrome on the shipped build: all 36 fixed shots, the 8 glance states and both sheets, plus the new states, each area at 1x and 2x, read by eye. The empty terrain changed after the last full run, so `shots.mjs` and the use script were rerun on the final build; the crops, sizes, stress, cross-browser, frame rates and old-map checks ran on the build before it, whose map code is the same. Used for real: opening an item by search; pointing at one with links; dragging one, where only it moved; adding a note after that, where nothing else moved; adding one to an untouched map, which stayed in order; Tidy up and its Undo; dragging between areas and Undo; zooming out and clicking a kind's line, which goes there; picking a reader; dropping real documents on an empty map with no AI, then a second lot. Sizes: 3 items in one area and in three, 40 in one, 100 in six, 300 in six and in twelve, a phone with the sample and with 300, and windows from 800 to 1920 wide. Both `$` overlays at 5 and 60 services, light and dark, and reduced motion. A simulated old map: a live one is untouched, a never-live one is redrawn once, and a move after that survives reopening. No page errors. Firefox and WebKit: main page, prices and the big map read by eye, with no request leaving the machine. Firefox was clean. WebKit logged the one `page.screenshot` line from earlier rounds. 105 tests pass and types are clean. `seal.ts`, the server, the CSP and `agent.ts` are untouched.
+
+**Not verified.**
+- No real person has seen this. Whether it's calm or merely tidy is my judgement.
+- A real map from an older build. I simulated a scatter and its land spacing is my guess. In that simulation islands overlap and names land on land, so old live maps may look worse than they did until tidied.
+- Read with Claude, since there's no key, so real output with its long titles and many of one kind wasn't seen. Long titles in the fixtures and a 60-character title in the tests were.
+- An item dragged far enough to get its own islet. Tested as geometry, never looked at.
+- Real Safari, a real phone, pinch at the new zoom floor, Windows, hosted mode and a screen reader.
+- Frame rate in Firefox and WebKit, and on a real graphics card.
+
+**Did it fix "jumbled"?** On the sample at fit, yes. Crop any area: there's a reason for where everything is, you can find a thing by its kind, every mark has a name, and it looks arranged. It holds at 300 at fit and on a phone, which are now calm and say what's there. It doesn't hold everywhere: closer in on a 300-item map it's a long, ordered wall of words, and an old live map stays jumbled until someone tidies it.
+
+**Worst thing left.** I traded a pile for an index. An area now reads as a neat contents page on an island, and place inside it means only "what kind of thing". That's calm and findable, and it's what the brief warned about: closer to a list on a blob than a map you learn. Nearby items aren't related, and linked things can sit far apart. I don't have a better answer that keeps every name readable, but someone should look at it with fresh eyes before more polish goes on.
+
+**Also left.**
+- Coast shapes are still the operator's call. Engineering is the weakest, and the water lines pinch into small necks in narrow channels, such as between Brand and Product.
+- Lines still cross words when linked things are far apart. Stack's run through API conventions, and Pricing's through "People" and through its own neighbour's name. Stripe's line leaves through its own summary.
+- Big-map overlays: Soundings' rings pile up at 60 services, and in Towns a few names land on the next disc (Google Workspace, Mercury, Railway).
+- Rows of 1x marks are readable but small. The stamp and the lined page differ only in a detail at 1x, and the shield still says "rule" only once you've seen the word Rules above it.
+- On 40 items in one area the cape is a big empty tail.
+- A pin on a first row pushes its kind's name out of line, as at Tools in Product.
+- Zoomed out, Plans can sit lower than Facts in one area and higher in another, because lines go where they fit.
+- Old live maps, and that Tidy up is only in ⌘K.
+
