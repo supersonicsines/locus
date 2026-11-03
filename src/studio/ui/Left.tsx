@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { Password } from '../../core/types.ts'
 import { copy, createPassword, loadSample, newMap, setTheme, siteAddress, switchVault, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon, plural, ServiceMark, useEscape } from './bits.tsx'
+import { Icon, plural, ReaderMark, useEscape } from './bits.tsx'
 import { contentOf, NO_GATES, NO_PIECES, readersByArea } from './data.ts'
 
 function CompanyMenu({ close }: { close: () => void }) {
@@ -81,7 +81,7 @@ function CompanyMenu({ close }: { close: () => void }) {
   )
 }
 
-function ReaderRow({ pw }: { pw: Password }) {
+function ReaderRow({ pw, index }: { pw: Password; index: number }) {
   const gates = useStore((s) => s.vault?.gates ?? NO_GATES)
   const lens = useStore((s) => s.lens)
   const panel = useStore((s) => s.panel)
@@ -96,7 +96,7 @@ function ReaderRow({ pw }: { pw: Password }) {
   return (
     <div className={`reader ${on ? 'is-on' : ''}`}>
       <button className="reader-row" aria-expanded={on} onClick={pick}>
-        <ServiceMark name={pw.name} size={22} />
+        <ReaderMark name={pw.name} index={index} size={22} />
         <span className="reader-name">{pw.name}</span>
         <span className="reader-count">{count ? `${count} of ${plural(gates.length, 'area')}` : 'Nothing yet'}</span>
       </button>
@@ -143,9 +143,9 @@ function Readers() {
           {vault.sample ? "A made-up company's map of what its AI tools and people need to know. Pick a name to see what they can read." : 'What your AI tools and people need to know, on one map. You choose who can read which parts.'}
         </p>
       )}
-      <div className="left-title">Who can read it</div>
+      <div className="left-title">{live ? 'Who can read it' : 'Who can read it once live'}</div>
       <div className="reader-list">
-        {vault.passwords.map((p) => <ReaderRow key={p.id} pw={p} />)}
+        {vault.passwords.map((p, i) => <ReaderRow key={p.id} pw={p} index={i} />)}
         {!readersByArea(vault).size && !vault.passwords.length && <p className="reader-none">No one yet, so everything here is private.</p>}
       </div>
       <div className="left-foot">
@@ -193,6 +193,7 @@ export function Left() {
   const company = useStore((s) => contentOf(s)?.company)
   const sample = useStore((s) => !!s.vault?.sample)
   const readOnly = useStore((s) => !!s.view)
+  const isLive = useStore((s) => !!s.vault?.published && !!s.vault.site)
   const [menu, setMenu] = useState(false)
   const [openOnPhone, setOpenOnPhone] = useState(false)
 
@@ -210,6 +211,7 @@ export function Left() {
           }}
         >
           <span className="company-name">{company?.name}</span>
+          {!readOnly && <i className={`live-dot phone-only ${isLive ? '' : 'is-off'}`} role="img" aria-label={isLive ? 'Live' : 'Not live'} />}
           {sample && <span className="tag">Sample</span>}
           <Icon name="chevron" size={14} />
         </button>

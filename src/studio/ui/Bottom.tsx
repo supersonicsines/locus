@@ -1,9 +1,11 @@
 // Bottom right: zoom. Bottom left: the money cartouche.
 
+import { useState } from 'react'
 import { formatMoney, summarize, TOWN_CLASSES } from '../../core/money.ts'
+import { priceNotes } from '../../core/status.ts'
 import type { MapView } from '../map/MapView.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon } from './bits.tsx'
+import { Icon, plural } from './bits.tsx'
 import { contentOf } from './data.ts'
 
 export function Cartouche() {
@@ -11,10 +13,11 @@ export function Cartouche() {
   const content = useStore((s) => contentOf(s))
   const period = useStore((s) => s.period)
   const style = useStore((s) => s.dollarStyle)
-  const readOnly = useStore((s) => !!s.view)
+  const [notesOpen, setNotesOpen] = useState(false)
   if (!dollars || !content?.costs) return null
 
   const s = summarize(content.costs, content.gates, content.pieces, content.currency)
+  const notes = priceNotes(content.costs)
   const mult = period === 'year' ? 12 : 1
   const others = s.others.map((o) => formatMoney(o.amount * mult, o.currency))
   const total = `${s.approximate ? '≈' : ''}${formatMoney(s.total * mult, s.currency)}`
@@ -69,14 +72,27 @@ export function Cartouche() {
         </div>
 
         <p className="cart-note">
-          {s.fromInvoices}% from invoices. {s.unpriced > 0 ? `${s.unpriced} unpriced. ` : ''}
-          {s.checks.length > 0 &&
-            (readOnly ? (
-              `${s.checks.length} to check.`
-            ) : (
-              <button onClick={() => setState({ panel: 'needs' })}>{s.checks.length} to check.</button>
-            ))}
+          {s.fromInvoices}% from invoices.{' '}
+          {notes.length > 0 && (
+            <button aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
+              {plural(notes.length, 'price note')}
+            </button>
+          )}
         </p>
+        {notesOpen && (
+          <ul className="cart-notes">
+            {notes.map((n) => (
+              <li key={n.id}>
+                <button
+                  disabled={!content.pieces.some((p) => p.id === n.pieces[0])}
+                  onClick={() => setState({ selected: n.pieces[0] })}
+                >
+                  {n.message}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="cart-style">
           <span>Show as</span>

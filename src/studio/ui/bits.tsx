@@ -1,11 +1,13 @@
 // Small shared pieces: icons, safe Markdown, the symbol glyph, text that grows.
 
-import { useEffect, useLayoutEffect, useRef, type ReactNode, type TextareaHTMLAttributes } from 'react'
+import { useEffect, useLayoutEffect, useRef, type MouseEvent as ReactMouseEvent, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { linkParts } from '../../core/links.ts'
+import type { Need, NeedLevel } from '../../core/status.ts'
 import type { PieceKind } from '../../core/types.ts'
+import { changePiece, publish, updateVault } from '../actions.ts'
 import { monogramOf } from '../logos/lookup.ts'
 import { logoSource, serviceFor, TILE_PADDING, TILE_RADIUS, useLogosVersion } from '../logos/store.ts'
-import { drawSymbol } from '../map/symbols.ts'
+import { drawSymbol, readerColour } from '../map/symbols.ts'
 import { useStore } from '../store.ts'
 
 const paths = {
@@ -65,6 +67,66 @@ export function ServiceMark({ name, size = 20 }: { name: string; size?: number }
     <span className="svc-tile" style={{ width: size, height: size, borderRadius, background: service.tile ?? '#fff' }} aria-hidden="true">
       <img src={src} width={inner} height={inner} alt="" draggable={false} />
     </span>
+  )
+}
+
+/** A reader: their tool's logo if they have one, or a round mark in their own colour, the same one the map shows. */
+export function ReaderMark({ name, index, size = 22 }: { name: string; index: number; size?: number }) {
+  useLogosVersion()
+  const service = serviceFor(name)
+  if (service?.svg) return <ServiceMark name={name} size={size} />
+  return (
+    <span className="reader-mark" style={{ width: size, height: size, fontSize: size * 0.54, background: readerColour(index) }} aria-hidden="true">
+      {monogramOf(name)}
+    </span>
+  )
+}
+
+/** The same three marks the map uses, so the list and the map point at each other. */
+export function NeedMark({ level }: { level: NeedLevel }) {
+  return <span className={`need-mark is-${level}`} aria-hidden="true">{level === 'now' ? '!' : level === 'decide' ? '?' : ''}</span>
+}
+
+/** The one step that deals with a need, the same wherever it's shown. */
+export function NeedActions({ need }: { need: Need }) {
+  const vault = useStore((s) => s.vault)
+  const publishing = useStore((s) => s.publishing)
+  const id = need.pieces[0]
+  const act = (fn: () => void) => (e: ReactMouseEvent) => {
+    e.stopPropagation()
+    fn()
+  }
+  const settle = () => updateVault((v) => ({ ...v, settled: [...(v.settled ?? []), need.id] }))
+  const dismiss = () => updateVault((v) => ({ ...v, findings: v.findings.map((f) => (f.id === need.id ? { ...f, dismissed: true } : f)) }))
+
+  if (need.kind === 'exposure') {
+    return (
+      <div className="need-actions">
+        <button className="btn btn-ink" disabled={publishing} onClick={act(() => void publish())}>{publishing ? 'Updating' : 'Update'}</button>
+      </div>
+    )
+  }
+  if (need.kind === 'secret') {
+    return (
+      <div className="need-actions">
+        <button className="btn btn-paper" onClick={act(settle)}>I've changed it</button>
+      </div>
+    )
+  }
+  if (need.kind === 'proposal') {
+    const isRule = need.id.startsWith('rule-')
+    const piece = vault?.pieces.find((p) => p.id === id)
+    return (
+      <div className="need-actions">
+        <button className="btn btn-paper" onClick={act(() => (isRule ? changePiece(id, { always: 'approved' }) : piece?.mcp && changePiece(id, { mcp: { ...piece.mcp, approved: true } })))}>Approve</button>
+        <button className="btn btn-quiet" onClick={act(() => (isRule ? changePiece(id, { always: undefined }) : changePiece(id, { mcp: undefined })))}>Reject</button>
+      </div>
+    )
+  }
+  return (
+    <div className="need-actions">
+      <button className="btn btn-quiet" onClick={act(need.kind === 'conflict' || need.kind === 'gap' ? dismiss : settle)}>Dismiss</button>
+    </div>
   )
 }
 

@@ -2,15 +2,16 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toCheck } from '../core/money.ts'
-import { needs } from '../core/status.ts'
+import { levelOf, needs, sortNeeds, type NeedLevel } from '../core/status.ts'
 import { dismissToast, loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
 import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
+import { readerColour } from './map/symbols.ts'
 import { getState, setState, storage, useStore } from './store.ts'
 import { useEscape } from './ui/bits.tsx'
 import { BottomRight, Cartouche } from './ui/Bottom.tsx'
 import { CommandK } from './ui/CommandK.tsx'
-import { contentOf, readersByArea } from './ui/data.ts'
+import { contentOf, exposedAreas, pricesReadableIn, readersByArea } from './ui/data.ts'
 import { AreaPanel } from './ui/Area.tsx'
 import { Left } from './ui/Left.tsx'
 import { Peek } from './ui/Peek.tsx'
@@ -21,7 +22,13 @@ import { NeedsPanel, StatusLine, TopRight } from './ui/Top.tsx'
 const PALETTES: Record<'light' | 'dark', Palette> = {
   light: {
     paper: '#eef1f3',
+    liveSea: '#d6e4ef',
     land: '#fcfdfd',
+    sealedLand: '#fcf1ee',
+    exposedLand: '#fdf3d4',
+    alert: '#f5b400',
+    alertRGB: '245,180,0',
+    onAlert: '#15191e',
     ink: '#15191e',
     inkRGB: '21,25,30',
     paperRGB: '243,245,246',
@@ -33,7 +40,13 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
   },
   dark: {
     paper: '#0e1319',
+    liveSea: '#0c1c2c',
     land: '#171d25',
+    sealedLand: '#2a1d1e',
+    exposedLand: '#2e2815',
+    alert: '#f5b400',
+    alertRGB: '245,180,0',
+    onAlert: '#15191e',
     ink: '#e8e6df',
     inkRGB: '232,230,223',
     paperRGB: '14,19,25',
@@ -96,10 +109,18 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
 
   useEffect(() => map.current?.setPalette(PALETTES[theme]), [theme, map])
 
+  // The loudest need on an item decides how it looks, so the worst come last and overwrite the rest.
   const flagged = useMemo(() => {
-    if (!vault) return new Set<string>()
-    return new Set(needs(vault).flatMap((n) => (n.kind === 'price' ? [] : n.pieces)))
+    const out = new Map<string, NeedLevel>()
+    if (!vault) return out
+    for (const n of sortNeeds(needs(vault)).reverse()) for (const id of n.pieces) out.set(id, levelOf(n.kind))
+    return out
   }, [vault])
+
+  const exposed = useMemo(() => exposedAreas(vault), [vault])
+  const pricesReadable = useMemo(() => pricesReadableIn(vault, lens), [vault, lens])
+  const live = !!view || (!!vault?.published && !!vault.site)
+  const readerColours = useMemo(() => new Map((vault?.passwords ?? []).map((p, i) => [p.name, readerColour(i)])), [vault])
 
   const readers = useMemo(() => readersByArea(vault), [vault])
 
@@ -122,12 +143,16 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       costs: c?.costs ?? null,
       currency: c?.currency ?? 'USD',
       flagged,
+      exposed,
+      pricesReadable,
+      live,
       priceChecks,
       sealedToAll,
       readers,
+      readerColours,
       readOnly: c?.readOnly ?? false,
     })
-  }, [vault, view, flagged, priceChecks, sealedToAll, readers, map])
+  }, [vault, view, flagged, exposed, pricesReadable, live, priceChecks, sealedToAll, readers, readerColours, map])
 
   const panel = useStore((s) => s.panel)
   const rightOpen = panel === 'share'
@@ -286,7 +311,7 @@ function Chrome({ map }: { map: React.RefObject<MapView | null> }) {
       <div className="top-bar">
         <div className="status-slot">
           <StatusLine />
-          {panel === 'needs' && !view && <NeedsPanel />}
+          {panel === 'needs' && !view && <NeedsPanel map={map} />}
         </div>
         <TopRight />
       </div>

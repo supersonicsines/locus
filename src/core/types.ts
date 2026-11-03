@@ -140,6 +140,8 @@ export interface Vault {
   costs: Cost[]
   passwords: Password[]
   findings: Finding[]
+  /** Things the owner has dealt with that the app can't see for itself, like having changed an exposed key. */
+  settled?: string[]
   site?: Site
   published?: PublishedState
   currency: string

@@ -1,12 +1,13 @@
-// Top centre: the one thing worth saying right now. Top right: what it costs, adding to the map, and going live.
+// Top centre: the one thing worth saying right now, as loud as it deserves. Top right: what it costs, adding to the map, and whether it's live.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatMoney, summarize } from '../../core/money.ts'
-import { needs, pending, sortNeeds, type Need, type NeedKind } from '../../core/status.ts'
-import { addArea, addPiece, changePiece, publish, updateVault } from '../actions.ts'
+import { levelOf, needs, pending, priceNotes, sortNeeds, type Need, type NeedKind } from '../../core/status.ts'
+import { addArea, addPiece, publish } from '../actions.ts'
+import type { MapView } from '../map/MapView.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon, plural, ServiceMark, useEscape } from './bits.tsx'
-import { contentOf } from './data.ts'
+import { Icon, NeedActions, NeedMark, plural, ServiceMark, useEscape } from './bits.tsx'
+import { contentOf, placeOf } from './data.ts'
 
 /** How each kind of need reads in the one-line summary. */
 const SUMMARY: Record<NeedKind, (n: number) => string> = {
@@ -17,7 +18,6 @@ const SUMMARY: Record<NeedKind, (n: number) => string> = {
   gap: (n) => `${n} missing`,
   due: (n) => `${n} coming up`,
   stale: (n) => `${n} out of date`,
-  price: (n) => plural(n, 'price note'),
 }
 
 /** The worst few kinds by name, then how many more. A count alone tells you nothing. */
@@ -43,6 +43,7 @@ export function StatusLine() {
   const selected = useStore((s) => s.selected)
   const sheet = useStore((s) => s.sheet)
   const cmdk = useStore((s) => s.cmdk)
+  const publishing = useStore((s) => s.publishing)
   const lensPw = vault?.passwords.find((p) => p.id === lens) ?? null
   const done = () => setState({ lens: null, agentView: false, panel: panel === 'share' ? null : panel })
   useEscape(done, !!lensPw && panel !== 'share' && !selected && !sheet && !cmdk)
@@ -60,42 +61,58 @@ export function StatusLine() {
   }
   if (!vault) return null
 
-  // The empty map says this itself, in the middle of the screen.
-  if (!vault.pieces.length) return null
+  // The empty map says this itself, in the middle of the screen. Unless it's live, because then what you deleted can still be read.
+  if (!vault.pieces.length && !vault.published) return null
 
   if (lensPw) {
     return (
-      <div className="status panel is-lens" role="status">
+      <div key="lens" className="status panel is-lens" role="status">
         <span>Seeing the map as <b>{lensPw.name}</b>. <span className="quiet optional">Click an area to change what they can read.</span></span>
         <button className="status-done" onClick={done}>Done</button>
       </div>
     )
   }
 
-  const p = pending(vault)
-  const list = needs(vault)
+  const list = sortNeeds(needs(vault))
   const open = () => setState({ panel: panel === 'needs' ? null : 'needs', highlight: null })
+  const expanded = panel === 'needs'
 
-  // Someone can still read something you closed. That's the only thing worth saying first.
-  if (vault.published && vault.site && p.exposures.length > 0) {
+  // Nothing to say, so it takes up next to nothing. A real need never looks like this.
+  if (!list.length) {
     return (
-      <div className="status panel" role="status">
-        <button className="status-open" onClick={open}><b>{p.exposures[0].message}</b></button>
+      <div key="clear" className="status is-clear" role="status">
+        <Icon name="check" size={13} /> Nothing needs you
       </div>
     )
   }
 
-  if (!list.length) {
+  // What needs you now gets the one loud thing on the page.
+  const worst = list[0]
+  if (levelOf(worst.kind) === 'now') {
+    const same = list.filter((n) => n.kind === worst.kind)
+    const places = new Set(same.map((n) => placeOf(vault, n.pieces, n.gates)))
+    const where = places.size === 1 ? placeOf(vault, worst.pieces, worst.gates) : null
+    // An exposure names who and what, so it says itself. Anything else says how many, and where.
+    const headline = worst.kind === 'exposure' ? worst.message.replace(/\.$/, '') : `${SUMMARY[worst.kind](same.length)}${where ? ` in ${where}` : ''}`
+    const rest = list.length - (worst.kind === 'exposure' ? 1 : same.length)
     return (
-      <div className="status panel" role="status">
-        <span className="quiet">Nothing needs you.</span>
+      // Its own key, or React reuses the focused Done button as this Update button, and a second Enter on Done would publish.
+      <div key="now" className="status panel is-now" role="alert">
+        <button className="status-open" onClick={open} aria-expanded={expanded}>
+          <NeedMark level="now" />
+          <b title={headline}>{headline}</b>
+          {rest > 0 && <span className="status-more">and {rest} more</span>}
+          <Icon name="chevron" size={13} />
+        </button>
+        {worst.kind === 'exposure' && <button className="status-do go-live" disabled={publishing} onClick={() => void publish()}>{publishing ? 'Updating' : 'Update'}</button>}
       </div>
     )
   }
 
   return (
-    <div className="status panel" role="status">
-      <button className="status-open" onClick={open} aria-expanded={panel === 'needs'}>
+    <div key="needs" className="status panel" role="status">
+      <button className="status-open" onClick={open} aria-expanded={expanded}>
+        <NeedMark level={levelOf(worst.kind)} />
         <b>Needs you</b>
         <span className="quiet">{summaryOf(list)}</span>
         <Icon name="chevron" size={13} />
@@ -112,35 +129,26 @@ const KIND_NAMES: Record<NeedKind, string> = {
   gap: 'Missing',
   due: 'Coming up',
   stale: 'Out of date',
-  price: 'Prices',
 }
 
-export function NeedsPanel() {
+export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
   const vault = useStore((s) => s.vault)
   useEscape(() => setState({ panel: null, highlight: null }))
   if (!vault) return null
   const list = sortNeeds(needs(vault))
 
-  const focus = (n: Need) => {
-    if (n.pieces[0]) setState({ selected: n.pieces[0], panel: null, highlight: null })
-  }
+  // An area that's since been deleted has nowhere to go.
+  const gateOf = (n: Need) => n.gates?.find((g) => vault.gates.some((x) => x.id === g))
 
-  const approve = (n: Need) => {
-    const id = n.pieces[0]
-    if (n.id.startsWith('rule-')) changePiece(id, { always: 'approved' })
-    if (n.id.startsWith('mcp-')) {
-      const p = vault.pieces.find((x) => x.id === id)
-      if (p?.mcp) changePiece(id, { mcp: { ...p.mcp, approved: true } })
+  // Takes you to it: the map moves to the place, and the item's own panel says what to do.
+  const go = (n: Need) => {
+    if (n.pieces[0]) {
+      setState({ selected: n.pieces[0], panel: null, highlight: null })
+      map.current?.focusPiece(n.pieces[0])
+    } else if (gateOf(n)) {
+      setState({ area: gateOf(n), panel: 'area', highlight: null })
     }
   }
-
-  const reject = (n: Need) => {
-    const id = n.pieces[0]
-    if (n.id.startsWith('rule-')) changePiece(id, { always: undefined })
-    if (n.id.startsWith('mcp-')) changePiece(id, { mcp: undefined })
-  }
-
-  const dismiss = (n: Need) => updateVault((v) => ({ ...v, findings: v.findings.map((f) => (f.id === n.id ? { ...f, dismissed: true } : f)) }))
 
   // Where a need is about one service, its logo says which at a glance.
   const serviceOf = (n: Need) => {
@@ -154,70 +162,30 @@ export function NeedsPanel() {
       <div style={{ position: 'fixed', inset: 0 }} onClick={() => setState({ panel: null, highlight: null })} />
       <div className="needs-panel panel" role="dialog" aria-label="Things that need you">
         {!list.length && <div className="needs-empty">Nothing needs you.</div>}
-        {list.map((n, i) => (
-          <div
-            key={n.id}
-            className={`need ${n.pieces.length ? 'clickable' : ''}`}
-            onMouseEnter={() => n.pieces.length && setState({ highlight: new Set(n.pieces) })}
-            onMouseLeave={() => setState({ highlight: null })}
-            onClick={() => focus(n)}
-          >
-            {serviceOf(n) ? <ServiceMark name={serviceOf(n)!} size={18} /> : <span className="need-mark" aria-hidden="true">!</span>}
-            <div>
-              {list[i - 1]?.kind !== n.kind && <span className="need-kind">{KIND_NAMES[n.kind]}</span>}
-              {n.message}
-              {n.quote && <blockquote className="need-quote">{n.quote}</blockquote>}
-              {n.kind === 'exposure' && (
-                <div className="need-actions">
-                  <button
-                    className="btn btn-ink"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      void publish()
-                    }}
-                  >
-                    Update
-                  </button>
-                </div>
-              )}
-              {n.kind === 'proposal' && (
-                <div className="need-actions">
-                  <button
-                    className="btn btn-paper"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      approve(n)
-                    }}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    className="btn btn-quiet"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      reject(n)
-                    }}
-                  >
-                    Reject
-                  </button>
-                </div>
-              )}
-              {(n.kind === 'conflict' || n.kind === 'gap') && (
-                <div className="need-actions">
-                  <button
-                    className="btn btn-quiet"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      dismiss(n)
-                    }}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
+        {list.map((n) => {
+          const where = placeOf(vault, n.pieces, n.gates)
+          const service = serviceOf(n)
+          return (
+            <div
+              key={n.id}
+              className={`need is-${levelOf(n.kind)} ${n.pieces.length || gateOf(n) ? 'clickable' : ''}`}
+              onMouseEnter={() => n.pieces.length && setState({ highlight: new Set(n.pieces) })}
+              onMouseLeave={() => setState({ highlight: null })}
+              onClick={() => go(n)}
+            >
+              <NeedMark level={levelOf(n.kind)} />
+              <div className="need-text">
+                <span className="need-kind">
+                  {service && <ServiceMark name={service} size={14} />}
+                  {KIND_NAMES[n.kind]}{where ? ` in ${where}` : ''}
+                </span>
+                {n.message}
+                {n.quote && <blockquote className="need-quote">{n.quote}</blockquote>}
+                <NeedActions need={n} />
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </>
   )
@@ -265,18 +233,23 @@ export function TopRight() {
   const period = useStore((s) => s.period)
   const publishing = useStore((s) => s.publishing)
   const server = useStore((s) => s.server)
+  const lens = useStore((s) => s.lens)
   const content = useStore((s) => contentOf(s))
 
   const hasMoney = view ? !!view.costs : !!vault && vault.costs.length > 0
   const p = vault ? pending(vault) : null
   const isSampleHosted = !!vault?.sample && server?.mode === 'hosted'
-  const clean = !!vault?.published && p?.changes === 0
+  const isLive = !!vault?.published && !!vault.site
+  const clean = isLive && p?.changes === 0
+  // Someone can still read what you closed, so the bar at top centre has the button. Two would only compete.
+  const barHasUpdate = isLive && !!p?.exposures.length && !lens
 
   const total = useMemo(() => {
     if (!content?.costs) return null
     const s = summarize(content.costs, content.gates, content.pieces, content.currency)
     const mult = period === 'year' ? 12 : 1
     return {
+      notes: priceNotes(content.costs).length,
       approx: s.approximate,
       main: formatMoney(s.total * mult, s.currency),
       others: s.others.map((o) => formatMoney(o.amount * mult, o.currency)),
@@ -289,7 +262,7 @@ export function TopRight() {
         <button
           className="dollar-toggle"
           aria-pressed={dollars}
-          title={dollars ? 'Hide prices on the map ($)' : 'Show what each service costs on the map ($)'}
+          title={`${dollars ? 'Hide prices on the map ($)' : 'Show what each service costs on the map ($)'}${total.notes ? `. ${plural(total.notes, 'price note')} to look at.` : ''}`}
           onClick={() => setState({ dollars: !dollars })}
         >
           <span className="cost-figure">
@@ -297,18 +270,27 @@ export function TopRight() {
             {total.others.length > 0 && <span className="cost-others"> + {total.others.join(' + ')}</span>}
           </span>
           <span className="cost-per">a {period}<span className="optional"> on tools</span></span>
+          {total.notes > 0 && <i className="cost-dot" aria-hidden="true" />}
         </button>
       )}
       {vault && <AddMenu />}
-      {vault && (
-        <button
-          className={`btn go-live ${clean ? 'btn-paper' : 'btn-ink'}`}
-          disabled={publishing || !vault.pieces.length || isSampleHosted || clean}
-          title={isSampleHosted ? "The sample can't go live here. Drop your own files." : clean ? 'Everything on this map is live.' : vault.published ? `${plural(p?.changes ?? 0, 'change')} not live yet.` : 'Puts an encrypted copy online for your readers. Nothing can be read without a password.'}
-          onClick={() => void publish()}
-        >
-          {publishing ? 'Going live' : clean ? 'Up to date' : vault.published ? 'Update' : 'Go live'}
-        </button>
+      {vault && (vault.pieces.length > 0 || isLive) && (
+        <div className={`live-state ${isLive ? 'is-live' : 'is-not-live'} ${clean || barHasUpdate ? 'is-current' : ''}`} title={clean ? 'Everything on this map is live.' : isLive ? `Readers are still seeing the last update.` : 'Saved in this browser. No reader can open it until it goes live.'}>
+          <span className="live-word">
+            <i className="live-dot" aria-hidden="true" />
+            {clean ? 'Live, up to date' : isLive ? `${plural(p?.changes ?? 0, 'change')} not live` : 'Not live'}
+          </span>
+          {!clean && !barHasUpdate && (
+            <button
+              className="btn btn-ink go-live"
+              disabled={publishing || isSampleHosted}
+              title={isSampleHosted ? "The sample can't go live here. Drop your own files." : isLive ? `${plural(p?.changes ?? 0, 'change')} not live yet.` : 'Puts an encrypted copy online for your readers. Nothing can be read without a password.'}
+              onClick={() => void publish()}
+            >
+              {publishing ? (isLive ? 'Updating' : 'Going live') : isLive ? 'Update' : 'Go live'}
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

@@ -1,6 +1,9 @@
-/* Atlas. Cool paper, ink, hairlines. Vermilion means sealed and nothing else. */
+/* Atlas. Cool paper, ink, hairlines. Vermilion means sealed and nothing else. Amber means it needs you now and nothing else. */
 
 :root {
+  --alert: #f5b400;
+  --on-alert: #15191e;
+  --live: #1f9d63;
   --paper: #eef1f3;
   --raised: #fcfdfd;
   --ink: #15191e;
@@ -534,12 +537,12 @@ a {
   margin: 0 auto;
 }
 
-/* The one thing worth saying right now. */
+/* The one thing worth saying right now, as loud as it deserves. */
 
 .status {
-  min-height: 32px;
-  padding: 6px 12px;
-  line-height: 18px;
+  min-height: 36px;
+  padding: 8px 12px;
+  line-height: 20px;
   white-space: nowrap;
 }
 
@@ -568,6 +571,72 @@ a {
 .status-open svg {
   flex: none;
   color: var(--soft);
+}
+
+/* Nothing to say: no panel, no weight. The page looks calm because it is. */
+.status.is-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--soft);
+  font-size: 12.5px;
+}
+
+/* The one loud thing on the page. Amber, because vermilion means sealed. */
+.status.is-now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--alert);
+  border-color: transparent;
+  color: var(--on-alert);
+  box-shadow: 0 1px 2px rgba(21, 25, 30, 0.12), 0 10px 26px -8px rgba(160, 110, 0, 0.5);
+}
+
+.status.is-now .status-open {
+  flex: 1;
+  min-width: 0;
+}
+
+/* However long the names, the words give way before the button does. */
+.status.is-now .status-open b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status.is-now .status-more {
+  flex: none;
+}
+
+.status.is-now .status-open svg {
+  color: inherit;
+}
+
+.status.is-now .need-mark {
+  background: var(--on-alert);
+  color: var(--alert);
+}
+
+.status.is-now .status-more {
+  opacity: 0.72;
+}
+
+.status.is-now:has(.status-do) {
+  padding-right: 5px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.status-do {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 5px;
+  background: var(--on-alert);
+  color: #fbfcfc;
+  font-size: 12.5px;
+  font-weight: 500;
 }
 
 .status.is-lens {
@@ -603,6 +672,9 @@ a {
     text-underline-offset: 2px;
     text-decoration-thickness: 1px;
   }
+  .status-do:hover {
+    opacity: 0.88;
+  }
 }
 
 /* Top right. */
@@ -619,8 +691,8 @@ a {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
-  height: 32px;
-  padding: 6px 11px 0;
+  height: 36px;
+  padding: 6px 12px 0;
   border-radius: var(--control-radius);
   background: var(--raised);
   border: 1px solid var(--hair);
@@ -649,9 +721,20 @@ a {
 
 .cost-figure {
   font-family: var(--serif);
-  font-size: 15px;
-  line-height: 18px;
+  font-size: 18px;
+  line-height: 22px;
   font-variant-numeric: tabular-nums;
+}
+
+/* The unread dot again: there's something to look at in here, when you have a minute. */
+.cost-dot {
+  flex: none;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  margin: -6px 0 0 2px;
+  border-radius: 50%;
+  background: var(--ink);
 }
 
 .cost-others {
@@ -669,17 +752,69 @@ a {
 }
 
 .add-menu .menu {
-  top: 38px;
+  top: 42px;
   right: 0;
   transform-origin: top right;
 }
 
-.top-right .btn {
+.top-right > .add-menu > .btn {
+  height: 36px;
   box-shadow: var(--shadow);
 }
 
-.top-right .btn.go-live.btn-paper:disabled {
-  opacity: 1;
+/* Whether it's live is a fact, not a button, so the fact is always there and the button only when there's something to do. */
+
+.live-state {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 4px 0 12px;
+  border-radius: var(--control-radius);
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+
+.live-state.is-current {
+  padding-right: 12px;
+}
+
+.live-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.live-state .go-live {
+  height: 28px;
+  margin-left: 10px;
+  padding: 0 11px;
+  box-shadow: none;
+}
+
+.live-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--live);
+}
+
+/* Not live: an empty ring, like a radio button nobody has pressed. */
+.is-not-live .live-dot,
+.live-dot.is-off {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--faint);
+}
+
+/* A phone has no room for the state at top right, so the dot moves in beside the company's name. */
+.phone-only {
+  display: none;
+}
+
+.is-not-live .live-word {
   color: var(--soft);
 }
 
@@ -982,6 +1117,19 @@ a {
   line-height: 18px;
 }
 
+.callout.has-mark {
+  display: flex;
+  gap: 8px;
+}
+
+.callout.is-now {
+  background: color-mix(in srgb, var(--alert) 22%, var(--raised));
+}
+
+.callout .need-actions .btn {
+  height: 26px;
+}
+
 .callout .actions {
   display: flex;
   gap: 6px;
@@ -1097,7 +1245,7 @@ a {
 .exposure {
   margin: 0 0 14px;
   padding: 10px 12px;
-  border: 1px solid var(--ink);
+  background: color-mix(in srgb, var(--alert) 22%, var(--raised));
   border-radius: 7px;
   font-size: 12.5px;
   line-height: 18px;
@@ -1154,10 +1302,19 @@ a {
 }
 
 .need {
+  position: relative;
   display: flex;
   gap: 10px;
   padding: 9px 10px;
   border-radius: 7px;
+}
+
+/* A quiet need shouldn't spend a whole line on its way out. */
+.need.is-look .need-actions {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  margin: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1187,12 +1344,46 @@ a {
   line-height: 1;
 }
 
+.need-mark.is-now {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  background: var(--alert);
+  color: var(--on-alert);
+  font-size: 12px;
+}
+
+/* The unread dot, as on the map. */
+.need-mark.is-look {
+  width: 8px;
+  height: 8px;
+  margin: 5px 5px 0;
+}
+
+.status-open .need-mark {
+  margin: 0;
+}
+
+.status-open .need-mark.is-look {
+  margin: 0 2px;
+}
+
+.need-text {
+  min-width: 0;
+}
+
 .need-kind {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   color: var(--soft);
   font-size: 11.5px;
   line-height: 15px;
-  margin-bottom: 1px;
+  margin-bottom: 2px;
+}
+
+.need-kind .svc-tile {
+  box-shadow: 0 0 0 0.5px var(--hair-strong);
 }
 
 .need-quote {
@@ -1378,6 +1569,25 @@ a {
   color: var(--soft);
 }
 
+.cart-notes {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 136px;
+  overflow-y: auto;
+}
+
+.cart-notes button {
+  display: block;
+  width: 100%;
+  padding: 4px 0;
+  border-top: 1px solid var(--hair);
+  text-align: left;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink);
+}
+
 .cart-note button {
   color: var(--ink);
   text-decoration: underline;
@@ -1497,6 +1707,17 @@ a {
   justify-content: center;
   overflow: hidden;
   box-shadow: 0 0 0 1px rgba(21, 25, 30, 0.14);
+}
+
+.reader-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .svc-tile img {
@@ -2135,6 +2356,10 @@ a {
   .cost-per .optional {
     display: none;
   }
+  /* The sentence that says who can still read what matters more than the count after it. */
+  .status.is-now:has(.status-do) .status-more {
+    display: none;
+  }
 }
 
 @media (max-width: 1180px) {
@@ -2149,6 +2374,9 @@ a {
     right: var(--gutter);
     z-index: 13;
   }
+}
+
+@media (max-width: 1100px) {
   /* Too narrow to share a line: the status drops under the controls. */
   .top-bar,
   .status-slot {
@@ -2255,9 +2483,21 @@ a {
     top: 12dvh;
     z-index: 22;
   }
-  .top-right .go-live,
+  .top-right .live-state,
   .top-right .add-menu,
-  .cost-others {
+  .cost-others,
+  .cost-dot {
+    display: none;
+  }
+  .phone-only {
+    display: inline-block;
+  }
+  /* Open, the card says it in words, and the company's name needs the room. */
+  .left.is-open .phone-only {
+    display: none;
+  }
+  /* The dot takes the chevron's room while the card is closed, since tapping anywhere on it opens it. */
+  .left:not(.is-open) .company-btn > svg {
     display: none;
   }
   .empty-word {

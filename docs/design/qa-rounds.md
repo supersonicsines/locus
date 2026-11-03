@@ -204,3 +204,120 @@ On a map with 300 items, 60 services and 374 links, in headless Chrome, JS time 
 - Remote access and owner key are still jargon.
 - "A note" arrives as a Fact in the kind menu.
 
+## Round 2: at a glance, for real
+
+**What the eye gets now. Later rounds work from this.** Each signal means one thing, and each is visible before you read a word.
+
+| You see | It means | Where |
+| --- | --- | --- |
+| Pale grey sea | Nothing is live | The whole page |
+| Blue sea | A copy is live | The whole page |
+| Empty ring, or green dot | Not live, or live | Top right, with the words |
+| A black button in that pill | Something isn't live yet, and this fixes it | Top right |
+| Amber | It needs you now. Nothing else is amber | Bar, pin, glow, land |
+| Black pin with `?` | Only you can decide this | On the item |
+| Black dot | Worth a look when you have a minute | On the item |
+| A logo or a coloured round mark | That reader. The same mark is in the card | Under each area's name |
+| Pink land and wax | Sealed | The area |
+| Yellow land, thick amber coast, a pin | Someone can still read what you closed | The area |
+
+The levels live in `levelOf` in `src/core/status.ts`: `now` for an exposure or a secret, `decide` for an approval, `look` for the rest. Loudness comes from that one table.
+
+**What I saw, worst first.** Written down before any code changed.
+
+1. Critical. Six different truths looked like one picture. All the blur tiles were the same page, because only the words in three pills differed. This is the complaint, literally.
+2. Critical. Priority was flat. An exposed secret, "Nothing needs you" and the cost were white pills of similar size. The loudest thing on the page was Go live, which isn't urgent.
+3. Critical. "Where" was invisible. The secret wore the same 5px badge as a contradiction, one of about ten, and at 480px they vanished. The bar named kinds and no place. Two flagged items had no name.
+4. Critical. Exposure, the worst state, was the least visible. Someone could read what you believed you'd closed, while that area looked normal and said Read by Accountant. The warning had no action in it.
+5. High. Live wasn't a thing you could see. Go live and Update were the same black button, and Up to date looked disabled.
+6. High. The map lied about tense. Read by Claude Code showed on a map that had never gone live, when nobody could read anything.
+7. High. Price notes inflated the count and hid real items behind "and 7 more".
+8. High. No way out. A secret said "change it" and offered no way to say you had. Due and stale items couldn't be cleared at all, so the all-clear couldn't be reached in real use.
+9. Medium. A sealed area was a thin line and a red dot.
+10. Medium. An area closed but still readable hatched in vermilion with a ghost seal, though it wasn't sealed.
+11. Medium. The cost was 15px, the same weight as a button label.
+12. Low. "Nothing needs you" used the same furniture as a real alert.
+
+**A three-second look, before and after.** The sample, at 480px and blurred.
+
+| Question | Before | After | By looking? |
+| --- | --- | --- | --- |
+| Is it live? | A black lozenge | Grey sea or blue sea | Yes |
+| Is what's live current? | The same lozenge | A small black button top right, or none | Barely. You have to know where to look |
+| Who can read what? | One pink island, five the same | A mark per reader under each area, one pink island | Partly. You see which areas share a reader, and you need the card or the words for who |
+| Does anything need me? | A white pill | An amber bar, or no bar | Yes, when it's urgent |
+| What is it? | Read the pill | Read four words in the bar | No. Still reading |
+| Where? | Nowhere | An amber pin and glow on the place | Yes, when it's urgent |
+| What does it cost? | A white pill | A larger figure in a white pill | No. A number has to be read |
+
+**What changed.**
+- The sea turns blue when a copy is live, over about a second, because going live is a moment.
+- Whether it's live is now a fact and not a button: a pill top right with a dot and words, and the button appears inside it only when there's something to do. Up to date as a disabled button is gone.
+- Three levels of need. What needs you now gets the amber bar, which names the place: 1 exposed secret in Engineering. Quieter ones keep a white pill. Nothing to say takes no panel at all.
+- Pins, because everyone knows a map pin means "here". An amber pin with a glow clipped to its own land, a black `?` pin, and a plain dot for the rest. Anything wearing a pin gets a name, ahead of the label budget. Clicking a pin's head opens its item.
+- An exposed area turns yellow with a thick amber coast and a pin, and says who can still read it. The bar holds the one button that deals with it.
+- Readers' marks under each area, faded until the map is live.
+- Before going live the map says For Claude Code, not Read by, and the card says Who can read it once live.
+- Clicking a need moves the map to it, and the item opens with why you came and the one step: I've changed it, Approve, Update or Dismiss. Every row in the list says its kind and its area.
+- The cost figure is 18px. Its pill carries a small dot when there's a price note inside.
+- Below 1100px the bar drops under the controls, up from 980, because the long exposed line was being cut.
+
+**Decisions and why.**
+- **Price notes aren't needs, and there are 4, not 5.** Round 1 counted 5 of 12. The screen and the code say 4: a usage jump, a renewal, a bill above list, and one note listing 5 services with no known price. Nothing is at risk and nothing is waiting on an answer, so they moved to `priceNotes`, under the prices. Needs fall from 12 to 8.
+- **Amber signals urgency.** It's the colour everyone reads as "attention" that isn't red. Green would mean fine and blue is the sea. Vermilion stays sealed. It's a warm colour close to vermilion in some lights, so urgency also carries a different shape, the pin, and the colour-blind sheet was read to check it.
+- **Blue sea, not a live badge.** It's the only signal that covers the whole page, so it's the only one that survives a blur. It isn't explained anywhere: the words top right do that the first time, and after that it's habit.
+- **The amber bar outranks Go live.** On a never-live sample the secret still gets the amber, because the file it came from is still out there whatever the map does.
+- **I've changed it is your word, not a check.** The app can't see whether a key was changed. It's recorded in `vault.settled`, by which secret, so a new secret in the same item asks again. Dates work the same way: dismissing a renewal lasts as long as that date. Settling isn't a change to publish.
+- **Readers with Money now see price notes.** They hold the figures already, so this shows nothing new. A service in an area they can't open is listed and doesn't open.
+- **Amber's meaning is in `styles.css` and here, not in `CLAUDE.md`.** A later round can promote it once the operator has seen it.
+- **`vault.settled` stays with the owner.** It's only in the owner's sealed copy, and no reader's part holds it, so the bundle rule isn't touched. It doesn't count as a change, the same as dismissing a finding, so a second device only learns of it at the next update, and asks again until then.
+
+**A false statement this round found.** The trap from Round 1 again. People said No one can read this, and it was false: Money lists every service's name and plan, including services in areas that password can't open (`docs/SECURITY.md`). The sample's Accountant can read that People uses Slack and what it pays. An area holding services now says Only service names and prices can be read, or the same with "once live", and Can't read, except service names and prices under a reader who has Money. The panel spells it out. Areas with no services, and readers without Money, keep the plain words. `pricesReadableIn` decides, counting what's live as well as what's set. Tested. It costs a plainer line. The other way out is to change what Money shows, which is a decision about sealing and isn't this round's.
+
+**Mistakes in my own first pass, caught before committing.** Both were new with this round's area warnings, and both would have misstated who can read.
+- A deleted item marked its old area as readable even where no password had ever opened it. It now only points at an area a live password opened.
+- With two readers closed on one area, the area named only the first. It now names one, or says "3 readers", and every reader's mark stays beside the warning.
+
+**Traps for later rounds.**
+- Status blocks need their own `key`. Without them React could reuse the focused Done button as the new Update button, so a second Enter on Done would publish. After the fix, focus falls to the page and a second Enter publishes nothing. I didn't reproduce the failure without the keys, so the risk came from reading the code.
+- `shots.mjs` has a new step, `21-states`, with 8 states and two sheets, `22-states-sheet` and `22b-states-blur`. Read those first. It edits the vault outside the page, because the page's CSP rightly refuses eval.
+- Anything drawn behind a label needs `groundOf`, or its halo paints a white ring on pink or yellow land.
+- Land is painted solid under the hatch, or a blue sea shows through and turns vermilion mauve.
+- `computeFit`'s top inset is 140 at 1100px and under, to clear the dropped bar. It has to match the breakpoint in `styles.css`.
+- Reader colours go by position in the list, so removing a reader recolours those after it.
+- Reader colours must stay cool. Red is sealed and amber is what needs you.
+- The wax sits beside whichever line is showing. Placed from the note's width alone, it drifted away from the name once prices took that line.
+- Pins are placed in up to four passes, ending in a search for the least overhang, so many pins cost more than many items. See the figures below.
+
+**Verified.** Chrome on the shipped build: the 36 shots in the fixed set, the 8 glance states and both sheets, read by eye. The last three changes were small, so not every shot was reread after them: a zoomed line staying under its name, the phone dot leaving the open card, and one panel sentence. Those shots were reread. Used for real: clicking the head of the amber pin and of both `?` pins, each of which opens its own item; clicking an exposed area's pin, which opens that area; rows in the list going to their place, for a secret, a gap and an exposure; I've changed it; Dismiss on a contradiction, a date and a stale item, from the list and from the item's panel, still gone after a reload; Approve on an MCP server and Reject on a rule, with what's saved read back; Update from the bar and from a row; emptying a live map (the bar says 76 deleted items are still readable, and Update clears it); two readers closed on one area; a reader with Money opening price notes (3 of the 4 don't open, because those services are in areas they can't open); and that reader seeing none of the owner's marks. Light and dark. Widths 721 to 1440 have no overlaps among the floating panels, no page scroll and no page errors. The sample has one secret, so several secrets in one bar were only seen in the 40-pin run, where it says 11 exposed secrets and no place.
+
+Firefox and WebKit: main page, the list and the exposed state, read by eye, with no request leaving the machine. Firefox was clean. WebKit logged one CSP line, which I isolated: the whole flow logs nothing without a screenshot, and the line appears after one. It's `page.screenshot`, as the logos section said.
+
+Colour blindness: the sample through deuteranopia and protanopia filters. Amber stays yellow and vermilion turns olive, so they stay apart, and the pin's shape helps. That's a colour matrix, not a person.
+
+On a map with 300 items, 60 services and 374 links, in headless Chrome, JS time only. Panning under 4x has a worst frame of 3.3 ms against Round 1's 3.7. The pointer handler takes 0.2 ms at the median, 4.7 at the 95th percentile and 8.9 at worst, and 0.4, 9.6 and 11 under 4x, against Round 1's 0.2, 4.9, 7 and 0.4, 9.8, 11.6. With 40 pins on that map it takes 2.7 at the 95th percentile and 5.2 at worst, and 11 and 20.4 under 4x. **That last worst case isn't stable: across seven runs with this pin placement it ranged from 11.9 to 36.6 ms**, so an unusually needy map on a slow machine can drop a frame while the pointer moves. Real maps should carry far fewer pins, but I didn't measure one.
+
+94 tests pass, 10 of them new, and types are clean. `seal.ts`, the server, the CSP, the dependencies and `agent.ts` are untouched.
+
+**Not verified.**
+- No real person has seen this. Whether a stranger reads a blue sea as "live" is my judgement. The words in the top-right pill are what teach it, so strictly it's a signal that you learn, not one that needs no explaining.
+- Hosted mode, where the sample can't go live, so its pill stays Not live with the button disabled.
+- Secrets found by a real shred. The sample's is planted. Read with Claude wasn't run.
+- Real Safari, a real phone, Windows and a screen reader. The bar became `role="alert"`, and I don't know how often it announces. Pressing Done now drops focus to the page, and focus order wasn't audited.
+- Reduced motion for the sea's fade.
+- A live map on a phone. The dot beside the name was only read in its not-live form.
+- `flow4`, `flow5` and `stress`, which still use old selectors.
+
+**Accepted.** On a phone the live state is only a dot, with no words and no button, because Round 1 already had no room for Go live there. Below 1360px the bar drops "and 7 more" when it also holds Update, so the sentence and the button keep their room, and the list is still a click away.
+
+**Did it fix "superficial"?** Partly, and more than I expected in some places. Live against not live, something urgent against nothing, and exposed against not exposed are now different pictures, and the place shows on the map. Current against not current, who reads what, and the cost are still things you read.
+
+**Worst thing left.** Live and up to date, and live with changes, still look nearly the same: one small black button top right is the whole difference. "Is what's live current?" is half of the first question, and it's the weakest answer on the page. A map whose readers are seeing old information should look different, and I didn't find a way that didn't crowd it or need a legend.
+
+**Also left.**
+- Who reads what is only half answered by looking. The marks show which areas share a reader. They're small, and you need the card or the words to know who.
+- The dots don't say what they mean. Several sit on items with no name at fit zoom: Anthropic API, Twilio on some layouts, a clause and two documents in Legal. Only pins are promised a name. This meets Round 3's work on labels.
+- Pins stand on top of their neighbours. On a phone the amber pin covers Vercel and Cursor, and Deploy process hangs over the coast. In the 40-pin run pins land on other items' names, and amber still reads above black, but that map is a mess.
+- "Only service names and prices can be read" is true and takes a moment. It's the longest thing the map says about most sealed areas.
+- A secret on a map that has never gone live still sets off the amber, by design, so the first thing a new user of the sample sees is an alarm.
+- Reader colours go by list position, and two logos side by side overlap at the edges under Brand and Product.

@@ -6,15 +6,27 @@
 import { figure, monthly, soundingRadius, summarize, townRadius, trustOf, type MoneyPeriod, type MoneySummary } from '../../core/money.ts'
 import type { Cost, Gate, Link, Piece } from '../../core/types.ts'
 import { buildEmptyTerrain, buildTerritories, type Territory } from './layout.ts'
-import { drawNeedsBadge, drawSymbol, makeWaxSeal } from './symbols.ts'
+import type { NeedLevel } from '../../core/status.ts'
+import { drawAvatar, drawNeedDot, drawPin, drawSymbol, makeWaxSeal } from './symbols.ts'
 import { TileCache } from './tiles.ts'
-import { onLogosLoaded, TILE_RADIUS } from '../logos/store.ts'
+import { monogramOf } from '../logos/lookup.ts'
+import { onLogosLoaded, serviceFor, TILE_RADIUS } from '../logos/store.ts'
 
 export interface Palette {
-  /** The sea. */
+  /** The sea, while nothing is live: unprinted paper. */
   paper: string
+  /** The sea once the map is live. The one change you can see across the room. */
+  liveSea: string
   /** The land an area stands on. */
   land: string
+  /** Land no one can read. */
+  sealedLand: string
+  /** Land someone can still read though you closed it. */
+  exposedLand: string
+  /** What needs you now. Never vermilion, because vermilion means sealed. */
+  alert: string
+  alertRGB: string
+  onAlert: string
   ink: string
   inkRGB: string
   paperRGB: string
@@ -31,14 +43,22 @@ export interface MapData {
   links: Link[]
   costs: Cost[] | null
   currency: string
-  /** Pieces flagged in "things that need you". */
-  flagged: Set<string>
+  /** Pieces in "things that need you", and how loudly. */
+  flagged: Map<string, NeedLevel>
+  /** Areas someone can still read though you closed them, in the area's own words. */
+  exposed: Map<string, string>
+  /** Closed areas whose services' names and prices can still be read through Money. */
+  pricesReadable: Set<string>
+  /** Whether there's a copy online at all. Until there is, nobody can read anything. */
+  live: boolean
   /** Pieces with something to check on their price. */
   priceChecks: Set<string>
   /** Gates no password opens, marked with a small seal even with no lens on. */
   sealedToAll: Set<string>
   /** The name of everyone who can read each gate. */
   readers: Map<string, string[]>
+  /** The colour of each reader with no logo of their own. */
+  readerColours: Map<string, string>
   readOnly: boolean
 }
 
@@ -93,6 +113,17 @@ const MAX_K = 3.5
 
 const SERIF = 'Lustria, Georgia, "Times New Roman", serif'
 
+/** A reader's mark under an area's name, in screen pixels. */
+const FACE = 20
+const FACE_STEP = 15
+const FACE_GAP = 6
+
+/** The head of a pin, in screen pixels. The loudest thing on the map must also be the biggest. */
+const pinRadius = (level: NeedLevel, k: number) => (level === 'now' ? clamp(11.5 * Math.sqrt(k), 9.5, 13) : clamp(8 * Math.sqrt(k), 7, 9.5))
+const PIN_REACH = 2.35
+
+const hexToRgb = (hex: string): [number, number, number] => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)]
+
 /** A service's tile on the map, in screen pixels. It grows slowly with zoom, and stops at sizes a logo can still be read at. */
 const tileSize = (k: number) => Math.round(clamp(25 * Math.sqrt(k), 14, 30))
 
@@ -143,7 +174,7 @@ export class MapView {
   private h = 0
   private dpr = 1
 
-  private data: MapData = { gates: [], pieces: [], links: [], costs: null, currency: 'USD', flagged: new Set(), priceChecks: new Set(), sealedToAll: new Set(), readers: new Map(), readOnly: false }
+  private data: MapData = { gates: [], pieces: [], links: [], costs: null, currency: 'USD', flagged: new Map(), exposed: new Map(), pricesReadable: new Set(), live: false, priceChecks: new Set(), sealedToAll: new Set(), readers: new Map(), readerColours: new Map(), readOnly: false }
   private nodes: Node[] = []
   private byId = new Map<string, Node>()
   private territories: Territory[] = []
@@ -159,11 +190,15 @@ export class MapView {
   private userMoved = false
 
   private palette: Palette | null = null
+  /** 0 for unprinted paper, 1 for a live map's sea. It takes a moment, because going live is a moment. */
+  private liveT = 0
+  private sea = '#000000'
   private wax = new Map<number, HTMLCanvasElement>()
   private tiles: TileCache
   private stopLogos: () => void
   private hatch: CanvasPattern | null = null
   private sealedHatch: CanvasPattern | null = null
+  private exposedHatch: CanvasPattern | null = null
 
   private selected: string | null = null
   private hovered: string | null = null
@@ -243,6 +278,7 @@ export class MapView {
     this.canvas.style.height = `${h}px`
     this.hatch = null
     this.sealedHatch = null
+    this.exposedHatch = null
     if (changedSize) {
       this.terrain = buildEmptyTerrain(w, h)
       if (this.nodes.length) {
@@ -271,6 +307,7 @@ export class MapView {
     this.wax.clear()
     this.hatch = null
     this.sealedHatch = null
+    this.exposedHatch = null
     this.invalidate()
   }
 
@@ -285,6 +322,8 @@ export class MapView {
 
   setData(data: MapData) {
     const prev = this.byId
+    // Opening a map isn't a moment. Going live is.
+    if (!this.appeared || !prev.size) this.liveT = data.live ? 1 : 0
     this.data = data
     const degree = new Map<string, number>()
     for (const l of data.links) {
@@ -493,7 +532,8 @@ export class MapView {
     const left = narrow ? 16 : 300
     const right = narrow ? 16 : this.rightInset + (this.rightInset > 28 ? 16 : 0)
     // Room for a territory's name and the line under it, below the top controls.
-    const top = narrow ? 170 : 110
+    // Below 1100 the line at top centre drops under the controls, so there's more to clear.
+    const top = narrow ? 170 : this.w <= 1100 ? 140 : 110
     const bottom = narrow ? (this.dollarOn && withOverlay ? 150 : 40) : 24
     const k = clamp(Math.min((this.w - left - right) / (maxX - minX || 1), (this.h - top - bottom) / (maxY - minY || 1)), MIN_K, 1.25)
     return {
@@ -577,13 +617,43 @@ export class MapView {
       let r = n.piece.kind === 'service' ? tileSize(k) / 2 + 3 : Math.max(10, iconSize(k) / 2 + 2)
       if (this.dollarOn && n.cost && this.dollarStyle === 'towns') r = this.townScreenRadius(n)
       if (this.dollarOn && n.cost && this.dollarStyle === 'soundings') r = Math.max(r, Math.min(this.soundingScreenRadius(n), 24))
-      const d = Math.hypot(sx - x, sy - y)
+      let d = Math.hypot(sx - x, sy - y)
+      // A pin is the most obvious thing on the map to click, so its head answers as well.
+      const pin = this.pinOf(n)
+      if (pin) {
+        const pr = pinRadius(pin, k)
+        const head = Math.hypot(sx - x, sy - (y - this.pinLift(n, k) - pr * PIN_REACH))
+        if (head < pr + 2) {
+          d = head / 2
+          r = d + 1
+        }
+      }
       if (d < r && d < bestD) {
         best = n
         bestD = d
       }
     }
     return best
+  }
+
+  /** Which pin an item wears, if any. A quiet need is only a dot. */
+  private pinOf(n: Node): NeedLevel | null {
+    if (this.dollarOn) return null
+    const level = this.data.flagged.get(n.piece.id)
+    return level === 'now' || level === 'decide' ? level : null
+  }
+
+  /** How far above an item's centre its pin's tip stands. */
+  private pinLift(n: Node, k: number): number {
+    return (n.piece.kind === 'service' ? tileSize(k) : iconSize(k)) / 2 - 1
+  }
+
+  /** What an item stands on, which is what its halo has to match. */
+  private groundOf(gate: string): string {
+    const p = this.palette!
+    if (this.lensActive) return p.land
+    if (this.data.exposed.has(gate)) return p.exposedLand
+    return this.data.sealedToAll.has(gate) ? p.sealedLand : p.land
   }
 
   private gateAt(wx: number, wy: number): string | null {
@@ -607,6 +677,13 @@ export class MapView {
       const [x, y] = this.gateLabelPos(t)
       const halfW = Math.max(70, this.gateLabelWidth(t) / 2 + 12)
       if (Math.abs(sx - x) < halfW && sy > y - 22 && sy < y + 34) return t.gate
+      // An exposed area's line is long and wears a pin. All of it answers, because it's what you'd click. Only then, as this runs on every move.
+      if (this.data.exposed.has(t.gate)) {
+        const width = this.noteWidth(this.areaNote(t.gate))
+        const room = this.notePinRoom()
+        const left = this.noteCentre(x, width, room) - width / 2
+        if (sx > left - room && sx < left + width && sy > y - 22 && sy < y + 34) return t.gate
+      }
     }
     const [wx, wy] = this.toWorld(sx, sy)
     return this.gateAt(wx, wy)
@@ -855,6 +932,13 @@ export class MapView {
       }
     }
 
+    const liveTarget = this.data.live ? 1 : 0
+    if (this.liveT !== liveTarget) {
+      const s = dt / 900
+      this.liveT = this.reducedMotion ? liveTarget : liveTarget > this.liveT ? Math.min(1, this.liveT + s) : Math.max(0, this.liveT - s)
+      moving = true
+    }
+
     // The $ transition.
     const dTarget = this.dollarOn ? 1 : 0
     if (this.dollarT !== dTarget) {
@@ -1028,8 +1112,12 @@ export class MapView {
     for (const t of this.territories) {
       const [x, y] = this.gateLabelPos(t)
       const w = this.gateLabelWidth(t)
-      const under = Math.max(w, this.measure(this.areaNote(t.gate).text, `11.5px ${this.sans}`))
-      rects.push({ x: x - under / 2 - 6, y: y - 18, w: under + 12, h: 38 })
+      const note = this.areaNote(t.gate)
+      const noteW = this.noteWidth(note)
+      const noteX = note.exposed || note.sealed ? this.noteCentre(x, noteW, this.notePinRoom()) : x
+      const left = Math.min(x - w / 2, noteX - noteW / 2)
+      const right = Math.max(x + w / 2, noteX + noteW / 2)
+      rects.push({ x: left - 6, y: y - 18, w: right - left + 12, h: 42 })
     }
 
     if (this.dollarOn) {
@@ -1053,6 +1141,13 @@ export class MapView {
       const box = { x: x - half, y: y - half, w: half * 2, h: half * 2 }
       rects.push(box)
       marks.push({ id: n.piece.id, ...box })
+      // A pin stands over its item, and no name may sit under it.
+      const pin = this.pinOf(n)
+      if (pin) {
+        const r = pinRadius(pin, k)
+        const lift = this.pinLift(n, k)
+        rects.push({ x: x - r - 2, y: y - lift - r * (PIN_REACH + 1) - 2, w: r * 2 + 4, h: r * (PIN_REACH + 1) + 2 })
+      }
     }
     // A name must read as belonging to its own mark. If another mark sits just beyond it, on the far side, it could be taken for that one's.
     // A logo with no name says nothing to someone who doesn't know it, so a logo's name gets more leeway than the others.
@@ -1065,12 +1160,15 @@ export class MapView {
       return !marks.some((m) => m.id !== id && far.x < m.x + m.w && far.x + far.w > m.x && far.y < m.y + m.h && far.y + far.h > m.y)
     }
 
-    // Names go where they explain the most: a logo first, because a logo you don't know says nothing,
-    // then the rules, because they're what a reader most needs to see, then anything that needs you.
+    // Names go where they explain the most: anything wearing a pin, because a pin with no name asks a question and
+    // doesn't answer it, then a logo, because a logo you don't know says nothing, then the rules, because they're what
+    // a reader most needs to see, then anything else that needs you.
     const score = (n: Node) => {
       let s = Math.min(n.degree, 6) * 0.25
       if (n.piece.id === focus) s += 1000
       else if (neighbours?.has(n.piece.id)) s += 300
+      const pin = this.pinOf(n)
+      if (pin) s += pin === 'now' ? 200 : 100
       if (n.piece.kind === 'service') s += 8
       if (n.piece.kind === 'rule') s += 6.5
       if (this.data.flagged.has(n.piece.id)) s += 5
@@ -1100,7 +1198,8 @@ export class MapView {
 
     for (const n of order) {
       const isFocus = n.piece.id === focus || neighbours?.has(n.piece.id)
-      if (!isFocus && used >= budget) continue
+      const pin = this.pinOf(n)
+      if (!isFocus && !pin && used >= budget) continue
       if (this.sealTarget.has(n.piece.gate)) continue
       const [x, y] = this.toScreen(n.tx, n.ty)
       if (x < -80 || y < -40 || x > this.w + 80 || y > this.h + 40) continue
@@ -1109,9 +1208,10 @@ export class MapView {
       const whole = isFocus && name.cut
       const lines = whole ? [n.piece.title] : name.lines
       const extra = (lines.length - 1) * LABEL_LEADING
-      const w = whole ? name.wholeWidth : name.width
+      // A pinned name is set a weight heavier, and is measured in the lighter one, so it allows for that.
+      const w = (whole ? name.wholeWidth : name.width) * (pin ? 1.04 : 1)
       // Clear of the mark, and of the badge or ring it wears when it needs you or is selected.
-      const ringed = n.piece.id === this.selected || this.data.flagged.has(n.piece.id)
+      const ringed = n.piece.id === this.selected || this.data.flagged.get(n.piece.id) === 'look'
       const off = (n.piece.kind === 'service' ? tile : icon) / 2 + (ringed ? 9 : 5)
       const candidates: [number, number, CanvasTextAlign, CanvasTextAlign | 'above' | 'below'][] = [
         [x + off, y + 4 - extra / 2, 'left', 'left'],
@@ -1119,17 +1219,78 @@ export class MapView {
         [x, y - off - 2 - extra, 'center', 'above'],
         [x, y + off + 10, 'center', 'below'],
       ]
-      for (const [cx, cy, align, side] of candidates) {
-        const left = align === 'left' ? cx : align === 'right' ? cx - w : cx - w / 2
-        const rect = { x: left - 2, y: cy - 10, w: w + 4, h: 14 + extra }
+      // A pin with no name asks a question and doesn't answer it, so a pinned item may also name itself around the pin's head.
+      if (pin) {
+        const r = pinRadius(pin, k)
+        const lift = this.pinLift(n, k)
+        const head = y - lift - r * PIN_REACH + 4 - extra / 2
+        candidates.push([x + r + 5, head, 'left', 'left'], [x - r - 5, head, 'right', 'right'], [x, y - lift - r * (PIN_REACH + 1) - 5 - extra, 'center', 'above'])
+      }
+      const fits = (rect: { x: number; y: number; w: number; h: number }, left: number, cy: number, side: CanvasTextAlign | 'above' | 'below', pass: 'strict' | 'land' | 'tight') => {
         // Cheapest test first: this runs for every item whenever what you're pointing at changes.
-        if (n.piece.id === focus || (free(rect) && (isFocus || (clearBeyond(n.piece.id, rect, side, n.piece.kind === 'service' ? 2 : 9) && onLand(n.piece.gate, left - 6, left + w + 6, cy - 3) && onLand(n.piece.gate, left - 6, left + w + 6, cy - 3 + extra))))) {
-          rects.push(rect)
-          next.set(n.piece.id, { id: n.piece.id, x: cx - x, y: cy - y, align, name: true, lines })
-          used++
-          break
+        if (n.piece.id === focus) return true
+        if (!free(rect)) return false
+        if (isFocus) return true
+        const margin = pass === 'tight' ? 0 : 6
+        if (!onLand(n.piece.gate, left - margin, left + w + margin, cy - 3) || !onLand(n.piece.gate, left - margin, left + w + margin, cy - 3 + extra)) return false
+        return pass !== 'strict' || clearBeyond(n.piece.id, rect, side, n.piece.kind === 'service' ? 2 : 9)
+      }
+      const place = (cx: number, cy: number, align: CanvasTextAlign, rect: { x: number; y: number; w: number; h: number }) => {
+        rects.push(rect)
+        next.set(n.piece.id, { id: n.piece.id, x: cx - x, y: cy - y, align, name: true, lines })
+        used++
+      }
+      // Anything wearing a pin gets a name: as neatly as any label if it can, then closer to its neighbours, then right up to the coast.
+      const passes = pin ? (['strict', 'land', 'tight'] as const) : (['strict'] as const)
+      let placed = false
+      for (const pass of passes) {
+        for (const [cx, cy, align, side] of candidates) {
+          const left = align === 'left' ? cx : align === 'right' ? cx - w : cx - w / 2
+          const rect = { x: left - 2, y: cy - 10, w: w + 4, h: 14 + extra }
+          if (fits(rect, left, cy, side, pass)) {
+            place(cx, cy, align, rect)
+            placed = true
+            break
+          }
+        }
+        if (placed) break
+      }
+      if (placed || !pin) continue
+      const boxes = candidates.map(([cx, cy, align]) => {
+        const left = align === 'left' ? cx : align === 'right' ? cx - w : cx - w / 2
+        return { cx, cy, align, left, rect: { x: left - 2, y: cy - 10, w: w + 4, h: 14 + extra } }
+      })
+      // Failing all that, wherever the least of it hangs over the coast. There are only ever a few pins, so this can afford to look.
+      let best: (typeof boxes)[number] | null = null
+      let least = Infinity
+      for (const box of boxes) {
+        if (!free(box.rect)) continue
+        let out = 0
+        for (let i = 0; i <= 8; i++) {
+          const at = box.left + (w * i) / 8
+          if (!onLand(n.piece.gate, at, at, box.cy - 3)) out++
+          if (extra && !onLand(n.piece.gate, at, at, box.cy - 3 + extra)) out++
+        }
+        if (out < least) {
+          least = out
+          best = box
         }
       }
+      // Failing that too, over the fewest neighbours. What needs you now can't go unnamed. A question can, if it would bury more than one of them.
+      if (!best) {
+        least = Infinity
+        for (const box of boxes) {
+          const r = box.rect
+          if (r.x < minX || r.y < 4 || r.x + r.w > maxX || r.y + r.h > this.h - 4) continue
+          const over = rects.filter((o) => r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y).length
+          if (over < least) {
+            least = over
+            best = box
+          }
+        }
+        if (pin !== 'now' && least > 1) best = null
+      }
+      if (best) place(best.cx, best.cy, best.align, best.rect)
     }
 
     // Keep existing labels so unchanged ones don't flicker; only changes crossfade.
@@ -1311,7 +1472,7 @@ export class MapView {
     }
     const [x, y] = this.toScreen((t.minX + t.maxX) / 2, top)
     // Above the coast, with room for the line under the name.
-    return [x, y - (this.dollarT > 0.01 ? lerp(23, 27, EASE(this.dollarT)) : 23)]
+    return [x, y - (this.dollarT > 0.01 ? lerp(27, 28, EASE(this.dollarT)) : 27)]
   }
 
   private gateLabelSize() {
@@ -1329,21 +1490,82 @@ export class MapView {
     return w
   }
 
-  /** The line under an area's name: who can read it, in words. */
-  private areaNote(gate: string): { text: string; sealed: boolean } {
-    if (this.data.readOnly) return { text: '', sealed: false }
+  /** The line under an area's name: who can read it, as marks you can see and words you can read. */
+  private areaNote(gate: string): { text: string; sealed: boolean; faces: string[]; exposed: boolean } {
+    const none = { sealed: false, faces: [] as string[], exposed: false }
+    if (this.data.readOnly) return { ...none, text: '' }
     if (this.lensActive) {
-      if (!this.sealTarget.has(gate)) return { text: 'Can read', sealed: false }
+      if (!this.sealTarget.has(gate)) return { ...none, text: 'Can read' }
       // Still readable out there, so it isn't sealed yet, and vermilion would say it was.
-      return this.pendingSeal.has(gate) ? { text: 'Can read until you update', sealed: false } : { text: "Can't read", sealed: true }
+      if (this.pendingSeal.has(gate)) return { ...none, text: 'Can read until you update', exposed: true }
+      if (!this.data.pricesReadable.has(gate)) return { ...none, text: "Can't read", sealed: true }
+      // Money shows each service's name, plan and price, so "prices" alone would understate it. The area's panel spells it out.
+      return { ...none, text: this.w <= 720 ? 'Names and prices only' : this.cam.k < 0.45 ? "Can't read, except names and prices" : "Can't read, except service names and prices", sealed: true }
     }
-    if (this.data.sealedToAll.has(gate)) return { text: 'No one can read this', sealed: true }
+    // Everyone's mark stays beside the warning. The words are about one fact, and the map may never understate who can read.
+    const exposed = this.data.exposed.get(gate)
+    // Where there's no room for the whole sentence it gets shorter: the marks still say who, and the line at top centre says it in full.
+    if (exposed) return { ...none, text: this.w <= 720 || this.cam.k < 0.45 ? 'Still readable until you update' : exposed, exposed: true, faces: this.data.readers.get(gate) ?? [] }
+    if (this.data.sealedToAll.has(gate)) {
+      // Money lists every service's name and price, so an area of services is only closed apart from those.
+      if (!this.data.pricesReadable.has(gate)) return { ...none, text: 'No one can read this', sealed: true }
+      const small = this.w <= 720 || this.cam.k < 0.45
+      const what = small ? 'Only names and prices' : 'Only service names and prices'
+      return { ...none, text: this.data.live ? `${what} can be read` : `${what}, once live`, sealed: true }
+    }
     const names = this.data.readers.get(gate) ?? []
-    if (!names.length) return { text: '', sealed: false }
+    if (!names.length) return { ...none, text: '' }
+    // Until there's a copy online, nobody reads anything, so "Read by" would be wrong. It's who the area is for.
+    const live = this.data.live
     // Names when there's room, a count when there isn't.
-    if ((this.w <= 720 || this.cam.k < 0.55) && names.length > 1) return { text: `${names.length} can read this`, sealed: false }
+    if ((this.w <= 720 || this.cam.k < 0.55) && names.length > 1) return { ...none, faces: names, text: live ? `${names.length} can read this` : `For ${names.length} readers` }
     const shown = names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} and ${names[1]}` : `${names[0]} and ${names.length - 1} others`
-    return { text: `Read by ${shown}`, sealed: false }
+    return { ...none, faces: names, text: live ? `Read by ${shown}` : `For ${shown}` }
+  }
+
+  /** How much room a pin needs to the left of an area's line. */
+  private notePinRoom(): number {
+    return pinRadius('now', this.cam.k) * 2 + 8
+  }
+
+  /** Where an area's line is centred. A long one moves clear of the left card and the screen's edge, and its name stays put. */
+  private noteCentre(x: number, width: number, pinRoom: number): number {
+    const least = (this.w > 720 ? 292 : 4) + pinRoom + width / 2
+    const most = this.w - 8 - width / 2
+    if (least > most) return x
+    // It only moves as far as it still sits under its name. Past that the name has gone, and the line goes with it, or it would float alone over the sea.
+    const moved = clamp(x, least, most)
+    return Math.abs(moved - x) > width / 2 ? x : moved
+  }
+
+  private facesWidth(count: number): number {
+    return count ? FACE + (count - 1) * FACE_STEP + FACE_GAP : 0
+  }
+
+  private noteWidth(note: { text: string; faces: string[] }): number {
+    return this.facesWidth(note.faces.length) + (note.text ? this.measure(note.text, `11.5px ${this.sans}`) : 0)
+  }
+
+  /** Readers' marks in a row, each cut out of the sea so they read as separate marks. */
+  private drawFaces(names: string[], x: number, y: number, alpha: number, now: number) {
+    const ctx = this.ctx
+    // Right to left, so the first reader sits on top.
+    for (let i = names.length - 1; i >= 0; i--) {
+      const name = names[i]
+      const cx = x + FACE / 2 + i * FACE_STEP
+      ctx.globalAlpha = 1
+      ctx.fillStyle = this.sea
+      ctx.beginPath()
+      ctx.arc(cx, y, FACE / 2 + 1.5, 0, Math.PI * 2)
+      ctx.fill()
+      if (serviceFor(name)?.svg) {
+        this.drawTile(name, cx, y, FACE, alpha, now)
+      } else {
+        ctx.globalAlpha = alpha
+        drawAvatar(ctx, cx, y, FACE, monogramOf(name), this.data.readerColours.get(name) ?? '#4d6475', this.sans)
+      }
+    }
+    ctx.globalAlpha = 1
   }
 
   // Drawing
@@ -1369,6 +1591,7 @@ export class MapView {
       return this.ctx.createPattern(c, 'repeat')
     }
     if (!this.sealedHatch) this.sealedHatch = make(7, `rgba(${p.vermilionRGB},0.34)`, 0.75)
+    if (!this.exposedHatch) this.exposedHatch = make(7, `rgba(${p.alertRGB},0.62)`, 1)
     if (!this.hatch) this.hatch = make(p.dark ? 5 : 4, `rgba(${p.inkRGB},${p.dark ? 0.42 : 0.5})`, 0.6)
   }
 
@@ -1390,7 +1613,8 @@ export class MapView {
     this.ensurePatterns()
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
-    ctx.fillStyle = p.paper
+    this.sea = this.seaColour()
+    ctx.fillStyle = this.sea
     ctx.fillRect(0, 0, this.w, this.h)
     this.tiles.configure(p, this.dpr, this.sans)
     this.tiles.beginFrame()
@@ -1416,6 +1640,17 @@ export class MapView {
     this.drawLabels()
     if (this.dollarT > 0) this.drawFigures()
     this.drawGateLabels(now)
+    this.drawPins()
+  }
+
+  private seaColour(): string {
+    const p = this.palette!
+    if (this.liveT <= 0) return p.paper
+    if (this.liveT >= 1) return p.liveSea
+    const a = hexToRgb(p.paper)
+    const b = hexToRgb(p.liveSea)
+    const t = EASE(this.liveT)
+    return `rgb(${Math.round(lerp(a[0], b[0], t))},${Math.round(lerp(a[1], b[1], t))},${Math.round(lerp(a[2], b[2], t))})`
   }
 
   private drawEmpty() {
@@ -1459,10 +1694,16 @@ export class MapView {
       const hot = this.hoverGate === t.gate || this.dropGate === t.gate
       const active = this.activeArea === t.gate
       const closedToAll = !this.lensActive && this.data.sealedToAll.has(t.gate)
-      ctx.globalAlpha = 1 - s
-      ctx.fillStyle = p.land
+      const exposed = !this.lensActive && this.data.exposed.has(t.gate)
+      // Solid underneath at every stage, or the sea would show through the hatching and turn vermilion to mauve on a live map.
+      ctx.fillStyle = this.groundOf(t.gate)
       ctx.fill(t.outer)
-      ctx.globalAlpha = 1
+      if (s > 0) {
+        ctx.globalAlpha = s
+        ctx.fillStyle = this.pendingSeal.has(t.gate) ? p.exposedLand : p.sealedLand
+        ctx.fill(t.outer)
+        ctx.globalAlpha = 1
+      }
       ctx.lineWidth = line
       t.rings.forEach((ring, i) => {
         // The coast is the strongest line. Inland, a few quiet contours keep it a chart, and stay out of the way.
@@ -1470,28 +1711,29 @@ export class MapView {
         const base = i === 0 ? 0.34 : p.dark ? 0.07 : 0.06
         const a = base * (1 - s)
         if (a > 0.005) {
-          ctx.strokeStyle = i === 0 && closedToAll ? `rgba(${p.vermilionRGB},0.62)` : `rgba(${p.inkRGB},${a})`
+          ctx.strokeStyle = i === 0 && exposed ? p.alert : i === 0 && closedToAll ? `rgba(${p.vermilionRGB},0.62)` : `rgba(${p.inkRGB},${a})`
+          ctx.lineWidth = i === 0 && exposed ? 2 / k : line
           ctx.stroke(ring)
         }
       })
       if (s > 0) {
+        // Closed here and still readable out there isn't sealed, so it can't wear the colour that says it is.
+        const notYet = this.pendingSeal.has(t.gate)
         ctx.save()
         ctx.globalAlpha = s
         // The pattern stays a constant screen size, so hatching doesn't grow with zoom.
         ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
         const screen = new Path2D()
         screen.addPath(t.outer, new DOMMatrix([k, 0, 0, k, this.cam.x, this.cam.y]))
-        ctx.fillStyle = this.sealedHatch!
+        ctx.fillStyle = notYet ? this.exposedHatch! : this.sealedHatch!
         ctx.scale(1 / this.dpr, 1 / this.dpr)
         const big = new Path2D()
         big.addPath(screen, new DOMMatrix([this.dpr, 0, 0, this.dpr, 0, 0]))
         ctx.fill(big)
         ctx.restore()
-        ctx.strokeStyle = `rgba(${p.vermilionRGB},${0.6 * s})`
-        ctx.lineWidth = 1 / k
-        if (this.pendingSeal.has(t.gate)) ctx.setLineDash([5 / k, 4 / k])
+        ctx.strokeStyle = notYet ? p.alert : `rgba(${p.vermilionRGB},${0.6 * s})`
+        ctx.lineWidth = (notYet ? 2 : 1) / k
         ctx.stroke(t.outer)
-        ctx.setLineDash([])
       }
       if (hot || active) {
         ctx.strokeStyle = `rgba(${p.inkRGB},${active ? 0.9 : 0.6})`
@@ -1589,7 +1831,31 @@ export class MapView {
     const tile = tileSize(this.cam.k)
     const icon = iconSize(this.cam.k)
     const readable = this.cam.k >= READABLE_K
-    const badge = clamp(4.6 * Math.sqrt(this.cam.k), 3.8, 5.6)
+    const dot = clamp(4 * Math.sqrt(this.cam.k), 3.2, 4.6)
+    // What needs you now glows through its land, so it survives shrinking the page.
+    for (const n of this.nodes) {
+      if (this.pinOf(n) !== 'now' || n.alpha < 0.01) continue
+      const [wx, wy] = this.displayPos(n)
+      const [x, y] = this.toScreen(wx, wy)
+      const r = clamp(46 * Math.sqrt(this.cam.k), 30, 60)
+      const land = this.territories.find((t) => t.gate === n.piece.gate)
+      ctx.save()
+      // It stays on its own land, because it's about this area and not the sea.
+      if (land) {
+        ctx.translate(this.cam.x, this.cam.y)
+        ctx.scale(this.cam.k, this.cam.k)
+        ctx.clip(land.outer)
+        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
+      }
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, r)
+      glow.addColorStop(0, `rgba(${p.alertRGB},${0.5 * n.alpha})`)
+      glow.addColorStop(1, `rgba(${p.alertRGB},0)`)
+      ctx.fillStyle = glow
+      ctx.beginPath()
+      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
     for (const n of this.nodes) {
       if (n.alpha < 0.01) continue
       if (towns > 0.5 && n.cost) continue
@@ -1612,8 +1878,8 @@ export class MapView {
           this.tileRing(x, y, size + 7)
           ctx.stroke()
         }
-        if (this.data.flagged.has(n.piece.id) && !this.dollarOn && readable) {
-          drawNeedsBadge(ctx, x + size / 2 - 1, y - size / 2 + 1, badge, p.ink, p.land)
+        if (this.data.flagged.get(n.piece.id) === 'look' && !this.dollarOn && readable) {
+          drawNeedDot(ctx, x + size / 2 - 1, y - size / 2 + 1, dot, p.ink, this.groundOf(n.piece.gate))
         }
         continue
       }
@@ -1627,10 +1893,13 @@ export class MapView {
 
       // Land behind each picture, so a contour or a link doesn't run through it.
       const size = icon * scale
-      ctx.fillStyle = p.land
-      ctx.beginPath()
-      ctx.arc(x, y, size * 0.66, 0, Math.PI * 2)
-      ctx.fill()
+      // A glowing item keeps its glow: this disc is only there to stop a contour running through the picture.
+      if (this.pinOf(n) !== 'now') {
+        ctx.fillStyle = this.groundOf(n.piece.gate)
+        ctx.beginPath()
+        ctx.arc(x, y, size * 0.66, 0, Math.PI * 2)
+        ctx.fill()
+      }
 
       ctx.fillStyle = p.ink
       drawSymbol(ctx, n.piece.kind, x, y, size)
@@ -1641,9 +1910,29 @@ export class MapView {
         ctx.arc(x, y, size * 0.82, 0, Math.PI * 2)
         ctx.stroke()
       }
-      if (this.data.flagged.has(n.piece.id) && !this.dollarOn) {
-        drawNeedsBadge(ctx, x + size * 0.46, y - size * 0.46, badge, p.ink, p.land)
+      if (this.data.flagged.get(n.piece.id) === 'look' && !this.dollarOn) {
+        drawNeedDot(ctx, x + size * 0.46, y - size * 0.46, dot, p.ink, this.groundOf(n.piece.gate))
       }
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** Over everything, so nothing can hide what's asking for you. The worst go on last. */
+  private drawPins() {
+    const ctx = this.ctx
+    const p = this.palette!
+    const k = this.cam.k
+    const pinned = this.nodes.filter((n) => this.pinOf(n) && n.alpha >= 0.01)
+    pinned.sort((a, b) => (this.pinOf(a) === 'now' ? 1 : 0) - (this.pinOf(b) === 'now' ? 1 : 0))
+    for (const n of pinned) {
+      const level = this.pinOf(n)!
+      const [wx, wy] = this.displayPos(n)
+      const [x, y] = this.toScreen(wx, wy)
+      ctx.globalAlpha = n.alpha
+      const r = pinRadius(level, k)
+      const tip = y - this.pinLift(n, k)
+      if (level === 'now') drawPin(ctx, x, tip, r, p.alert, p.onAlert, p.land, '!', this.sans)
+      else drawPin(ctx, x, tip, r, p.ink, p.land, p.land, '?', this.sans)
     }
     ctx.globalAlpha = 1
   }
@@ -1761,9 +2050,10 @@ export class MapView {
       const [x, y] = this.toScreen(wx, wy)
       ctx.globalAlpha = a * (this.dollarOn ? EASE(this.dollarT) * 0.8 : 1)
       ctx.textAlign = l.align
-      ctx.font = this.dollarOn && n.cost ? `10.5px ${this.sans}` : `11.5px ${this.sans}`
+      ctx.font = this.dollarOn && n.cost ? `10.5px ${this.sans}` : `${this.pinOf(n) ? '500 ' : ''}11.5px ${this.sans}`
       ctx.fillStyle = l.id === focus ? p.ink : `rgba(${p.inkRGB},0.82)`
-      ;(l.lines ?? [n.piece.title]).forEach((line, i) => this.haloText(line, x + l.x, y + l.y + i * LABEL_LEADING))
+      const ground = this.groundOf(n.piece.gate)
+      ;(l.lines ?? [n.piece.title]).forEach((line, i) => this.haloText(line, x + l.x, y + l.y + i * LABEL_LEADING, 3, ground))
     }
     ctx.globalAlpha = 1
   }
@@ -1802,7 +2092,8 @@ export class MapView {
       ctx.font = this.figureFont(n)
       ctx.textAlign = l.align
       ctx.fillStyle = trust === 'estimate' ? `rgba(${p.inkRGB},0.68)` : p.ink
-      this.haloText(text, fx, fy)
+      // A town's figure stands on its disc. A sounding's stands on the land.
+      this.haloText(text, fx, fy, 3, towns ? p.land : this.groundOf(n.piece.gate))
 
       if (this.data.priceChecks.has(l.id)) {
         const w = ctx.measureText(text).width
@@ -1840,25 +2131,42 @@ export class MapView {
       if ('letterSpacing' in c) c.letterSpacing = `${(size * 0.1).toFixed(1)}px`
       // Closed here but still readable out there isn't sealed yet, so its name stays ink.
       ctx.fillStyle = s > 0.5 && !this.pendingSeal.has(t.gate) ? p.vermilion : p.ink
-      this.haloText(gate.name, x, y, 5, p.paper)
+      this.haloText(gate.name, x, y, 5, this.sea)
       if ('letterSpacing' in c) c.letterSpacing = '0px'
 
       // Under the name: who can read it. Prices take this line while they're showing.
       const note = this.areaNote(t.gate)
+      const noteW = this.noteWidth(note)
+      const noteX = note.exposed || note.sealed ? this.noteCentre(x, noteW, this.notePinRoom()) : x
       if (note.text && this.dollarT < 0.99) {
-        ctx.globalAlpha = 1 - EASE(this.dollarT)
-        ctx.font = `11.5px ${this.sans}`
-        ctx.fillStyle = note.sealed ? p.vermilion : `rgba(${p.inkRGB},0.68)`
-        this.haloText(note.text, x, y + 15, 4, p.paper)
+        const fade = 1 - EASE(this.dollarT)
+        const faces = this.facesWidth(note.faces.length)
+        const left = noteX - noteW / 2
+        if (faces) this.drawFaces(note.faces, left, y + 13.5, fade * (this.data.live ? 1 : p.dark ? 0.75 : 0.6), now)
+        ctx.globalAlpha = fade
+        ctx.textAlign = faces ? 'left' : 'center'
+        ctx.font = `${note.exposed ? '500 ' : ''}11.5px ${this.sans}`
+        ctx.fillStyle = note.sealed ? p.vermilion : note.exposed ? p.ink : `rgba(${p.inkRGB},0.68)`
+        this.haloText(note.text, faces ? left + faces : noteX, y + 17.5, 4, this.sea)
+        ctx.textAlign = 'center'
         ctx.globalAlpha = 1
       }
 
+      // Beside both lines, whichever is wider, and centred on them, so it never sits on the words.
+      const wide = Math.max(this.gateLabelWidth(t), noteW)
+      const middle = y + (18 - size * 0.72) / 2
+
       // A gate no password opens carries a small seal, even with no lens on.
-      if (this.data.sealedToAll.has(t.gate) && !this.lensActive) {
-        // Beside both lines, whichever is wider, and centred on them, so it never sits on the words.
-        const wide = Math.max(this.gateLabelWidth(t), note.text ? this.measure(note.text, `11.5px ${this.sans}`) : 0)
-        const middle = y + (18 - size * 0.72) / 2
-        ctx.drawImage(this.waxSeal(26), x - wide / 2 - 31, middle - 13, 26, 26)
+      if (this.data.sealedToAll.has(t.gate) && !this.lensActive && !this.data.exposed.has(t.gate)) {
+        // While prices show, the note is hidden and the subtotal takes its place, so the seal moves in beside the name.
+        const beside = lerp(Math.min(x - wide / 2, noteX - noteW / 2), x - this.gateLabelWidth(t) / 2, EASE(this.dollarT))
+        ctx.drawImage(this.waxSeal(26), beside - 31, middle - 13, 26, 26)
+      }
+
+      // A closed area someone can still read wears the same pin as anything else that needs you now.
+      if (note.exposed && this.dollarT < 0.5) {
+        const r = pinRadius('now', this.cam.k)
+        drawPin(ctx, noteX - noteW / 2 - r - 6, middle + r * 1.35, r, p.alert, p.onAlert, this.sea, '!', this.sans)
       }
 
       // Subtotal under the name while prices are showing.
@@ -1870,25 +2178,23 @@ export class MapView {
         const value = this.period === 'year' ? share.amount * 12 : share.amount
         const money = value.toLocaleString('en-US', { maximumFractionDigits: 0 })
         const sym = this.data.currency === 'USD' ? '$' : `${this.data.currency} `
-        this.haloText(`${sym}${money} a ${this.period}`, x, y + 16, 4, p.paper)
+        this.haloText(`${sym}${money} a ${this.period}`, x, y + 16, 4, this.sea)
         ctx.globalAlpha = 1
       }
 
       // The wax mark lands on a closed gate.
-      if (s > 0.01) {
-        const pending = this.pendingSeal.has(t.gate)
+      if (s > 0.01 && !this.pendingSeal.has(t.gate)) {
         const landed = this.sealLanded.get(t.gate)
         const age = landed ? (now - landed) / 340 : 1
         const land = this.reducedMotion ? 1 : EASE(clamp(age, 0, 1))
         const waxSize = 44
-        const scale = pending ? 1 : lerp(1.55, 1, land)
+        const scale = lerp(1.55, 1, land)
         const wax = this.waxSeal(waxSize)
         const cx = (t.minX + t.maxX) / 2
         const cy = (t.minY + t.maxY) / 2
         const [sx, sy] = this.toScreen(cx, cy)
         const draw = waxSize * scale
-        // A ghost of the seal: it's closed here, but not yet closed out there.
-        ctx.globalAlpha = pending ? 0.26 * s : Math.min(1, s * 2) * (landed ? land : s)
+        ctx.globalAlpha = Math.min(1, s * 2) * (landed ? land : s)
         ctx.drawImage(wax, sx - draw / 2, sy - draw / 2, draw, draw)
         ctx.globalAlpha = 1
       }

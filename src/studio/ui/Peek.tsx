@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { findInCatalog } from '../../core/catalog.ts'
 import { figure, monthly, trustOf } from '../../core/money.ts'
+import { levelOf, needs, sortNeeds } from '../../core/status.ts'
 import type { Cost, CostUnit, Piece, PieceKind } from '../../core/types.ts'
 import { PIECE_KINDS } from '../../core/types.ts'
 import { changePiece, deletePiece, setCost } from '../actions.ts'
 import { KIND_LABELS } from '../map/symbols.ts'
 import { setState, useStore } from '../store.ts'
-import { GrowingText, Icon, Markdown, PieceMark, plural, useEscape } from './bits.tsx'
+import { GrowingText, Icon, Markdown, NeedActions, NeedMark, PieceMark, plural, useEscape } from './bits.tsx'
 import { contentOf } from './data.ts'
 
 const LINK_NOTE: Record<string, string> = { conflicts: 'Conflicts', governs: 'Governs', uses: 'Uses' }
@@ -98,6 +99,27 @@ function CostBlock({ piece, cost, readOnly }: { piece: Piece; cost: Cost | null;
   )
 }
 
+/** Why you came. Whatever needs you about this item, and the one step that deals with it. */
+function NeedNotes({ id }: { id: string }) {
+  const vault = useStore((s) => s.vault)
+  if (!vault) return null
+  // An approval has its own callout below, with the exact words at stake.
+  const here = sortNeeds(needs(vault)).filter((n) => n.pieces.includes(id) && n.kind !== 'proposal')
+  return (
+    <>
+      {here.map((n) => (
+        <div key={n.id} className={`callout has-mark is-${levelOf(n.kind)}`}>
+          <NeedMark level={levelOf(n.kind)} />
+          <div>
+            {n.message}
+            <NeedActions need={n} />
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+
 export function Peek() {
   const selected = useStore((s) => s.selected)
   const content = useStore((s) => contentOf(s))
@@ -135,6 +157,7 @@ export function Peek() {
         </button>
       </div>
       <div className="side-body">
+        {!readOnly && <NeedNotes id={piece.id} />}
         {piece.always === 'proposed' && !readOnly && (
           <div className="callout">
             A document suggests this as a rule for every AI tool. It stays out until you approve it.

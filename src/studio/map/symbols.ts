@@ -68,22 +68,83 @@ export function drawSymbol(ctx: CanvasRenderingContext2D, kind: PieceKind, x: nu
   ctx.restore()
 }
 
-/** The badge everyone knows from their phone's home screen: this one wants you. Ink, because vermilion means sealed. */
-export function drawNeedsBadge(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, ink: string, paper: string) {
+/**
+ * Each reader's colour, so the map can show who reads what before anyone reads a word, as Figma does with cursors.
+ * Never a warm colour: red is sealed and amber is what needs you.
+ */
+const READER_COLOURS = ['#2f6db5', '#0f8a7e', '#6b57c2', '#3a8a3f', '#a24a93', '#4d6475']
+
+export const readerColour = (index: number) => READER_COLOURS[index % READER_COLOURS.length]
+
+/** A reader with no logo: a round mark, the shape people expect a person or a team to be. */
+export function drawAvatar(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, letter: string, colour: string, font: string) {
   ctx.save()
-  ctx.fillStyle = paper
+  ctx.fillStyle = colour
+  ctx.beginPath()
+  ctx.arc(x, y, size / 2, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `500 ${size * 0.54}px ${font}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(letter, x, y + size * 0.04)
+  ctx.restore()
+}
+
+/**
+ * A map pin, the one thing everyone knows means "here". The tip stands on the spot.
+ * r is the head's radius. Returns nothing, and leaves the context as it found it.
+ */
+export function drawPin(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, glyph: string, edge: string, mark: '!' | '?', font: string) {
+  const reach = r * 2.35
+  const cy = y - reach
+  // Where the sides leave the head, tangent to the circle, so the shape has no corner.
+  const a = Math.asin(r / reach)
+  const start = Math.PI / 2 + a
+  const end = Math.PI / 2 - a
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+  ctx.arc(x, cy, r, start, end)
+  ctx.closePath()
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = 3
+  ctx.strokeStyle = edge
+  ctx.stroke()
+  ctx.fillStyle = fill
+  ctx.fill()
+  ctx.fillStyle = glyph
+  if (mark === '!') {
+    const w = r * 0.3
+    ctx.strokeStyle = glyph
+    ctx.lineWidth = w
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.moveTo(x, cy - r * 0.6 + w / 2)
+    ctx.lineTo(x, cy + r * 0.14 - w / 2)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(x, cy + r * 0.5, w * 0.62, 0, Math.PI * 2)
+    ctx.fill()
+  } else {
+    ctx.font = `500 ${r * 1.34}px ${font}`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('?', x, cy + r * 0.07)
+  }
+  ctx.restore()
+}
+
+/** The unread dot from every inbox: there's something here, when you have a minute. */
+export function drawNeedDot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, ink: string, ground: string) {
+  ctx.save()
+  ctx.fillStyle = ground
   ctx.beginPath()
   ctx.arc(x, y, r + 1.25, 0, Math.PI * 2)
   ctx.fill()
   ctx.fillStyle = ink
   ctx.beginPath()
   ctx.arc(x, y, r, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillStyle = paper
-  const w = r * 0.32
-  ctx.fillRect(x - w / 2, y - r * 0.58, w, r * 0.72)
-  ctx.beginPath()
-  ctx.arc(x, y + r * 0.46, w * 0.58, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
 }

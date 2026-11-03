@@ -1,16 +1,17 @@
 // An area, opened from the map: what it's called, who can read it, and what's in it.
 
 import { PIECE_KINDS } from '../../core/types.ts'
-import { addPiece, renameGate, toggleGateOnPassword } from '../actions.ts'
+import { addPiece, publish, renameGate, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon, PieceMark, plural, ServiceMark, useEscape } from './bits.tsx'
-import { contentOf, readersByArea } from './data.ts'
+import { Icon, NeedMark, PieceMark, plural, ReaderMark, useEscape } from './bits.tsx'
+import { contentOf, exposedAreas, pricesReadableIn, readersByArea } from './data.ts'
 
 export function AreaPanel() {
   const areaId = useStore((s) => s.area)
   const content = useStore((s) => contentOf(s))
   const vault = useStore((s) => s.vault)
   const selected = useStore((s) => s.selected)
+  const publishing = useStore((s) => s.publishing)
   const close = () => setState({ panel: null, area: null })
   useEscape(close, !selected)
 
@@ -22,6 +23,7 @@ export function AreaPanel() {
     .sort((a, b) => PIECE_KINDS.indexOf(a.kind) - PIECE_KINDS.indexOf(b.kind) || a.title.localeCompare(b.title))
   const readers = vault?.passwords ?? []
   const noOne = !readOnly && readers.length > 0 && !readersByArea(vault).has(gate.id)
+  const exposed = readOnly ? undefined : exposedAreas(vault).get(gate.id)
 
   return (
     <aside className="side panel" aria-label={gate.name}>
@@ -36,15 +38,32 @@ export function AreaPanel() {
         </button>
       </div>
       <div className="side-body">
+        {exposed && (
+          <div className="callout has-mark is-now" role="alert">
+            <NeedMark level="now" />
+            <div>
+              {exposed}.
+              <div className="need-actions">
+                <button className="btn btn-ink" disabled={publishing} onClick={() => void publish()}>{publishing ? 'Updating' : 'Update'}</button>
+              </div>
+            </div>
+          </div>
+        )}
         {!readOnly && (
           <>
             <div className="side-label">Who can read this</div>
-            {noOne && <p className="hint area-closed">No one can read this.</p>}
-            {readers.map((p) => {
+            {noOne && (
+              <p className="hint area-closed">
+                {pricesReadableIn(vault).has(gate.id)
+                  ? `Whoever can read ${content.gates.find((g) => g.builtin === 'money')?.name ?? 'Money'} can see what each service here is called, its plan and what it costs. They can't open anything in this area.`
+                  : 'No one can read this.'}
+              </p>
+            )}
+            {readers.map((p, i) => {
               const open = p.gates.includes(gate.id)
               return (
                 <button key={p.id} className="reader-area in-panel" role="switch" aria-checked={open} onClick={() => toggleGateOnPassword(p.id, gate.id)}>
-                  <ServiceMark name={p.name} size={20} />
+                  <ReaderMark name={p.name} index={i} size={20} />
                   <span className="reader-name">{p.name}</span>
                   <span className="switch" aria-checked={open} />
                 </button>

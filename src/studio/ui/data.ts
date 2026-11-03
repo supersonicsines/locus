@@ -1,5 +1,6 @@
 // A single view of what's on the map, whether you're the owner or a reader.
 
+import { pending } from '../../core/status.ts'
 import type { Company, Cost, Gate, Link, Piece, Vault } from '../../core/types.ts'
 import type { State } from '../store.ts'
 
@@ -79,4 +80,53 @@ export function readersByArea(vault: Vault | null): Map<string, string[]> {
     for (const [id, gates] of Object.entries(live.passwords)) if (gates.includes(was)) add(p.gate, nameOf(id))
   }
   return out
+}
+
+/**
+ * Areas someone can still read though you closed them, each with that fact in its own words.
+ * Everyone who can is named or counted, and the marks beside the line say who, so a count keeps the line short enough to fit.
+ */
+export function exposedAreas(vault: Vault | null): Map<string, string> {
+  const out = new Map<string, string>()
+  if (!vault?.published || !vault.site) return out
+  const who = new Map<string, string[]>()
+  for (const e of pending(vault).exposures) {
+    for (const g of e.gates) {
+      if (e.who) who.set(g, [...(who.get(g) ?? []), e.who])
+      else if (e.onArea && !out.has(g)) out.set(g, e.onArea)
+    }
+  }
+  // Someone reading it outranks anything else that could be said about the area.
+  for (const [g, names] of who) {
+    out.set(g, `${names.length === 1 ? names[0] : `${names.length} readers`} can still read this until you update`)
+  }
+  return out
+}
+
+/**
+ * Areas holding a service whose name, plan and price someone can read through Money, whether or not they can open the area.
+ * That's how the bill stays readable (see docs/SECURITY.md), so a closed area can't claim nobody can read anything in it.
+ * Pass a reader to ask about them alone, or nothing to ask about everyone.
+ */
+export function pricesReadableIn(vault: Vault | null, readerId: string | null = null): Set<string> {
+  const money = vault?.gates.find((g) => g.builtin === 'money')
+  if (!vault || !money) return new Set()
+  const live = vault.published && vault.site ? vault.published : null
+  const opens = readerId
+    ? !!vault.passwords.find((p) => p.id === readerId)?.gates.includes(money.id) || !!live?.passwords[readerId]?.includes(money.id)
+    : readersByArea(vault).has(money.id)
+  if (!opens) return new Set()
+  const gateOf = new Map(vault.pieces.map((p) => [p.id, p.gate]))
+  const out = new Set<string>()
+  for (const c of vault.costs) {
+    const gate = gateOf.get(c.piece)
+    if (gate && gate !== money.id) out.add(gate)
+  }
+  return out
+}
+
+/** Where a need is, in the words the map uses. */
+export function placeOf(vault: Vault, pieces: string[], gates: string[] = []): string | null {
+  const gate = gates[0] ?? vault.pieces.find((p) => p.id === pieces[0])?.gate
+  return vault.gates.find((g) => g.id === gate)?.name ?? null
 }

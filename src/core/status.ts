@@ -1,7 +1,7 @@
 // At a glance: what has changed, who can still read what, and what needs you.
 
 import { daysUntil, toCheck } from './money.ts'
-import type { Piece, PublishedState, Vault } from './types.ts'
+import type { Cost, Piece, PublishedState, Vault } from './types.ts'
 
 export type NeedKind =
   | 'exposure'
@@ -11,13 +11,32 @@ export type NeedKind =
   | 'gap'
   | 'due'
   | 'stale'
-  | 'price'
+
+/**
+ * How loud a need is allowed to be. The page's whole sense of priority comes from this.
+ * now: something is exposed, and waiting makes it worse. decide: nothing is at risk, but only you can answer. look: worth a look when you have a minute.
+ */
+export type NeedLevel = 'now' | 'decide' | 'look'
+
+const LEVELS: Record<NeedKind, NeedLevel> = {
+  exposure: 'now',
+  secret: 'now',
+  proposal: 'decide',
+  conflict: 'look',
+  gap: 'look',
+  due: 'look',
+  stale: 'look',
+}
+
+export const levelOf = (kind: NeedKind): NeedLevel => LEVELS[kind]
 
 export interface Need {
   id: string
   kind: NeedKind
   message: string
   pieces: string[]
+  /** Areas it's about, when it's about a whole area and not an item on it. */
+  gates?: string[]
   /** The exact words at stake, so an approval is of what agents will actually read. */
   quote?: string
 }
@@ -54,10 +73,21 @@ export function snapshot(v: Vault, version: number): PublishedState {
   }
 }
 
+export interface Exposure {
+  message: string
+  pieces: string[]
+  /** The areas it's about, each of which says so on the map. */
+  gates: string[]
+  /** Who can still read those areas, when it's about a reader, so an area can name everyone at once. */
+  who?: string
+  /** The same fact, said from the area's own point of view, when it isn't about who. */
+  onArea?: string
+}
+
 export interface Pending {
   changes: number
   /** Readable by someone right now, though you've since closed it. */
-  exposures: { message: string; pieces: string[] }[]
+  exposures: Exposure[]
 }
 
 export function pending(v: Vault): Pending {
@@ -86,6 +116,8 @@ export function pending(v: Vault): Pending {
       exposures.push({
         message: `${pw.name} can still read ${closed.map(gateName).join(' and ')} until you update.`,
         pieces: [],
+        gates: closed,
+        who: pw.name,
       })
     }
   }
@@ -94,13 +126,18 @@ export function pending(v: Vault): Pending {
   for (const id of Object.keys(pub.passwords)) {
     if (v.passwords.some((p) => p.id === id)) continue
     const name = pub.passwordInfo?.[id]?.name ?? 'A removed password'
-    exposures.push({ message: `${name} still works until you update.`, pieces: [] })
+    exposures.push({ message: `${name} still works until you update.`, pieces: [], gates: pub.passwords[id], who: name })
   }
 
   // Remote access switched off still lets the host decrypt for this password.
   for (const pw of v.passwords) {
     if (pub.passwordInfo?.[pw.id]?.remote && !pw.remote) {
-      exposures.push({ message: `${pw.name} can still read through the host until you update.`, pieces: [] })
+      exposures.push({
+        message: `${pw.name} can still read through the host until you update.`,
+        pieces: [],
+        gates: pub.passwords[pw.id] ?? [],
+        onArea: `${pw.name} can still read through the host until you update`,
+      })
     }
   }
 
@@ -110,6 +147,9 @@ export function pending(v: Vault): Pending {
     exposures.push({
       message: `${deleted.length === 1 ? '1 deleted item is' : `${deleted.length} deleted items are`} still readable until you update.`,
       pieces: [],
+      // Only where a live password opens the area. In one nobody could read, a deleted item isn't readable by anyone.
+      gates: [...new Set(deleted.map((id) => pub.pieceGates[id]).filter((g) => g && Object.values(pub.passwords).some((open) => open.includes(g))))],
+      onArea: `${deleted.length === 1 ? 'A deleted item' : 'Deleted items'} can still be read until you update`,
     })
   }
 
@@ -125,25 +165,31 @@ export function pending(v: Vault): Pending {
     exposures.push({
       message: `${moved.length === 1 ? '1 moved item is' : `${moved.length} moved items are`} still readable from the old area until you update.`,
       pieces: moved,
+      gates: [pub.pieceGates[moved[0]]],
     })
   }
 
   return { changes, exposures }
 }
 
-const SECRET_MARK = /\[secret removed: [^\]]+\]/
+const SECRET_MARK = /\[secret removed: [^\]]+\]/g
 
 export function needs(v: Vault, now = Date.now()): Need[] {
   const out: Need[] = []
+  const settled = new Set(v.settled ?? [])
 
   for (const [i, e] of pending(v).exposures.entries()) {
-    out.push({ id: `exposure-${i}`, kind: 'exposure', message: e.message, pieces: e.pieces })
+    out.push({ id: `exposure-${i}`, kind: 'exposure', message: e.message, pieces: e.pieces, gates: e.gates })
   }
 
-  const secrets = v.pieces.filter((p) => SECRET_MARK.test(p.body))
-  for (const p of secrets) {
+  for (const p of v.pieces) {
+    const marks = p.body.match(SECRET_MARK)
+    if (!marks) continue
+    // Which secrets, in the id: saying you've changed one key says nothing about the next.
+    const id = `secret-${p.id}-${fnv(marks.join())}`
+    if (settled.has(id)) continue
     out.push({
-      id: `secret-${p.id}`,
+      id,
       kind: 'secret',
       message: `A real secret, like an API key, was in "${p.source?.file ?? p.title}". It's been taken off the map. Change it, because anyone with that file has it.`,
       pieces: [p.id],
@@ -179,9 +225,10 @@ export function needs(v: Vault, now = Date.now()): Need[] {
     if (!p.date) continue
     if (p.date.means === 'as-of') {
       const age = -daysUntil(p.date.on, now)
-      if (age > 365) {
+      const id = `stale-${p.id}-${p.date.on}`
+      if (age > 365 && !settled.has(id)) {
         out.push({
-          id: `stale-${p.id}`,
+          id,
           kind: 'stale',
           message: `"${p.title}" was last true ${Math.round(age / 30)} months ago.`,
           pieces: [p.id],
@@ -189,9 +236,10 @@ export function needs(v: Vault, now = Date.now()): Need[] {
       }
     } else if (p.kind !== 'service') {
       const d = daysUntil(p.date.on, now)
-      if (d >= 0 && d <= 30) {
+      const id = `due-${p.id}-${p.date.on}`
+      if (d >= 0 && d <= 30 && !settled.has(id)) {
         out.push({
-          id: `due-${p.id}`,
+          id,
           kind: 'due',
           message: `"${p.title}" ${p.date.means === 'ends' ? 'ends' : 'renews'} in ${d} day${d === 1 ? '' : 's'}.`,
           pieces: [p.id],
@@ -200,25 +248,31 @@ export function needs(v: Vault, now = Date.now()): Need[] {
     }
   }
 
-  for (const c of toCheck(v.costs, now)) {
-    out.push({ id: `check-${c.kind}-${c.piece}`, kind: 'price', message: c.message, pieces: [c.piece] })
-  }
+  return out
+}
 
-  const unpriced = v.costs.filter((c) => c.amount === null)
+export interface PriceNote {
+  id: string
+  message: string
+  pieces: string[]
+}
+
+/** Worth knowing when you look at what things cost, and not a reason to interrupt anyone, so these aren't needs. */
+export function priceNotes(costs: Cost[], now = Date.now()): PriceNote[] {
+  const out: PriceNote[] = toCheck(costs, now).map((c) => ({ id: `check-${c.kind}-${c.piece}`, message: c.message, pieces: [c.piece] }))
+  const unpriced = costs.filter((c) => c.amount === null)
   if (unpriced.length) {
     const names = unpriced.map((c) => c.label)
     out.push({
       id: 'unpriced',
-      kind: 'price',
       message: `${unpriced.length === 1 ? `${names[0]} has` : `${unpriced.length} services have`} no known price${unpriced.length > 1 ? `: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ' and more' : ''}` : ''}.`,
       pieces: unpriced.map((c) => c.piece),
     })
   }
-
   return out
 }
 
-const ORDER: NeedKind[] = ['exposure', 'secret', 'proposal', 'conflict', 'gap', 'due', 'price', 'stale']
+const ORDER: NeedKind[] = ['exposure', 'secret', 'proposal', 'conflict', 'gap', 'due', 'stale']
 
 export function sortNeeds(list: Need[]): Need[] {
   return [...list].sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind))
