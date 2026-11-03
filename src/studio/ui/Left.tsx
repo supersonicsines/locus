@@ -1,10 +1,11 @@
-// Top left: the company menu, and the gates. Like Figma's layers panel.
+// Top left: the company, and who can read its map. Pick a reader and the map shows what they see.
 
-import { useRef, useState } from 'react'
-import { addGate, addPiece, loadSample, newMap, renameGate, setTheme, switchVault, toggleGateOnPassword } from '../actions.ts'
-import { getState, setState, useStore } from '../store.ts'
-import { Icon, plural, useEscape } from './bits.tsx'
-import { contentOf, NO_GATES, NO_PIECES } from './data.ts'
+import { useState } from 'react'
+import type { Password } from '../../core/types.ts'
+import { copy, createPassword, loadSample, newMap, setTheme, siteAddress, switchVault, toggleGateOnPassword } from '../actions.ts'
+import { setState, useStore } from '../store.ts'
+import { Icon, plural, ServiceMark, useEscape } from './bits.tsx'
+import { contentOf, NO_GATES, NO_PIECES, readersByArea } from './data.ts'
 
 function CompanyMenu({ close }: { close: () => void }) {
   const vault = useStore((s) => s.vault)
@@ -65,7 +66,7 @@ function CompanyMenu({ close }: { close: () => void }) {
         {!view && vault && (
           <>
             <div className="menu-sep" />
-            <button className="menu-item btn-danger" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'confirm-delete' } }))}>
+            <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'confirm-delete' } }))}>
               Delete this map
             </button>
           </>
@@ -80,128 +81,144 @@ function CompanyMenu({ close }: { close: () => void }) {
   )
 }
 
-export function Left() {
-  const company = useStore((s) => contentOf(s)?.company)
+function ReaderRow({ pw }: { pw: Password }) {
+  const gates = useStore((s) => s.vault?.gates ?? NO_GATES)
+  const lens = useStore((s) => s.lens)
+  const panel = useStore((s) => s.panel)
+  const on = lens === pw.id
+  const count = gates.filter((g) => pw.gates.includes(g.id)).length
+
+  const pick = () => {
+    if (on) setState({ lens: null, panel: panel === 'share' ? null : panel, agentView: false })
+    else setState({ lens: pw.id, selected: null, area: null, panel: panel === 'share' ? 'share' : null, agentView: false })
+  }
+
+  return (
+    <div className={`reader ${on ? 'is-on' : ''}`}>
+      <button className="reader-row" aria-expanded={on} onClick={pick}>
+        <ServiceMark name={pw.name} size={22} />
+        <span className="reader-name">{pw.name}</span>
+        <span className="reader-count">{count ? `${count} of ${plural(gates.length, 'area')}` : 'Nothing yet'}</span>
+      </button>
+      {on && (
+        <div className="reader-more">
+          {gates.map((g) => {
+            const open = pw.gates.includes(g.id)
+            return (
+              <button
+                key={g.id}
+                className="reader-area"
+                role="switch"
+                aria-checked={open}
+                onMouseEnter={() => setState({ hoverGate: g.id })}
+                onMouseLeave={() => setState({ hoverGate: null })}
+                onClick={() => toggleGateOnPassword(pw.id, g.id)}
+              >
+                <span>{g.name}</span>
+                <span className="switch" aria-checked={open} />
+              </button>
+            )
+          })}
+          <button className="btn btn-paper reader-setup" aria-expanded={panel === 'share'} onClick={() => setState({ panel: panel === 'share' ? null : 'share', agentView: false })}>
+            Password and setup
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Readers() {
+  const vault = useStore((s) => s.vault)!
+  const live = !!vault.published && !!vault.site
+  const address = vault.site ? siteAddress(vault.site.name) : ''
+  return (
+    <>
+      {live ? (
+        <button className="left-about is-live" title="Copy the address" onClick={() => void copy(address, 'Address copied.')}>
+          Live at {address.replace(/^https?:\/\//, '')}
+        </button>
+      ) : (
+        <p className="left-about">
+          {vault.sample ? "A made-up company's map of what its AI tools and people need to know. Pick a name to see what they can read." : 'What your AI tools and people need to know, on one map. You choose who can read which parts.'}
+        </p>
+      )}
+      <div className="left-title">Who can read it</div>
+      <div className="reader-list">
+        {vault.passwords.map((p) => <ReaderRow key={p.id} pw={p} />)}
+        {!readersByArea(vault).size && !vault.passwords.length && <p className="reader-none">No one yet, so everything here is private.</p>}
+      </div>
+      <div className="left-foot">
+        <button
+          className="btn btn-quiet reader-add"
+          onClick={() => {
+            createPassword()
+            setState({ panel: 'share', area: null })
+          }}
+        >
+          <Icon name="plus" size={13} /> Add a reader
+        </button>
+      </div>
+    </>
+  )
+}
+
+/** For someone reading with a password, there's nobody else to show: only what they can open. */
+function ReaderAreas() {
   const gates = useStore((s) => contentOf(s)?.gates ?? NO_GATES)
   const pieces = useStore((s) => contentOf(s)?.pieces ?? NO_PIECES)
-  const vault = useStore((s) => s.vault)
-  const readOnly = useStore((s) => !!s.view)
-  const lens = useStore((s) => s.lens)
   const hoverGate = useStore((s) => s.hoverGate)
+  return (
+    <>
+      <div className="left-title">You can read</div>
+      <div className="gate-list" role="list" aria-label="Areas">
+        {gates.map((g) => (
+          <button
+            key={g.id}
+            className={`gate-row ${hoverGate === g.id ? 'is-hot' : ''}`}
+            onMouseEnter={() => setState({ hoverGate: g.id })}
+            onMouseLeave={() => setState({ hoverGate: null })}
+            onClick={() => setState({ area: g.id, panel: 'area' })}
+          >
+            <span className="gate-name">{g.name}</span>
+            <span className="gate-count">{pieces.filter((p) => p.gate === g.id).length}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
+export function Left() {
+  const company = useStore((s) => contentOf(s)?.company)
+  const sample = useStore((s) => !!s.vault?.sample)
+  const readOnly = useStore((s) => !!s.view)
   const [menu, setMenu] = useState(false)
   const [openOnPhone, setOpenOnPhone] = useState(false)
-  const [renaming, setRenaming] = useState<string | null>(null)
-  const nameRef = useRef<HTMLInputElement>(null)
-
-  const passwords = vault?.passwords ?? []
-  const lensPw = passwords.find((p) => p.id === lens) ?? null
-
-  const add = () => {
-    const name = 'New gate'
-    const id = addGate(name)
-    setRenaming(id)
-    setTimeout(() => nameRef.current?.select(), 0)
-  }
 
   return (
     <div className={`left panel ${openOnPhone ? 'is-open' : ''}`}>
       {openOnPhone && <div className="phone-backdrop" onClick={() => setOpenOnPhone(false)} />}
-      <button
-        className="company-btn"
-        aria-haspopup="menu"
-        aria-expanded={menu}
-        onClick={() => {
-          if (window.innerWidth <= 720 && !openOnPhone) setOpenOnPhone(true)
-          else setMenu(!menu)
-        }}
-      >
-        <span className="company-name">{company?.name}</span>
-        <Icon name="chevron" size={14} />
-      </button>
-      {menu && <CompanyMenu close={() => setMenu(false)} />}
-
-      {lensPw && (
-        <div className="lens-title">
-          Gates for <b>{lensPw.name}</b>. Click one to open or close it.
-        </div>
-      )}
-
-      <div className="gate-list" role={lensPw ? 'group' : 'list'} aria-label="Gates">
-        {gates.map((g) => {
-          const count = pieces.filter((p) => p.gate === g.id).length
-          const openTo = passwords.filter((p) => p.gates.includes(g.id)).length
-          const isOpen = lensPw ? lensPw.gates.includes(g.id) : readOnly || openTo > 0
-
-          if (renaming === g.id) {
-            return (
-              <div className="gate-row" key={g.id}>
-                <span className="gate-mark" />
-                <input
-                  ref={nameRef}
-                  className="field"
-                  style={{ height: 24 }}
-                  defaultValue={g.name}
-                  autoFocus
-                  aria-label="Gate name"
-                  onBlur={(e) => {
-                    renameGate(g.id, e.target.value.trim() || g.name)
-                    setRenaming(null)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === 'Escape') (e.target as HTMLInputElement).blur()
-                  }}
-                />
-              </div>
-            )
-          }
-
-          return (
-            <button
-              key={g.id}
-              className={`gate-row ${hoverGate === g.id ? 'is-hot' : ''}`}
-              role={lensPw ? 'switch' : undefined}
-              aria-checked={lensPw ? isOpen : undefined}
-              onMouseEnter={() => setState({ hoverGate: g.id })}
-              onMouseLeave={() => setState({ hoverGate: null })}
-              onClick={() => {
-                if (lensPw) toggleGateOnPassword(lensPw.id, g.id)
-                else setState({ highlight: getState().highlight ? null : new Set(pieces.filter((p) => p.gate === g.id).map((p) => p.id)) })
-              }}
-              onDoubleClick={() => {
-                if (!readOnly && !lensPw) {
-                  setState({ highlight: null })
-                  setRenaming(g.id)
-                }
-              }}
-            >
-              <span className={`gate-mark ${isOpen ? (lensPw ? 'is-open' : 'is-read') : 'is-sealed'}`} aria-hidden="true" />
-              <span className="gate-text">
-                <span className="gate-name">{g.name}</span>
-                {lensPw ? (
-                  <span className="gate-sub">{isOpen ? 'Open' : 'Sealed'}</span>
-                ) : !readOnly ? (
-                  <span className="gate-sub">{openTo ? `Open to ${plural(openTo, 'password')}` : 'Sealed to everyone'}</span>
-                ) : null}
-              </span>
-              <span className="gate-count">{count}</span>
-            </button>
-          )
-        })}
+      <div className="left-head">
+        <button
+          className="company-btn"
+          aria-haspopup="menu"
+          aria-expanded={menu}
+          onClick={() => {
+            if (window.innerWidth <= 720 && !openOnPhone) setOpenOnPhone(true)
+            else setMenu(!menu)
+          }}
+        >
+          <span className="company-name">{company?.name}</span>
+          {sample && <span className="tag">Sample</span>}
+          <Icon name="chevron" size={14} />
+        </button>
+        <button className="icon-btn" aria-label="Search the map" title="Search the map (⌘K)" onClick={() => setState({ cmdk: true })}>
+          <Icon name="search" size={15} />
+        </button>
       </div>
-
-      {!readOnly && (
-        <div className="left-foot">
-          <button className="btn btn-quiet" onClick={() => addPiece()}>
-            <Icon name="plus" size={13} /> Piece
-          </button>
-          <button className="btn btn-quiet" onClick={() => setState({ sheet: { kind: 'add-service' } })}>
-            <Icon name="plus" size={13} /> Service
-          </button>
-          <button className="btn btn-quiet" onClick={add}>
-            <Icon name="plus" size={13} /> Gate
-          </button>
-        </div>
-      )}
+      {menu && <CompanyMenu close={() => setMenu(false)} />}
+      {readOnly ? <ReaderAreas /> : <Readers />}
     </div>
   )
 }

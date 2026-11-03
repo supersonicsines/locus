@@ -90,11 +90,11 @@ function PublishSheet() {
     const ok = await publish()
     if (ok) {
       setState({ sheet: null })
-      toast(`Published. Live at ${siteAddress(name).replace(/^https?:\/\//, '')}.`)
+      toast(`You're live at ${siteAddress(name).replace(/^https?:\/\//, '')}.`)
     } else {
       // Undo the claim locally so another name can be tried.
       updateVault((v) => ({ ...v, site: undefined }))
-      setError(lastPublishFailure?.message ?? 'Publishing failed.')
+      setError(lastPublishFailure?.message ?? "Couldn't go live.")
       void refreshServer()
     }
   }
@@ -104,7 +104,7 @@ function PublishSheet() {
       <Sheet label="Every free account is taken" onClose={close}>
         <h2>Every free account is taken</h2>
         <p>
-          Your map is safe in this browser, and it works fully without publishing. To publish today, run your own host: it takes one command and has no limits.
+          Your map is safe in this browser, and it works fully without going live. To go live today, run your own host: it takes one command and has no limits.
         </p>
         <div className="code-block">npx vadere serve</div>
         <div className="actions">
@@ -118,9 +118,9 @@ function PublishSheet() {
   }
 
   return (
-    <Sheet label="Publish your map" onClose={publishing ? undefined : close}>
-      <h2>Publish your map</h2>
-      <p>This seals the map on this device and puts it at your address. The host stores only ciphertext, and nothing opens until you give someone a password.</p>
+    <Sheet label="Go live" onClose={publishing ? undefined : close}>
+      <h2>Go live</h2>
+      <p>This encrypts the map on this device and puts that copy online at your address. The host only stores the encrypted copy, and nothing opens until you give someone a password.</p>
 
       <label htmlFor="company">Company name</label>
       <input
@@ -152,7 +152,7 @@ function PublishSheet() {
       <label>Your owner key</label>
       <code className="owner-key">{ownerKey}</code>
       <p style={{ marginBottom: 8 }}>
-        This is your account. It publishes your map and restores it on another device. <strong style={{ fontWeight: 500, color: 'var(--ink)' }}>Nobody can recover it for you</strong>, so save it in your password manager now.
+        This is your account. It updates your live map and restores it on another device. <strong style={{ fontWeight: 500, color: 'var(--ink)' }}>Nobody can recover it for you</strong>, so save it in your password manager now.
       </p>
       <div style={{ display: 'flex', gap: 6 }}>
         <button
@@ -179,7 +179,7 @@ function PublishSheet() {
       <div className="actions">
         <button className="btn btn-quiet" disabled={publishing} onClick={close}>Not yet</button>
         <button className="btn btn-ink" disabled={!ready} onClick={() => void go()} title={!saved ? 'Copy or download your owner key first' : undefined}>
-          {publishing ? 'Publishing' : !saved ? 'Save your key to continue' : 'Publish'}
+          {publishing ? 'Going live' : !saved ? 'Save your key to continue' : 'Go live'}
         </button>
       </div>
     </Sheet>
@@ -201,7 +201,7 @@ function SignInSheet() {
   return (
     <Sheet label="Sign in" onClose={close}>
       <h2>Sign in</h2>
-      <p>Your owner key restores your map from its sealed copy. It's decrypted here, in this browser.</p>
+      <p>Your owner key restores your map from its encrypted copy. It's decrypted here, in this browser.</p>
       <label htmlFor="si-name">Your address name</label>
       <input id="si-name" className="field" autoFocus value={name} placeholder="yourco" onChange={(e) => setName(e.target.value)} />
       <label htmlFor="si-key">Owner key</label>
@@ -223,7 +223,7 @@ function OwnerKeySheet() {
   return (
     <Sheet label="Owner key" onClose={close}>
       <h2>Owner key</h2>
-      <p>This publishes your map and restores it on another device. Anyone who has it owns this map. Nobody can recover it for you.</p>
+      <p>This updates your live map and restores it on another device. Anyone who has it owns this map. Nobody can recover it for you.</p>
       <code className="owner-key">{shown ? vault.site?.ownerKey : `vdo_${'•'.repeat(26)}`}</code>
       <div className="actions">
         <button className="btn btn-paper" onClick={() => setShown(!shown)}>{shown ? 'Hide' : 'Show'}</button>
@@ -283,7 +283,7 @@ function RenameSheet() {
   return (
     <Sheet label="Company details" onClose={close}>
       <h2>Company details</h2>
-      <p>Agents read this first.</p>
+      <p>AI tools read this first.</p>
       <label htmlFor="co-name">Name</label>
       <input id="co-name" className="field" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
       <label htmlFor="co-about">What it does, in one sentence</label>
@@ -467,11 +467,11 @@ function ShredSheet({ files }: { files: File[] }) {
           )}
 
           <button className="choice" aria-pressed={mode === 'claude'} onClick={() => setMode('claude')}>
-            <b>Shred with Claude</b>
-            <span>The best map: reads PDFs and images, finds conflicts and gaps. These files go to Anthropic under your own key.</span>
+            <b>Read with Claude</b>
+            <span>The best map: reads PDFs and images, finds contradictions and gaps. These files go to Anthropic under your own key.</span>
           </button>
           <button className="choice" aria-pressed={mode === 'local'} onClick={() => setMode('local')}>
-            <b>Shred here, with no AI</b>
+            <b>Sort here, with no AI</b>
             <span>Nothing leaves this device. Rougher: it splits on headings and guesses from keywords.{imagesOnlyForClaude ? " It can't read images." : ''}</span>
           </button>
 
@@ -498,7 +498,7 @@ function ShredSheet({ files }: { files: File[] }) {
       <div className="actions">
         <button className="btn btn-quiet" onClick={close}>Cancel</button>
         <button className="btn btn-ink" disabled={!extracted || !readable.length || (mode === 'claude' && !key.startsWith('sk-'))} onClick={start}>
-          Shred
+          Add to the map
         </button>
       </div>
     </Sheet>
@@ -508,12 +508,12 @@ function ShredSheet({ files }: { files: File[] }) {
 /** Runs a shred, landing pieces on the map as they arrive. */
 export async function runShred(files: Extracted[], mode: 'claude' | 'local', key: string, model: string, skipped: string[] = []) {
   if (mode === 'local') {
-    setState({ shred: { phase: 'Shredding on this device', done: 0, total: 1, pieces: 0 } })
+    setState({ shred: { phase: 'Sorting on this device', done: 0, total: 1, pieces: 0 } })
     await new Promise((r) => setTimeout(r, 30))
     const result = shredLocally(files.filter((f) => f.text).map((f) => ({ name: f.name, text: f.text })), () => newId())
     updateVault((v) => placeNewPieces(merge(v, result)))
     setState({ shred: null })
-    toast(`${plural(result.pieces.length, 'piece')} on the map.${skipped.length ? ` Skipped ${skipped.join(', ')}.` : ''}`)
+    toast(`${plural(result.pieces.length, 'item')} on the map.${skipped.length ? ` Skipped ${skipped.join(', ')}.` : ''}`)
     return
   }
 
@@ -588,13 +588,13 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
 
     const spent = (input / 1e6) * m.input + (output / 1e6) * m.output
     setState({ shred: null })
-    toast(`${plural(result.pieces.length, 'piece')} on the map. That cost about $${spent < 0.01 ? '0.01' : spent.toFixed(2)}.${skipped.length ? ` Skipped ${skipped.join(', ')}.` : ''}`)
+    toast(`${plural(result.pieces.length, 'item')} on the map. That cost about $${spent < 0.01 ? '0.01' : spent.toFixed(2)}.${skipped.length ? ` Skipped ${skipped.join(', ')}.` : ''}`)
   } catch (e: any) {
     setState({ shred: null })
     const status = e?.status
     if (status === 401) toast('Claude rejected that API key.')
     else if (status === 429) toast('Claude is rate limiting this key. Try again in a minute.')
-    else toast(e?.message && !status ? e.message : "Couldn't finish shredding. What's on the map so far is saved.")
+    else toast(e?.message && !status ? e.message : "Couldn't finish reading them. What's on the map so far is saved.")
   }
 }
 
@@ -628,7 +628,7 @@ export function ShredStrip() {
     <div className="shred-strip panel" role="status" aria-live="polite">
       <div className="line">
         <span>{shred.phase}</span>
-        <span>{plural(shred.pieces, 'piece')}</span>
+        <span>{plural(shred.pieces, 'item')}</span>
       </div>
       <div className="shred-bar">
         <i style={{ width: `${Math.round((shred.done / Math.max(shred.total, 1)) * 100)}%` }} />

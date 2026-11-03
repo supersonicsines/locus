@@ -3,14 +3,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toCheck } from '../core/money.ts'
 import { needs } from '../core/status.ts'
-import { loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
+import { dismissToast, loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
 import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
 import { getState, setState, storage, useStore } from './store.ts'
 import { useEscape } from './ui/bits.tsx'
 import { BottomRight, Cartouche } from './ui/Bottom.tsx'
 import { CommandK } from './ui/CommandK.tsx'
-import { contentOf } from './ui/data.ts'
+import { contentOf, readersByArea } from './ui/data.ts'
+import { AreaPanel } from './ui/Area.tsx'
 import { Left } from './ui/Left.tsx'
 import { Peek } from './ui/Peek.tsx'
 import { AgentView, SharePanel } from './ui/Share.tsx'
@@ -19,7 +20,8 @@ import { NeedsPanel, StatusLine, TopRight } from './ui/Top.tsx'
 
 const PALETTES: Record<'light' | 'dark', Palette> = {
   light: {
-    paper: '#f3f5f6',
+    paper: '#eef1f3',
+    land: '#fcfdfd',
     ink: '#15191e',
     inkRGB: '21,25,30',
     paperRGB: '243,245,246',
@@ -31,6 +33,7 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
   },
   dark: {
     paper: '#0e1319',
+    land: '#171d25',
     ink: '#e8e6df',
     inkRGB: '232,230,223',
     paperRGB: '14,19,25',
@@ -52,6 +55,11 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       gateClick: (gate) => {
         const lens = getState().lens
         if (lens) toggleGateOnPassword(lens, gate)
+      },
+      areaClick: (gate) => {
+        const s = getState()
+        if (gate) setState({ area: gate, panel: 'area', highlight: null })
+        else if (s.panel === 'area') setState({ area: null, panel: null })
       },
       gateHover: (gate) => setState({ hoverGate: gate }),
       pieceMoved: (id, x, y, gate) => movePiece(id, x, y, gate),
@@ -79,6 +87,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const view = useStore((s) => s.view)
   const selected = useStore((s) => s.selected)
   const lens = useStore((s) => s.lens)
+  const area = useStore((s) => s.area)
   const highlight = useStore((s) => s.highlight)
   const hoverGate = useStore((s) => s.hoverGate)
   const dollars = useStore((s) => s.dollars)
@@ -92,10 +101,12 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
     return new Set(needs(vault).flatMap((n) => (n.kind === 'price' ? [] : n.pieces)))
   }, [vault])
 
+  const readers = useMemo(() => readersByArea(vault), [vault])
+
   const sealedToAll = useMemo(() => {
     if (!vault || !vault.passwords.length) return new Set<string>()
-    return new Set(vault.gates.filter((g) => !vault.passwords.some((p) => p.gates.includes(g.id))).map((g) => g.id))
-  }, [vault])
+    return new Set(vault.gates.filter((g) => !readers.has(g.id)).map((g) => g.id))
+  }, [vault, readers])
 
   const priceChecks = useMemo(() => {
     const costs = view?.costs ?? vault?.costs ?? []
@@ -113,9 +124,10 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       flagged,
       priceChecks,
       sealedToAll,
+      readers,
       readOnly: c?.readOnly ?? false,
     })
-  }, [vault, view, flagged, priceChecks, sealedToAll, map])
+  }, [vault, view, flagged, priceChecks, sealedToAll, readers, map])
 
   const panel = useStore((s) => s.panel)
   const rightOpen = panel === 'share'
@@ -124,6 +136,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   useEffect(() => map.current?.setSelected(selected), [selected, map])
   useEffect(() => map.current?.setHighlight(highlight), [highlight, map])
   useEffect(() => map.current?.setGateHover(hoverGate), [hoverGate, map])
+  useEffect(() => map.current?.setActiveArea(panel === 'area' ? area : null), [panel, area, map])
   useEffect(() => map.current?.setDollars(dollars, style, period), [dollars, style, period, map])
 
   // Picking a password is about the whole map, wherever you'd zoomed to.
@@ -159,12 +172,13 @@ function FirstRun() {
   return (
     <div className="empty">
       <div className="empty-word">Vadere</div>
-      <h1>Drop your company here.</h1>
-      <p><span>Brand book, contracts, specs, invoices, exported tokens.</span> <span>They become one map your agents can read, with gates you control and a password for each agent.</span></p>
+      <h1>Teach your AI tools about your company.</h1>
+      <p><span>Drop in your documents: brand book, contracts, specs, invoices.</span> <span>They become one map, and you choose which parts each AI tool or person can read.</span></p>
       <div className="empty-actions">
         <button className="btn btn-ink" onClick={() => input.current?.click()}>Choose files</button>
-        <button className="btn btn-paper" onClick={() => void loadSample()}>Open a sample company</button>
+        <button className="btn btn-paper" onClick={() => void loadSample()}>See an example</button>
       </div>
+      <div className="empty-note">Nothing leaves this device until you say so.</div>
       <input
         ref={input}
         type="file"
@@ -177,7 +191,7 @@ function FirstRun() {
         }}
       />
       <div className="empty-foot">
-        <button onClick={() => setState({ sheet: { kind: 'signin' } })}>Sign in with an owner key</button>
+        <button onClick={() => setState({ sheet: { kind: 'signin' } })}>Already have a map? Sign in</button>
         {accounts && (
           <span>
             Free while there's room: {accounts.used} of {accounts.max} accounts taken.
@@ -193,7 +207,7 @@ function BlankMap() {
   return (
     <div className="empty blank">
       <h1>Drop your files anywhere.</h1>
-      <p>Brand book, contracts, specs, invoices, exported tokens.</p>
+      <p>Brand book, contracts, specs, invoices. They become this map.</p>
       <div className="empty-actions">
         <button className="btn btn-ink" onClick={() => document.getElementById('add-files')?.click()}>Choose files</button>
       </div>
@@ -229,11 +243,11 @@ function Locked({ name }: { name: string }) {
         <div className="lock-inner">
           <img src="/favicon.svg" width="40" height="40" alt="" />
           <h1>{name}</h1>
-          <p>This map is sealed. A password opens the parts it's allowed to.</p>
+          <p>This map is encrypted. A password opens the parts it's allowed to.</p>
           <input className="field mono" autoFocus placeholder="vdr_" aria-label="Password" spellCheck={false} autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
           <button className="btn btn-ink" disabled={!key.trim() || busy}>{busy ? 'Opening' : 'Open'}</button>
           <div className="lock-error" role="alert">{error}</div>
-          <p className="lock-note">It decrypts in this browser. The host only stores ciphertext. If you're an AI agent, ask your user for the password and read /llms.txt.</p>
+          <p className="lock-note">It decrypts in this browser. The host only stores the encrypted copy. If you're an AI agent, ask your user for the password and read /llms.txt.</p>
         </div>
       </form>
     </div>
@@ -248,7 +262,7 @@ function Toasts() {
       {toasts.map((t) => (
         <div className="toast" key={t.id}>
           <span>{t.message}</span>
-          {t.action && <button onClick={t.action.run}>{t.action.label}</button>}
+          {t.action && <button onClick={() => { t.action!.run(); dismissToast(t.id) }}>{t.action.label}</button>}
         </div>
       ))}
     </div>
@@ -269,12 +283,17 @@ function Chrome({ map }: { map: React.RefObject<MapView | null> }) {
         <Left />
         <Cartouche />
       </div>
-      <StatusLine />
-      <TopRight />
+      <div className="top-bar">
+        <div className="status-slot">
+          <StatusLine />
+          {panel === 'needs' && !view && <NeedsPanel />}
+        </div>
+        <TopRight />
+      </div>
       <BottomRight map={map} />
-      {panel === 'needs' && !view && <NeedsPanel />}
       {panel === 'share' && vault && <SharePanel />}
       {panel === 'share' && <AgentView />}
+      {panel === 'area' && <AreaPanel />}
       {selected && <Peek />}
     </>
   )

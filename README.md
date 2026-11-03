@@ -2,7 +2,7 @@
 
 **A map of your company that any agent can read.**
 
-Drop your company's pile onto a map: brand book, contracts, specs, invoices, exported tokens. AI shreds it into small pieces and links them, along with the services you run on. Gates divide the map into regions, and a password opens a chosen set of them. Give any agent one address and one password, and it knows the rules to follow, where everything lives and which MCP server to use for what.
+Drop your company's pile onto a map: brand book, contracts, specs, invoices, exported tokens. AI breaks it into small items and links them, along with the services you run on. The map is divided into areas, and each reader gets a password that opens a chosen set of them. Give any agent one address and one password, and it knows the rules to follow, where everything lives and which MCP server to use for what.
 
 It's a harness you don't have to build, and it's encrypted so the host can't read it at rest.
 
@@ -18,25 +18,25 @@ npm run build
 npm start
 ```
 
-Open http://localhost:4747 and choose **Open a sample company**.
+Open http://localhost:4747 and choose **See an example**.
 
 ## What it does
 
-**Shred.** With your own Claude key, from the browser, or with no AI at all, on your device. Secrets are removed before anything leaves. Documents can't grant themselves authority: a rule or MCP server found in a file stays a proposal until you approve it.
+**Add your documents.** Read with your own Claude key, from the browser, or with no AI at all, on your device. Secrets are removed before anything leaves. Documents can't grant themselves authority: a rule or MCP server found in a file stays a proposal until you approve it.
 
-**See it at a glance.** One sentence says whether you're live, who has a password, and what needs you: conflicts, gaps, secrets found in documents, renewals due.
+**See it at a glance.** Each area says who can read it, the top of the screen says what needs you (contradictions, gaps, secrets found in documents, renewals due), and the buttons say what it costs and whether it's live.
 
-**Open and close gates.** Pick a password and the map shows what it can see. Click a gate to seal it. See the exact text an agent gets. Every password has its own keys, so a closed gate is cryptography, not a setting.
+**Choose who reads what.** Pick a reader and the map shows what they can see. Click an area to seal it. See the exact text an agent gets. Every password has its own keys, so a closed area is cryptography, not a setting.
 
 ![Sealing gates](docs/images/seal.png)
 
-**See what it costs.** The `$` switch overlays the price of every service, from your invoices, your own numbers, or a dated catalog of list prices that always shows as an estimate.
+**See what it costs.** Click the total to spread the price of every service over the map, from your invoices, your own numbers, or a dated catalog of list prices that always shows as an estimate.
 
-![The $ switch](docs/images/towns.png)
+![Prices on the map](docs/images/towns.png)
 
 ## Connect an agent
 
-Share gives you these, filled in for each password.
+Pick a reader, then **Password and setup**, and you get these, filled in for that password.
 
 ```sh
 # Claude Code. Decrypts on your machine, so the host never sees the password.

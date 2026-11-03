@@ -1,4 +1,4 @@
-// A piece opens as a peek on the right, and you edit it in place, like Notion.
+// An item opens as a peek on the right, and you edit it in place, like Notion.
 
 import { useEffect, useState } from 'react'
 import { findInCatalog } from '../../core/catalog.ts'
@@ -137,7 +137,7 @@ export function Peek() {
       <div className="side-body">
         {piece.always === 'proposed' && !readOnly && (
           <div className="callout">
-            Shredding proposes this as a rule for every agent. It stays out until you approve it.
+            A document suggests this as a rule for every AI tool. It stays out until you approve it.
             <div className="actions">
               <button className="btn btn-paper" onClick={() => changePiece(piece.id, { always: 'approved' })}>Approve</button>
               <button className="btn btn-quiet" onClick={() => changePiece(piece.id, { always: undefined })}>Reject</button>
@@ -146,7 +146,7 @@ export function Peek() {
         )}
         {piece.mcp && !piece.mcp.approved && !readOnly && (
           <div className="callout">
-            A document names this MCP server. Agents won't be told about it until you approve it.
+            A document names this MCP server, a way for AI tools to connect. They won't be told about it until you approve it.
             <div className="mono" style={{ marginTop: 6, wordBreak: 'break-all' }}>{piece.mcp.url}</div>
             <div className="actions">
               <button className="btn btn-paper" onClick={() => changePiece(piece.id, { mcp: { ...piece.mcp!, approved: true } })}>Approve</button>
@@ -163,7 +163,7 @@ export function Peek() {
         ) : (
           <>
             <GrowingText className="piece-title" aria-label="Title" value={piece.title} placeholder="Untitled" onChange={(e) => changePiece(piece.id, { title: e.target.value.replace(/\n/g, ' ') })} />
-            <GrowingText className="piece-summary" aria-label="Summary" value={piece.summary} placeholder="One line an agent sees on the map" onChange={(e) => changePiece(piece.id, { summary: e.target.value.replace(/\n/g, ' ') })} />
+            <GrowingText className="piece-summary" aria-label="Summary" value={piece.summary} placeholder="One line an AI tool sees on the map" onChange={(e) => changePiece(piece.id, { summary: e.target.value.replace(/\n/g, ' ') })} />
           </>
         )}
 
@@ -191,12 +191,12 @@ export function Peek() {
         ) : null}
 
         <dl className="props">
-          <dt>Gate</dt>
+          <dt>Area</dt>
           <dd>
             {readOnly ? (
               gate?.name
             ) : (
-              <select className="select" aria-label="Gate" value={piece.gate} onChange={(e) => changePiece(piece.id, { gate: e.target.value })}>
+              <select className="select" aria-label="Area" value={piece.gate} onChange={(e) => changePiece(piece.id, { gate: e.target.value })}>
                 {gates.map((g) => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
@@ -220,7 +220,7 @@ export function Peek() {
           )}
           {piece.kind === 'rule' && !readOnly && (
             <>
-              <dt>For agents</dt>
+              <dt>For AI tools</dt>
               <dd>
                 <button className="row-between" style={{ width: '100%', alignItems: 'center' }} role="switch" aria-checked={piece.always === 'approved'} onClick={() => changePiece(piece.id, { always: piece.always === 'approved' ? undefined : 'approved' })}>
                   <span>Always follow</span>
@@ -231,7 +231,7 @@ export function Peek() {
           )}
           {piece.kind === 'rule' && readOnly && piece.always === 'approved' && (
             <>
-              <dt>For agents</dt>
+              <dt>For AI tools</dt>
               <dd>Always follow</dd>
             </>
           )}
@@ -280,7 +280,7 @@ export function Peek() {
       </div>
       {!readOnly && (
         <div className="side-foot">
-          <button className="btn btn-quiet" onClick={() => deletePiece(piece.id)}>Delete piece</button>
+          <button className="btn btn-quiet" onClick={() => deletePiece(piece.id)}>Delete</button>
         </div>
       )}
     </aside>

@@ -29,7 +29,7 @@ export type Sheet =
   | { kind: 'confirm-delete' }
   | { kind: 'rename' }
 
-export type Panel = null | 'share' | 'needs' | 'legend'
+export type Panel = null | 'share' | 'needs' | 'area'
 
 export interface Toast {
   id: number
@@ -53,8 +53,10 @@ export interface State {
   siteName: string | null
   server: ServerInfo | null
   selected: string | null
-  /** The password whose view of the map is showing. */
+  /** The reader whose view of the map is showing. */
   lens: string | null
+  /** The area open in the side panel. */
+  area: string | null
   highlight: Set<string> | null
   hoverGate: string | null
   dollars: boolean
@@ -92,10 +94,11 @@ let state: State = {
   server: null,
   selected: null,
   lens: null,
+  area: null,
   highlight: null,
   hoverGate: null,
   dollars: false,
-  dollarStyle: new URLSearchParams(location.search).get('style') === 'towns' ? 'towns' : 'soundings',
+  dollarStyle: new URLSearchParams(location.search).get('style') === 'soundings' ? 'soundings' : 'towns',
   period: 'month',
   panel: null,
   sheet: null,

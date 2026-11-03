@@ -27,7 +27,7 @@ export function Icon({ name, size = 16 }: { name: keyof typeof paths; size?: num
   )
 }
 
-/** A piece's map symbol, drawn the same way as on the map. */
+/** An item's picture, drawn the same way as on the map. */
 export function Symbol({ kind, size = 14 }: { kind: PieceKind; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const theme = useStore((s) => s.theme)
@@ -42,8 +42,7 @@ export function Symbol({ kind, size = 14 }: { kind: PieceKind; size?: number }) 
     const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()
     x.fillStyle = ink
     x.strokeStyle = ink
-    x.lineWidth = 1
-    drawSymbol(x, kind, size / 2, size / 2, size * 0.28)
+    drawSymbol(x, kind, size / 2, size / 2, size)
   }, [kind, size, theme])
   return <canvas ref={ref} style={{ width: size, height: size, flex: 'none' }} aria-hidden="true" />
 }
@@ -69,7 +68,7 @@ export function ServiceMark({ name, size = 20 }: { name: string; size?: number }
   )
 }
 
-/** What stands for a piece in a list: a service's mark, or any other piece's symbol. */
+/** What stands for an item in a list: a service's mark, or any other item's picture. */
 export function PieceMark({ kind, name, size = 14 }: { kind: PieceKind; name: string; size?: number }) {
   return kind === 'service' ? <ServiceMark name={name} size={Math.max(size + 4, 16)} /> : <Symbol kind={kind} size={size} />
 }

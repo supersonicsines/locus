@@ -133,8 +133,8 @@ function readMoreSection(view: View, mode: ReadMode): string[] {
 export function llmsTxt(view: View, mode: ReadMode): string {
   const open = view.gates.map((g) => oneLine(g.name, 60)).join(', ') || 'none'
   const closed = view.closedGates
-    ? `${plural(view.closedGates, 'other gate is', 'other gates are')} closed to this password. If a question needs something you can't see here, say so rather than guessing.`
-    : 'No gates are closed to this password.'
+    ? `${plural(view.closedGates, 'other area is', 'other areas are')} closed to this password. If a question needs something you can't see here, say so rather than guessing.`
+    : 'No areas are closed to this password.'
   return [
     `# ${oneLine(view.company.name, 120)}`,
     '',
@@ -156,7 +156,7 @@ export function pieceText(view: View, id: string): string | null {
   if (!p) return null
   const byId = new Map(view.pieces.map((x) => [x.id, x]))
   const gate = view.gates.find((g) => g.id === p.gate)
-  const lines = [`# ${oneLine(p.title)}`, '', `Kind: ${oneLine(p.kind, 20)}. Gate: ${oneLine(gate?.name ?? 'unknown', 60)}. ID: ${oneLine(p.id, 40)}.`]
+  const lines = [`# ${oneLine(p.title)}`, '', `Kind: ${oneLine(p.kind, 20)}. Area: ${oneLine(gate?.name ?? 'unknown', 60)}. ID: ${oneLine(p.id, 40)}.`]
   if (p.source) lines.push(`From: ${oneLine(p.source.file)}${p.source.where ? `, ${oneLine(p.source.where)}` : ''}.`)
   if (p.date) lines.push(`${p.date.means === 'as-of' ? 'True as of' : p.date.means === 'ends' ? 'Ends' : 'Renews'}: ${oneLine(p.date.on, 40)}.`)
   if (p.url) lines.push(`Link: ${oneLine(p.url)}`)
@@ -207,7 +207,7 @@ export function costsText(view: View): string | null {
 export function searchText(view: View, query: string, limit = 8): string {
   const hits = search(view.pieces, view.links, query, limit)
   if (!hits.length) {
-    const closed = view.closedGates ? ' Some gates are closed to this password, so the answer may exist where you can\'t see it.' : ''
+    const closed = view.closedGates ? ' Some areas are closed to this password, so the answer may exist where you can\'t see it.' : ''
     return `Nothing matches "${oneLine(query, 200)}". Try other words.${closed}`
   }
   const lines = [`${plural(hits.length, 'piece')} for "${oneLine(query, 200)}":`, '']

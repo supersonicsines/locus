@@ -1,36 +1,73 @@
-// The status line and the top-right controls. Together they pass the glance test.
+// Top centre: the one thing worth saying right now. Top right: what it costs, adding to the map, and going live.
 
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { formatMoney, summarize } from '../../core/money.ts'
 import { needs, pending, sortNeeds, type Need, type NeedKind } from '../../core/status.ts'
-import { changePiece, copy, publish, siteAddress, updateVault } from '../actions.ts'
+import { addArea, addPiece, changePiece, publish, updateVault } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
-import { plural, ServiceMark, useEscape } from './bits.tsx'
+import { Icon, plural, ServiceMark, useEscape } from './bits.tsx'
+import { contentOf } from './data.ts'
 
-function hostOf(address: string) {
-  return address.replace(/^https?:\/\//, '')
+/** How each kind of need reads in the one-line summary. */
+const SUMMARY: Record<NeedKind, (n: number) => string> = {
+  exposure: (n) => `${n} still readable`,
+  secret: (n) => plural(n, 'exposed secret'),
+  proposal: (n) => `${n} to approve`,
+  conflict: (n) => plural(n, 'contradiction'),
+  gap: (n) => `${n} missing`,
+  due: (n) => `${n} coming up`,
+  stale: (n) => `${n} out of date`,
+  price: (n) => plural(n, 'price note'),
+}
+
+/** The worst few kinds by name, then how many more. A count alone tells you nothing. */
+function summaryOf(list: Need[]): string {
+  const groups: [NeedKind, number][] = []
+  for (const n of sortNeeds(list)) {
+    const last = groups[groups.length - 1]
+    if (last?.[0] === n.kind) last[1]++
+    else groups.push([n.kind, 1])
+  }
+  const shown = groups.slice(0, 3)
+  const rest = groups.slice(3).reduce((sum, g) => sum + g[1], 0)
+  const words = shown.map(([k, n]) => SUMMARY[k](n))
+  if (rest) return `${words.join(', ')} and ${rest} more`
+  return words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0]
 }
 
 export function StatusLine() {
   const vault = useStore((s) => s.vault)
   const view = useStore((s) => s.view)
   const panel = useStore((s) => s.panel)
+  const lens = useStore((s) => s.lens)
+  const selected = useStore((s) => s.selected)
+  const sheet = useStore((s) => s.sheet)
+  const cmdk = useStore((s) => s.cmdk)
+  const lensPw = vault?.passwords.find((p) => p.id === lens) ?? null
+  const done = () => setState({ lens: null, agentView: false, panel: panel === 'share' ? null : panel })
+  useEscape(done, !!lensPw && panel !== 'share' && !selected && !sheet && !cmdk)
 
   if (view) {
     return (
       <div className="status panel" role="status">
-        <span className="clause">Reading as {view.passwordName}. </span>
-        <span className="clause quiet">
-          {plural(view.gates.length, 'gate')} open{view.closedGates ? `, ${view.closedGates} sealed` : ''}.
+        <span>Reading as <b>{view.passwordName}</b>. </span>
+        <span className="quiet">
+          {plural(view.gates.length, 'area')} open{view.closedGates ? `, ${view.closedGates} closed to you` : ''}.
         </span>{' '}
-        <span className="clause quiet optional-phone">Decrypted in this browser.</span>
+        <span className="quiet optional-phone">Decrypted in this browser.</span>
       </div>
     )
   }
   if (!vault) return null
 
-  if (!vault.pieces.length) {
+  // The empty map says this itself, in the middle of the screen.
+  if (!vault.pieces.length) return null
+
+  if (lensPw) {
     return (
-      <div className="status panel" role="status">
-        <span className="clause quiet">Nothing on the map yet. Drop your files anywhere.</span>
+      <div className="status panel is-lens" role="status">
+        <span>Seeing the map as <b>{lensPw.name}</b>. <span className="quiet optional">Click an area to change what they can read.</span></span>
+        <button className="status-done" onClick={done}>Done</button>
       </div>
     )
   }
@@ -38,60 +75,44 @@ export function StatusLine() {
   const p = pending(vault)
   const list = needs(vault)
   const open = () => setState({ panel: panel === 'needs' ? null : 'needs', highlight: null })
-  const share = () => setState({ panel: panel === 'share' ? null : 'share' })
-  const live = !!vault.published && !!vault.site
-  const address = vault.site ? siteAddress(vault.site.name) : ''
+
   // Someone can still read something you closed. That's the only thing worth saying first.
-  const exposed = live && p.exposures.length > 0
+  if (vault.published && vault.site && p.exposures.length > 0) {
+    return (
+      <div className="status panel" role="status">
+        <button className="status-open" onClick={open}><b>{p.exposures[0].message}</b></button>
+      </div>
+    )
+  }
+
+  if (!list.length) {
+    return (
+      <div className="status panel" role="status">
+        <span className="quiet">Nothing needs you.</span>
+      </div>
+    )
+  }
 
   return (
     <div className="status panel" role="status">
-      {vault.sample && !live && <><span className="clause quiet">This is a sample company.</span>{' '}</>}
-      {exposed ? null : live ? (
-        <button className="clause" onClick={() => void copy(address, 'Address copied.')} title="Copy the address">
-          Live at {hostOf(address)}.
-        </button>
-      ) : !vault.sample ? (
-        <span className="clause">Not published.</span>
-      ) : null}{' '}
-      {live && p.exposures.length > 0 ? (
-        <button className="clause strong" onClick={open}>
-          {p.exposures[0].message}
-        </button>
-      ) : live && p.changes > 0 ? (
-        <button className="clause strong" onClick={() => void publish()}>
-          {plural(p.changes, 'change')} not published.
-        </button>
-      ) : live ? (
-        <span className="clause quiet optional">Up to date.</span>
-      ) : null}{' '}
-      {!exposed && (
-        <>
-          <button className={`clause ${vault.passwords.length ? '' : 'quiet'} optional`} onClick={share}>
-            {vault.passwords.length ? `${plural(vault.passwords.length, 'password')} ${live ? 'out' : 'ready'}.` : 'No passwords yet.'}
-          </button>{' '}
-        </>
-      )}
-      {list.length > 0 ? (
-        <button className="clause strong" onClick={open} aria-expanded={panel === 'needs'}>
-          {list.length === 1 ? '1 thing needs you.' : `${list.length} things need you.`}
-        </button>
-      ) : (
-        <span className="clause quiet">Nothing needs you.</span>
-      )}
+      <button className="status-open" onClick={open} aria-expanded={panel === 'needs'}>
+        <b>Needs you</b>
+        <span className="quiet">{summaryOf(list)}</span>
+        <Icon name="chevron" size={13} />
+      </button>
     </div>
   )
 }
 
 const KIND_NAMES: Record<NeedKind, string> = {
   exposure: 'Still readable',
-  secret: 'Secret found',
+  secret: 'Exposed secret',
   proposal: 'Waiting for your approval',
-  conflict: 'Conflict',
+  conflict: 'Contradiction',
   gap: 'Missing',
   due: 'Coming up',
   stale: 'Out of date',
-  price: 'Price',
+  price: 'Prices',
 }
 
 export function NeedsPanel() {
@@ -130,7 +151,7 @@ export function NeedsPanel() {
 
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 11 }} onClick={() => setState({ panel: null, highlight: null })} />
+      <div style={{ position: 'fixed', inset: 0 }} onClick={() => setState({ panel: null, highlight: null })} />
       <div className="needs-panel panel" role="dialog" aria-label="Things that need you">
         {!list.length && <div className="needs-empty">Nothing needs you.</div>}
         {list.map((n, i) => (
@@ -141,7 +162,7 @@ export function NeedsPanel() {
             onMouseLeave={() => setState({ highlight: null })}
             onClick={() => focus(n)}
           >
-            {serviceOf(n) ? <ServiceMark name={serviceOf(n)!} size={18} /> : <span className="need-mark" aria-hidden="true" />}
+            {serviceOf(n) ? <ServiceMark name={serviceOf(n)!} size={18} /> : <span className="need-mark" aria-hidden="true">!</span>}
             <div>
               {list[i - 1]?.kind !== n.kind && <span className="need-kind">{KIND_NAMES[n.kind]}</span>}
               {n.message}
@@ -155,7 +176,7 @@ export function NeedsPanel() {
                       void publish()
                     }}
                   >
-                    Publish
+                    Update
                   </button>
                 </div>
               )}
@@ -202,47 +223,92 @@ export function NeedsPanel() {
   )
 }
 
+function AddMenu() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEscape(() => setOpen(false), open)
+  useEffect(() => {
+    if (!open) return
+    const away = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    window.addEventListener('mousedown', away)
+    return () => window.removeEventListener('mousedown', away)
+  }, [open])
+
+  const act = (fn: () => void) => () => {
+    setOpen(false)
+    fn()
+  }
+
+  return (
+    <div className="add-menu" ref={ref}>
+      <button className="btn btn-paper" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="plus" size={13} /> Add
+      </button>
+      {open && (
+        <div className="menu panel" role="menu">
+          <button className="menu-item" role="menuitem" onClick={act(() => document.getElementById('add-files')?.click())}>Documents from your computer</button>
+          <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'add-service' } }))}>A service you use</button>
+          <button className="menu-item" role="menuitem" onClick={act(() => addPiece())}>A note</button>
+          <button className="menu-item" role="menuitem" onClick={act(addArea)}>A new area</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function TopRight() {
   const vault = useStore((s) => s.vault)
   const view = useStore((s) => s.view)
   const dollars = useStore((s) => s.dollars)
-  const panel = useStore((s) => s.panel)
+  const period = useStore((s) => s.period)
   const publishing = useStore((s) => s.publishing)
   const server = useStore((s) => s.server)
+  const content = useStore((s) => contentOf(s))
 
   const hasMoney = view ? !!view.costs : !!vault && vault.costs.length > 0
   const p = vault ? pending(vault) : null
   const isSampleHosted = !!vault?.sample && server?.mode === 'hosted'
   const clean = !!vault?.published && p?.changes === 0
 
+  const total = useMemo(() => {
+    if (!content?.costs) return null
+    const s = summarize(content.costs, content.gates, content.pieces, content.currency)
+    const mult = period === 'year' ? 12 : 1
+    return {
+      approx: s.approximate,
+      main: formatMoney(s.total * mult, s.currency),
+      others: s.others.map((o) => formatMoney(o.amount * mult, o.currency)),
+    }
+  }, [content, period])
+
   return (
     <div className="top-right">
-      {hasMoney && (
+      {hasMoney && total && (
         <button
           className="dollar-toggle"
-          role="switch"
-          aria-checked={dollars}
-          aria-label="Show what each service costs"
-          title="Show what each service costs ($)"
+          aria-pressed={dollars}
+          title={dollars ? 'Hide prices on the map ($)' : 'Show what each service costs on the map ($)'}
           onClick={() => setState({ dollars: !dollars })}
         >
-          $<span className="switch" aria-checked={dollars} />
+          <span className="cost-figure">
+            {total.approx ? '≈' : ''}{total.main}
+            {total.others.length > 0 && <span className="cost-others"> + {total.others.join(' + ')}</span>}
+          </span>
+          <span className="cost-per">a {period}<span className="optional"> on tools</span></span>
         </button>
       )}
+      {vault && <AddMenu />}
       {vault && (
-        <>
-          <button className="btn btn-paper" aria-expanded={panel === 'share'} onClick={() => (panel === 'share' ? setState({ panel: null, lens: null, agentView: false }) : setState({ panel: 'share' }))}>
-            Share
-          </button>
-          <button
-            className="btn btn-ink"
-            disabled={publishing || !vault.pieces.length || isSampleHosted || clean}
-            title={isSampleHosted ? 'The sample can\'t be published here. Drop your own files.' : undefined}
-            onClick={() => void publish()}
-          >
-            {publishing ? 'Publishing' : clean ? 'Published' : 'Publish'}
-          </button>
-        </>
+        <button
+          className={`btn go-live ${clean ? 'btn-paper' : 'btn-ink'}`}
+          disabled={publishing || !vault.pieces.length || isSampleHosted || clean}
+          title={isSampleHosted ? "The sample can't go live here. Drop your own files." : clean ? 'Everything on this map is live.' : vault.published ? `${plural(p?.changes ?? 0, 'change')} not live yet.` : 'Puts an encrypted copy online for your readers. Nothing can be read without a password.'}
+          onClick={() => void publish()}
+        >
+          {publishing ? 'Going live' : clean ? 'Up to date' : vault.published ? 'Update' : 'Go live'}
+        </button>
       )}
     </div>
   )

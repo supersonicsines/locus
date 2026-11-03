@@ -21,9 +21,9 @@ Their existing habits guide how the app behaves. We don't copy either product; w
 | They already know | So in Vadere |
 | --- | --- |
 | Figma's canvas: pan, zoom, floating panels | The map behaves the same way |
-| Figma's layers panel with its lock icon | The gates panel, top left over the map |
-| Figma's Dev Mode switch, top right | The `$` switch sits in the same place |
-| Share button, top right, in both products | Share is where passwords live |
+| Figma's layers panel | The list of who can read the map, top left over the map |
+| Figma's Dev Mode switch, top right | The cost button sits in the same place, and spreads prices over the map |
+| Share in both products | A reader's password and setup open from their row on the left |
 | Notion's side peek | A piece opens as a peek on the right |
 | Notion's and Figma's quick actions | ⌘K finds any piece or action |
 | Figma's "publish" and autosave | Your work saves itself; Publish is one deliberate click |
@@ -45,9 +45,9 @@ Once set up, a user glancing at the screen must know the state of their company 
 
 Delivered by:
 
-- **The status line.** One plain sentence, top centre, always there: "Live at meridian.vadere.dev. 2 changes not published. 3 passwords out. 2 things need you." Each clause is clickable.
+- **The top of the screen.** Top centre says what needs you, by name and count, or that nothing does. Top right gives the monthly cost and whether the map is live and current.
 - **The map itself.** Territories show which regions exist and how big they are. A sealed territory looks sealed. A piece that needs you carries a mark.
-- **The gates panel.** Each row shows a piece count and how many passwords open that gate.
+- **The names on the map.** Each area says who can read it. Top left lists those readers and how much each can open.
 
 ## 6. Vocabulary
 
@@ -63,6 +63,8 @@ Delivered by:
 | Sealed | Encrypted. A closed gate is sealed, not hidden |
 
 Technical terms the audience already knows (MCP, API) are fine in the interface. Crypto terms stay in the security docs.
+
+**The interface uses plainer words than this table** (QA round 1, see [design/qa-rounds.md](design/qa-rounds.md)): an area is a gate, an item is a piece, a reader is a password's holder, and going live or updating is publishing. The code keeps the names above.
 
 ## 7. Scope
 
@@ -225,7 +227,7 @@ BM25 plus one hop along links. No embeddings: agents already reformulate queries
 
 ### 11.5 Browser safety
 
-The browser holds plaintext, passwords and the Claude key, so piece bodies are rendered through a safe Markdown subset with no raw HTML. Strict CSP: no inline script, `connect-src` limited to self and `api.anthropic.com`. The bundled pdf.js has no eval path, and the CSP would block one anyway. The gates panel, ⌘K and peek are a complete keyboard and screen-reader path to every piece, since a canvas alone offers neither. Reduced motion is respected.
+The browser holds plaintext, passwords and the Claude key, so piece bodies are rendered through a safe Markdown subset with no raw HTML. Strict CSP: no inline script, `connect-src` limited to self and `api.anthropic.com`. The bundled pdf.js has no eval path, and the CSP would block one anyway. ⌘K, the area panel and peek are a complete keyboard and screen-reader path to every piece, since a canvas alone offers neither. Reduced motion is respected.
 
 ## 12. Success
 

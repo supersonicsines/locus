@@ -1,4 +1,5 @@
-// The map's legend: each kind of piece is one small ink symbol.
+// What each kind of item looks like: a small picture an ordinary person can read without a legend.
+// Drawn on a 16-unit square so the same shape serves the map and the panels.
 
 import type { PieceKind } from '../../core/types.ts'
 
@@ -15,68 +16,76 @@ export const KIND_LABELS: Record<PieceKind, string> = {
   doc: 'Document',
 }
 
-/** Draws a symbol centred on (x, y). The caller sets colours; r is the outer size. */
-export function drawSymbol(ctx: CanvasRenderingContext2D, kind: PieceKind, x: number, y: number, r: number) {
-  ctx.beginPath()
-  switch (kind) {
-    case 'rule': // filled diamond
-      ctx.moveTo(x, y - r * 1.25)
-      ctx.lineTo(x + r * 1.25, y)
-      ctx.lineTo(x, y + r * 1.25)
-      ctx.lineTo(x - r * 1.25, y)
-      ctx.closePath()
-      ctx.fill()
-      break
-    case 'fact': // small filled dot
-      ctx.arc(x, y, r * 0.72, 0, Math.PI * 2)
-      ctx.fill()
-      break
-    case 'decision': // filled triangle
-      ctx.moveTo(x, y - r * 1.2)
-      ctx.lineTo(x + r * 1.1, y + r * 0.85)
-      ctx.lineTo(x - r * 1.1, y + r * 0.85)
-      ctx.closePath()
-      ctx.fill()
-      break
-    case 'clause': // hollow square
-      ctx.rect(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7)
-      ctx.stroke()
-      break
-    case 'spec': // hollow dot
-      ctx.arc(x, y, r * 0.9, 0, Math.PI * 2)
-      ctx.stroke()
-      break
-    case 'token': // half-filled dot
-      ctx.arc(x, y, r * 0.95, 0, Math.PI * 2)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.arc(x, y, r * 0.95, -Math.PI / 2, Math.PI / 2)
-      ctx.closePath()
-      ctx.fill()
-      break
-    case 'service': // a town on an old chart: ring with a dot
-      ctx.arc(x, y, r * 1.3, 0, Math.PI * 2)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.arc(x, y, r * 0.48, 0, Math.PI * 2)
-      ctx.fill()
-      break
-    case 'contract': // filled square
-      ctx.rect(x - r * 0.9, y - r * 0.9, r * 1.8, r * 1.8)
-      ctx.fill()
-      break
-    case 'person': // hollow triangle
-      ctx.moveTo(x, y - r * 1.15)
-      ctx.lineTo(x + r, y + r * 0.8)
-      ctx.lineTo(x - r, y + r * 0.8)
-      ctx.closePath()
-      ctx.stroke()
-      break
-    case 'doc': // short rule
-      ctx.rect(x - r * 1.1, y - r * 0.32, r * 2.2, r * 0.64)
-      ctx.fill()
-      break
+const PAGE = 'M9.5 1.8H4.6a1.1 1.1 0 0 0-1.1 1.1v10.2a1.1 1.1 0 0 0 1.1 1.1h6.8a1.1 1.1 0 0 0 1.1-1.1V4.8zM9.5 1.8v3h3'
+
+const ICONS: Record<Exclude<PieceKind, 'clause'>, string> = {
+  // A shield with a tick: something enforced.
+  rule: 'M8 1.7l5 1.9v4.1c0 3.2-2.1 5.3-5 6.6-2.9-1.3-5-3.4-5-6.6V3.6zM5.6 7.9l1.8 1.8 3-3.4',
+  // The information sign.
+  fact: 'M8 14.2a6.2 6.2 0 1 0 0-12.4 6.2 6.2 0 0 0 0 12.4zM8 7.4V11M8 4.9v.02',
+  // A signpost: which way we went.
+  decision: 'M8 1.8v12.4M8 3.2h4.3L14 4.9l-1.7 1.7H8M8 7.8H3.7L2 9.5l1.7 1.7H8',
+  // A clipboard of requirements.
+  spec: 'M5.6 3H4.2a1.1 1.1 0 0 0-1.1 1.1v9a1.1 1.1 0 0 0 1.1 1.1h7.6a1.1 1.1 0 0 0 1.1-1.1v-9A1.1 1.1 0 0 0 11.8 3h-1.4M6 1.8h4v2.4H6zM5.6 7.6h4.8M5.6 10.6h4.8',
+  // A drop of colour.
+  token: 'M8 1.9s-4.7 4.9-4.7 8.1a4.7 4.7 0 0 0 9.4 0C12.7 6.8 8 1.9 8 1.9z',
+  // A box, for a service with no tile.
+  service: 'M3 3h10v10H3z',
+  // A page with a signature on it.
+  contract: `${PAGE}M5.5 11.2c.8-1.5 1.4-1.5 1.8-.4s.9 1 1.5.2.9-.6 1.7-.1`,
+  // A head and shoulders.
+  person: 'M8 7.7a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6zM2.7 14.1c.4-3 2.7-4.5 5.3-4.5s4.9 1.5 5.3 4.5',
+  // A page with lines on it.
+  doc: `${PAGE}M5.6 8.2h4.8M5.6 10.8h4.8`,
+}
+
+const paths = new Map<PieceKind, Path2D>()
+
+/** Draws a kind's picture centred on (x, y), size pixels square. The caller sets the colours. */
+export function drawSymbol(ctx: CanvasRenderingContext2D, kind: PieceKind, x: number, y: number, size: number) {
+  if (kind === 'clause') {
+    // The section sign is the one mark in law everyone has seen at the bottom of a contract.
+    ctx.save()
+    ctx.font = `${size * 1.02}px Lustria, Georgia, serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('§', x, y + size * 0.03)
+    ctx.restore()
+    return
   }
+  let path = paths.get(kind)
+  if (!path) {
+    path = new Path2D(ICONS[kind])
+    paths.set(kind, path)
+  }
+  ctx.save()
+  ctx.translate(x - size / 2, y - size / 2)
+  ctx.scale(size / 16, size / 16)
+  ctx.lineWidth = 1.25
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.stroke(path)
+  ctx.restore()
+}
+
+/** The badge everyone knows from their phone's home screen: this one wants you. Ink, because vermilion means sealed. */
+export function drawNeedsBadge(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, ink: string, paper: string) {
+  ctx.save()
+  ctx.fillStyle = paper
+  ctx.beginPath()
+  ctx.arc(x, y, r + 1.25, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = ink
+  ctx.beginPath()
+  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = paper
+  const w = r * 0.32
+  ctx.fillRect(x - w / 2, y - r * 0.58, w, r * 0.72)
+  ctx.beginPath()
+  ctx.arc(x, y + r * 0.46, w * 0.58, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
 }
 
 /** A wax seal, drawn once per theme and scale and cached. */

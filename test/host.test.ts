@@ -101,7 +101,7 @@ test('publish, then read as an agent', async () => {
   assert.ok(text.includes('# Acme'))
   assert.ok(text.includes('Plain and warm'))
   assert.ok(!text.includes('Fourteen'))
-  assert.ok(text.includes('1 other gate is closed'))
+  assert.ok(text.includes('1 other area is closed'))
   assert.equal(map.headers.get('cache-control'), 'no-store')
 
   const piece = await get(h, `${SITE}/v1/pieces/voice`, { Authorization: `Bearer ${open}` })

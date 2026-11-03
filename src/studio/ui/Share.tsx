@@ -1,6 +1,6 @@
-// Share: where passwords live. Pick one and the map shows what it can see.
+// A reader's password and how to hand it over. The map beside it shows what they can see.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { llmsTxt, viewFor } from '../../core/agent.ts'
 import { pending } from '../../core/status.ts'
 import type { Password } from '../../core/types.ts'
@@ -37,13 +37,13 @@ function Connect({ pw, address, name }: { pw: Password; address: string; name: s
 
   return (
     <div>
-      <div className="tabs" role="tablist" aria-label="Agent">
+      <div className="tabs" role="tablist" aria-label="AI tool">
         {(
           [
             ['code', 'Claude Code'],
             ['web', 'Claude.ai'],
             ['cursor', 'Cursor'],
-            ['any', 'Any agent'],
+            ['any', 'Any AI tool'],
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button key={id} className="tab" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
@@ -83,7 +83,7 @@ function Connect({ pw, address, name }: { pw: Password; address: string; name: s
       {tab === 'any' && (
         <>
           <CodeBlock text={prompt} label="Prompt" />
-          <p className="hint" style={{ margin: '6px 0 0' }}>Paste it into any agent's instructions.</p>
+          <p className="hint" style={{ margin: '6px 0 0' }}>Paste it into any AI tool's instructions.</p>
         </>
       )}
       <p className="hint" style={{ margin: '10px 0 0' }}>
@@ -108,23 +108,23 @@ function PasswordDetail({ pw }: { pw: Password }) {
   const opened = vault.gates.filter((g) => pw.gates.includes(g.id)).map((g) => g.name)
   const before = vault.published?.passwords[pw.id]
   const stillOpen = before ? before.filter((g) => !pw.gates.includes(g)) : []
-  const stillNames = stillOpen.map((g) => vault.gates.find((x) => x.id === g)?.name ?? 'a deleted gate')
+  const stillNames = stillOpen.map((g) => vault.gates.find((x) => x.id === g)?.name ?? 'a deleted area')
   const address = vault.site ? siteAddress(vault.site.name) : 'https://your-address'
   const p = pending(vault)
 
   return (
     <div>
       <p className="hint" style={{ margin: '0 0 14px' }}>
-        {opened.length ? `Opens ${listWords(opened)}. ` : 'Opens nothing yet. '}
-        Click a gate on the map or in the list to open or close it.
+        {opened.length ? `Can read ${listWords(opened)}. ` : "Can't read anything yet. "}
+        Click an area on the map to change that.
       </p>
 
       {stillOpen.length > 0 && (
         <div className="exposure" role="alert">
-          {pw.name} can still read {listWords(stillNames)} until you publish.
+          {pw.name} can still read {listWords(stillNames)} until you update.
           <br />
           <button className="btn btn-ink" disabled={publishing} onClick={() => void publish()}>
-            {publishing ? 'Publishing' : 'Publish now'}
+            {publishing ? 'Updating' : 'Update now'}
           </button>
         </div>
       )}
@@ -137,42 +137,42 @@ function PasswordDetail({ pw }: { pw: Password }) {
           <Icon name="copy" size={14} />
         </button>
       </div>
-      <p className="hint" style={{ margin: '6px 0 0' }}>Vadere generates passwords, because the sealed map is public and a chosen one could be guessed.</p>
+      <p className="hint" style={{ margin: '6px 0 0' }}>Vadere makes the password, because the encrypted map is public and a chosen password could be guessed.</p>
 
       <button className="row-between" style={{ width: '100%', margin: '14px 0 0', textAlign: 'left' }} role="switch" aria-checked={pw.remote} onClick={() => changePassword(pw.id, { remote: !pw.remote })}>
         <span>
           Remote access
           <span className="hint" style={{ display: 'block' }}>
             {pw.remote
-              ? 'On: cloud agents can read this. The host decrypts in memory for each request, then forgets.'
-              : "Off: this only works from the reader's own machine. The host only ever sees ciphertext."}
+              ? 'On: AI tools in the cloud can read this. The host decrypts it in memory for each request, then forgets.'
+              : "Off: this only works from the reader's own machine. The host only ever sees the encrypted copy."}
           </span>
         </span>
         <span className="switch" aria-checked={pw.remote} style={{ marginTop: 1 }} />
       </button>
 
-      <div className="section-title">Give it to your agent</div>
-      {!vault.published && <p className="hint" style={{ margin: '0 0 8px' }}>This works once you've published. The address below is a placeholder until then.</p>}
+      <div className="section-title">Give it to them</div>
+      {!vault.published && <p className="hint" style={{ margin: '0 0 8px' }}>This works once you've gone live. The address below is a placeholder until then.</p>}
       <Connect pw={pw} address={address} name={vault.site?.name ?? vault.company.name} />
 
       <button className="btn btn-paper" style={{ width: '100%', marginTop: 12 }} aria-pressed={agentView} onClick={() => setState({ agentView: !agentView })}>
-        {agentView ? 'Hide what it sees' : 'See what it sees'}
+        {agentView ? 'Hide what they read' : 'See what they read'}
       </button>
 
       <div className="section-title" />
       {!confirming ? (
-        <button className="btn btn-quiet btn-danger" style={{ paddingLeft: 0 }} onClick={() => setConfirming(true)}>Revoke this password</button>
+        <button className="btn btn-quiet" style={{ paddingLeft: 0 }} onClick={() => setConfirming(true)}>Remove this reader</button>
       ) : (
         <div className="callout">
           {vault.published ? (
             <>
-              This publishes immediately{p.changes > 1 ? `, including your ${p.changes - 1} other changes` : ''}. What {pw.name} has already read, it keeps.
+              This updates the live map straight away{p.changes > 1 ? `, including your ${p.changes - 1} other changes` : ''}. What {pw.name} has already read, it keeps.
             </>
           ) : (
             <>This removes the password.</>
           )}
           <div className="actions">
-            <button className="btn btn-ink" onClick={() => void revokePassword(pw.id)}>Revoke</button>
+            <button className="btn btn-ink" onClick={() => void revokePassword(pw.id)}>Remove</button>
             <button className="btn btn-quiet" onClick={() => setConfirming(false)}>Keep it</button>
           </div>
         </div>
@@ -185,46 +185,26 @@ export function SharePanel() {
   const vault = useStore((s) => s.vault)
   const lens = useStore((s) => s.lens)
   const selected = useStore((s) => s.selected)
-  const close = () => setState({ panel: null, lens: null, agentView: false })
+  const close = () => setState({ panel: null, agentView: false })
   useEscape(close, !selected)
-  if (!vault) return null
-  const pw = vault.passwords.find((p) => p.id === lens) ?? null
+  const name = useRef<HTMLInputElement>(null)
+  const pw = vault?.passwords.find((p) => p.id === lens) ?? null
+  const fresh = pw?.name === 'New reader'
+  useEffect(() => {
+    if (fresh) name.current?.select()
+  }, [fresh, pw?.id])
+  if (!vault || !pw) return null
 
   return (
-    <aside className="side panel" aria-label="Share">
+    <aside className="side panel" aria-label={pw.name}>
       <div className="side-head">
-        {pw && (
-          <button className="icon-btn" style={{ marginLeft: -8 }} aria-label="All passwords" onClick={() => setState({ lens: null, agentView: false })}>
-            <Icon name="back" />
-          </button>
-        )}
-        {pw ? (
-          <input className="grow title-input" aria-label="Password name" value={pw.name} onChange={(e) => changePassword(pw.id, { name: e.target.value })} />
-        ) : (
-          <span className="grow" style={{ fontFamily: 'var(--serif)', fontSize: 17 }}>Share</span>
-        )}
+        <input ref={name} className="grow title-input" aria-label="Reader's name" value={pw.name} onChange={(e) => changePassword(pw.id, { name: e.target.value })} />
         <button className="icon-btn" onClick={close} aria-label="Close">
           <Icon name="close" />
         </button>
       </div>
       <div className="side-body">
-        {pw ? (
-          <PasswordDetail pw={pw} />
-        ) : (
-          <>
-            <p className="hint" style={{ margin: '0 0 10px' }}>A password opens a chosen set of gates at one address. Give each agent or person their own.</p>
-            {vault.passwords.map((p) => {
-              const names = vault.gates.filter((g) => p.gates.includes(g.id)).map((g) => g.name)
-              return (
-                <button key={p.id} className="pw-row" onClick={() => setState({ lens: p.id })}>
-                  <span className="pw-name">{p.name}</span>
-                  <span className="pw-gates">{names.length ? `Opens ${listWords(names)}` : 'Opens nothing yet'}</span>
-                </button>
-              )
-            })}
-            <button className="btn btn-paper" style={{ width: '100%', marginTop: 8 }} onClick={() => createPassword()}>New password</button>
-          </>
-        )}
+        <PasswordDetail pw={pw} />
       </div>
     </aside>
   )
@@ -243,7 +223,7 @@ export function AgentView() {
   return (
     <section className="agent-view panel" aria-label={`What ${pw.name} sees`}>
       <div className="side-head">
-        <span className="grow">What an agent reads with {pw.name}</span>
+        <span className="grow">What {pw.name} reads</span>
         <button className="icon-btn" aria-label="Copy" onClick={() => void copy(text, 'Copied.')}>
           <Icon name="copy" size={14} />
         </button>

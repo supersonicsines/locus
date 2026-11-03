@@ -3,11 +3,12 @@
 
 import { contourDensity } from 'd3-contour'
 import { forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY } from 'd3-force'
-import type { Gate, Link, Piece } from '../../core/types.ts'
+import type { Gate, Link, Piece, PieceKind } from '../../core/types.ts'
 
 interface Sim {
   id: string
   gate: string
+  kind: PieceKind
   x: number
   y: number
   fx?: number
@@ -22,27 +23,65 @@ function seeded(seed = 7) {
   }
 }
 
-const gateRadius = (n: number) => 96 + 50 * Math.sqrt(Math.max(n, 1))
+const gateRadius = (n: number) => 70 + 42 * Math.sqrt(Math.max(n, 1))
 
-/** Territories spaced around each other by how much they hold. */
+/**
+ * Where each kind tends to sit inside its area, as a direction from the middle.
+ * Like things gather, so an area reads as neighbourhoods rather than a scatter:
+ * tools along the top, rules on the left, paperwork and what's known on the right.
+ */
+const NEIGHBOURHOOD: Record<PieceKind, [number, number]> = {
+  service: [0, -1],
+  rule: [-0.8, 0.4],
+  decision: [0.05, 1],
+  token: [-0.05, 0.45],
+  fact: [0.35, 0.7],
+  spec: [0.6, 0.4],
+  person: [0.55, 0.95],
+  doc: [0.85, -0.05],
+  contract: [0.85, 0.3],
+  clause: [0.8, 0.75],
+}
+
+/** Items spread this much further sideways than up and down, because labels run sideways. */
+const STRETCH = 1.36
+const STRETCH_TALL = 1.1
+
+/**
+ * Areas in rows, in the order they're listed, each with room for what it holds.
+ * The screen's shape picks the rows: a landscape map fits a laptop, a tall one fits a phone.
+ * Each is nudged a little off the line, so it reads as islands and not as a table.
+ */
 function placeGates(gates: Gate[], pieces: Piece[], wide: boolean): Map<string, { x: number; y: number }> {
   const counts = new Map(gates.map((g) => [g.id, pieces.filter((p) => p.gate === g.id).length]))
-  const nodes = gates.map((g, i) => {
-    // Two territories sit side by side on a wide screen, and stacked on a phone.
-    const start = gates.length === 2 && wide ? Math.PI : -Math.PI / 2
-    const a = (i / Math.max(gates.length, 1)) * Math.PI * 2 + start
-    const r = gateRadius(counts.get(g.id) ?? 0)
-    return { id: g.id, r, x: Math.cos(a) * 420, y: Math.sin(a) * 300 }
-  })
-  const sim = forceSimulation(nodes)
-    .randomSource(seeded(11))
-    .force('collide', forceCollide<(typeof nodes)[number]>((d) => d.r + 22).strength(0.9).iterations(4))
-    .force('x', forceX(0).strength(0.055))
-    // A landscape map fits a laptop better than a round one.
-    .force('y', forceY(0).strength(0.085))
-    .stop()
-  for (let i = 0; i < 260; i++) sim.tick()
-  return new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y }]))
+  // An area with nothing in it has no land, so it takes no room from those that do.
+  const ordered = [...gates.filter((g) => counts.get(g.id)), ...gates.filter((g) => !counts.get(g.id))]
+  const landed = ordered.filter((g) => counts.get(g.id)).length || ordered.length
+  const perRow = Math.max(1, wide ? Math.round(Math.sqrt(landed * 1.6)) : Math.round(Math.sqrt(landed / 2)))
+  const across = wide ? STRETCH : STRETCH_TALL
+  const radius = (g: Gate) => gateRadius(counts.get(g.id) ?? 0)
+  // Land comes out a little narrower than its cell, because the coast hugs what's inside.
+  const cellWidth = (g: Gate) => radius(g) * 2 * across * 0.92
+  const GAP = 44
+  // Room for an area's name and the line under it.
+  const NAME = 124
+
+  const out = new Map<string, { x: number; y: number }>()
+  let y = 0
+  for (let i = 0, row = 0; i < ordered.length; i += perRow, row++) {
+    const cells = ordered.slice(i, i + perRow)
+    const width = cells.reduce((sum, g) => sum + cellWidth(g), 0) + GAP * (cells.length - 1)
+    const height = Math.max(...cells.map(radius)) * 2
+    let x = -width / 2 + (row % 2 ? 26 : -26)
+    cells.forEach((g, col) => {
+      const w = cellWidth(g)
+      out.set(g.id, { x: x + w / 2, y: y + height / 2 + (col % 2 ? 18 : -18) })
+      x += w + GAP
+    })
+    y += height + NAME
+  }
+  for (const c of out.values()) c.y -= (y - NAME) / 2
+  return out
 }
 
 /**
@@ -68,22 +107,43 @@ export function layoutPieces(gates: Gate[], pieces: Piece[], links: Link[], opts
       existing.set(p.gate, e)
     }
   }
+  // A new area on a map that already has land goes beside it, not on top of it.
+  let eastOfLand = -Infinity
+  for (const p of pieces) if (p.x !== undefined && !opts.reflow) eastOfLand = Math.max(eastOfLand, p.x)
+  const newcomers = new Map<string, { x: number; y: number }>()
   const centreOf = (gate: string) => {
     const e = existing.get(gate)
     if (e) return { x: e.x / e.n, y: e.y / e.n }
+    if (existing.size) {
+      let c = newcomers.get(gate)
+      if (!c) {
+        c = { x: eastOfLand + 340 + newcomers.size * 420, y: 0 }
+        newcomers.set(gate, c)
+      }
+      return c
+    }
     return centres.get(gate) ?? { x: 0, y: 0 }
   }
 
   const nodes: Sim[] = pieces.map((p) => {
     const c = centreOf(p.gate)
     const placed = p.x !== undefined && p.y !== undefined && !opts.reflow
-    if (placed) return { id: p.id, gate: p.gate, x: p.x!, y: p.y!, fx: p.x, fy: p.y }
-    return { id: p.id, gate: p.gate, x: c.x + (random() - 0.5) * 80, y: c.y + (random() - 0.5) * 80 }
+    if (placed) return { id: p.id, gate: p.gate, kind: p.kind, x: p.x!, y: p.y!, fx: p.x, fy: p.y }
+    return { id: p.id, gate: p.gate, kind: p.kind, x: c.x + (random() - 0.5) * 80, y: c.y + (random() - 0.5) * 80 }
   })
 
   const ids = new Set(nodes.map((n) => n.id))
   const gateOf = new Map(nodes.map((n) => [n.id, n.gate]))
   const linkData = links.filter((l) => ids.has(l.from) && ids.has(l.to)).map((l) => ({ source: l.from, target: l.to }))
+
+  const inGate = new Map<string, number>()
+  for (const p of pieces) inGate.set(p.gate, (inGate.get(p.gate) ?? 0) + 1)
+  // How far a neighbourhood sits from the area's middle grows with how much the area holds.
+  const home = (d: Sim, axis: 0 | 1) => {
+    const c = centreOf(d.gate)
+    const reach = 20 + 19 * Math.sqrt(inGate.get(d.gate) ?? 1)
+    return (axis === 0 ? c.x : c.y) + NEIGHBOURHOOD[d.kind][axis] * reach
+  }
 
   const sim = forceSimulation<Sim>(nodes)
     .randomSource(seeded(5))
@@ -92,21 +152,24 @@ export function layoutPieces(gates: Gate[], pieces: Piece[], links: Link[], opts
       forceLink<Sim, { source: string; target: string }>(linkData)
         .id((d) => d.id)
         .distance((l) => (gateOf.get((l.source as unknown as Sim).id) === gateOf.get((l.target as unknown as Sim).id) ? 66 : 170))
-        .strength((l) => (gateOf.get((l.source as unknown as Sim).id) === gateOf.get((l.target as unknown as Sim).id) ? 0.28 : 0.012)),
+        .strength((l) => (gateOf.get((l.source as unknown as Sim).id) === gateOf.get((l.target as unknown as Sim).id) ? 0.05 : 0.006)),
     )
-    .force('charge', forceManyBody<Sim>().strength(-190).distanceMax(300))
-    .force('collide', forceCollide<Sim>(30).strength(1).iterations(2))
-    .force('x', forceX<Sim>((d) => centreOf(d.gate).x).strength(0.13))
-    .force('y', forceY<Sim>((d) => centreOf(d.gate).y).strength(0.17))
+    .force('charge', forceManyBody<Sim>().strength(-110).distanceMax(220))
+    // Logos have short names and can sit close. Rules have long ones, so they keep their distance.
+    .force('collide', forceCollide<Sim>((d) => (d.kind === 'service' ? 37 : d.kind === 'rule' ? 44 : 35)).strength(1).iterations(3))
+    .force('x', forceX<Sim>((d) => home(d, 0)).strength(0.2))
+    .force('y', forceY<Sim>((d) => home(d, 1)).strength(0.24))
     .stop()
 
   const ticks = unplaced.length === pieces.length || opts.reflow ? 420 : 160
   for (let i = 0; i < ticks; i++) sim.tick()
 
   const out = new Map<string, { x: number; y: number }>()
+  const across = opts.wide === false ? STRETCH_TALL : STRETCH
   for (const n of nodes) {
     if (n.fx !== undefined) continue
-    out.set(n.id, { x: Math.round(n.x * 10) / 10, y: Math.round(n.y * 10) / 10 })
+    const c = centreOf(n.gate).x
+    out.set(n.id, { x: Math.round((c + (n.x - c) * across) * 10) / 10, y: Math.round(n.y * 10) / 10 })
   }
   return out
 }
@@ -150,8 +213,8 @@ function ringsToPath(coords: number[][][][], ox: number, oy: number): Path2D {
 
 /**
  * Topographic contours. The outer line is the gate's coast: a broad, calm shape
- * around everything in it. Inside, the ground rises where pieces are most
- * connected, so the terrain says something rather than just decorating.
+ * around everything in it. Inside, a few quiet lines keep it reading as a chart.
+ * They're texture and carry no meaning, so they must not single anything out.
  */
 export function buildTerritories(gates: Gate[], points: { gate: string; x: number; y: number; weight?: number }[]): Territory[] {
   const out: Territory[] = []
@@ -179,10 +242,10 @@ export function buildTerritories(gates: Gate[], points: { gate: string; x: numbe
     const terrain = contourDensity<{ x: number; y: number; weight?: number }>()
       .x((p) => p.x - minX)
       .y((p) => p.y - minY)
-      .weight((p) => 1 + (p.weight ?? 0) * 1.5)
       .size([w, h])
       .cellSize(4)
-      .bandwidth(own.length < 4 ? 34 : 25)
+      // Broad enough that contours follow the land's shape. Any tighter and they ring single items, which looks like it means something.
+      .bandwidth(own.length < 4 ? 44 : 50)
       .thresholds(7)(own)
       .filter((c) => c.coordinates.length)
 

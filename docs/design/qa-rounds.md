@@ -101,3 +101,106 @@ A map with 60 services and 300 pieces, panning under 4x CPU throttling: JS per f
 **Not verified.** Real Safari (only Playwright's WebKit). A real phone. Windows. `npm run dev`. Each company's brand terms for the 111 files from their own sites. Which logos are out of date: a logo that's the right company but an old mark wouldn't show on a contact sheet.
 
 **Worst thing left.** The map now says which services a company uses, but every other piece is still a tiny unexplained symbol, and labels are chosen by a budget nobody can predict. Tiles also crowd on a phone at fit zoom, where they sit at their 14px floor. That's work for the layout rounds.
+
+## Round 1: can a stranger understand this page?
+
+**The page's structure. Later rounds work from this.**
+
+The primary object is the map: one company, divided into areas, each an island of land on a plain sea. Under each area's name the map says who can read it. Everything else serves the map, and each job has one place.
+
+- **Top left, the card.** Which company, one line saying what this is, and who can read it. This is the page's only list, and it doesn't repeat the map. Pick a reader and the map becomes what they can see.
+- **Top centre, one line.** The one thing worth saying now: what needs you, by kind and count. Or a warning that someone can still read something, or whose eyes you're seeing the map through.
+- **Top right, three controls.** What it costs (the number itself, and clicking it spreads prices over the map), Add, and Go live, which becomes Update and then Up to date.
+- **The map.** Click an item to open it. Click an area's land or name to open that area. Zoom is bottom right.
+- **The right-hand slot.** One panel, opened from the map or the card: an item, an area, or a reader's password and setup.
+
+| The UI says | The code says | Why |
+| --- | --- | --- |
+| area | gate | There are no gates on the screen. Everyone knows what an area of a map is |
+| item, or "a note" when adding by hand | piece | "Piece" asks "of what?" |
+| reader | a password and whoever holds it | Who, not how. "Password" now appears only in the setup panel, the go-live dialog and the locked page |
+| Go live, Update, Up to date | publish | Over a company's contracts, "publish" reads as "make public", which is frightening and false |
+| Can't read, No one can read this | sealed | Vermilion and the wax carry the idea, and the words say what it means for you |
+| Needs you | things that need you | Same idea, in fewer words, next to what's actually wrong |
+| Read with Claude, Sort here | shred | "Shred" sounds like destroying your files |
+| AI tool | agent | The one exception is the locked page's note addressed to agents themselves |
+
+MCP stays only where it's literally the thing: a service's details, the setup commands and one approval callout. Owner key stays too, and it's a candidate for later.
+
+**What I saw, worst first.** Written down before any code changed.
+
+1. Critical. Nothing said what this is. One sentence on first run, gone after one click.
+2. Critical. Who can read what, the relation the product exists for, was invisible. "Open to 2 passwords" counted an unexplained noun, the real readers sat behind Share, and the best explaining moment in the product took two clicks and arrived with a terminal command beside it.
+3. Critical. The left panel repeated the map, six names twice, and outweighed it. At 480px the panel and the black button survived, and land barely differed from sea. The hierarchy said the primary object was a list.
+4. Critical. The marks were a private alphabet with a Legend button admitting it: eleven rows to memorise. Half a circle meant Design token, and a dotted ring meant a hazard to sailors only.
+5. Critical. Inside each region: six contour rings for "connection density", straight lines, arcs scratching across the sea, unnamed marks and arbitrary labels, with nothing in any order. This is the operator's "jumbled".
+6. High. Labels were a lottery chosen by link count, so Stripe had no name and Runway did. Long ones hung out over the coast.
+7. High. One status sentence bundled three unrelated facts. "12 things need you" tells you nothing about which things.
+8. High. A bare `$` and a toggle hid an answer that could simply be on the button.
+9. High. Share and Publish looked alike and neither explained itself.
+10. High. The words: gate, piece, sealed, open to, shred. Three add buttons, and the main way to add, files, wasn't among them.
+11. High. Land and names did nothing when clicked, and search was keyboard-only. "What do I do next?" had no answer.
+12. Medium. A sealed area differed only by a red blob that read as a notification.
+13. Medium. First run was charming and said nothing about what you get.
+
+**What changed.**
+- The gates panel is gone. The card lists readers instead, with how much each can open. Picking one opens switches for each area and shows the map through their eyes, with Done at top centre. Password and setup is one deliberate click further on, so nobody meets `claude mcp add` by accident.
+- Each area's name carries a line: Read by Claude Code, or No one can read this in vermilion with the wax beside it and a vermilion coast. Under a picked reader it says Can read or Can't read.
+- Land is now clearly land: near-white on a darker sea. Inland contours are texture only and no longer ring single items.
+- Links aren't drawn until you point at or open something. Nobody asked about those lines, and removing them did more for the page than anything else.
+- Small pictures replace the alphabet: a shield with a tick for a rule, the information sign for a fact, a signpost for a decision, § for a clause, a clipboard for a spec, a drop of colour for a design token, a signed page for a contract, a head and shoulders for a person, a page with lines for a document. The Legend is deleted.
+- Needs you is a badge with `!`, as on a phone's home screen, in ink, because vermilion means sealed.
+- Areas sit in rows, sized by what they hold, nudged off the line so they read as islands. Like things gather inside each one: tools at the top, rules on the left, paperwork and facts on the right.
+- Names go to logos first, then rules, then whatever needs you. Long names wrap to two lines and stay on their own land. Counted by eye on the sample at fit zoom: named items went from 30 of 76 to 54 of 76, and unnamed logos from 16 of 28 to 3 of 28.
+- Top centre names the kinds: Needs you, 1 exposed secret, 2 to approve, 2 contradictions and 7 more.
+- The cost button is the number. Add holds documents, services, notes and areas in one menu. Search has an icon in the card.
+- New: clicking an area opens its panel, with who can read it and what's in it. It's how an area gets renamed now, and ⌘K reaches it too.
+- First run says what you get: Teach your AI tools about your company, and Nothing leaves this device until you say so.
+
+**Decisions and why.**
+- Readers on the left and areas on the map, not the other way round. The map already shows the areas, and who can read them is what it didn't show.
+- Towns is now the default, as the brief allowed. Both options and the switch stay. Towns reads better on this layout: Soundings' rings overlap and collide in Engineering. That's an observation, not the operator's pick.
+- The map never understates who can read. `readersByArea` counts what's live as well as what's set here, including a removed reader whose password still works and an item moved out of an area they can read. Without it, closing an area on someone's password would have printed No one can read this while their live password still opened it. Under a picked reader, such an area now says Can read until you update, in ink, because it isn't sealed yet. There are tests in `test/readers.test.ts`.
+- Vermilion came off Delete this map and off removing a reader, because neither means sealed.
+- Agent text now says "area" as well, so See what they read matches the page. It's the one change outside the UI: `src/core/agent.ts` and its pinned test. API and tool names such as `read_piece` stay, so agent text now mixes "area" and "piece".
+- The Vadere name is still absent from the main page, apart from the company menu. A sentence explains more than a wordmark. On a live map that sentence gives way to the address, because by then you know.
+
+**A bug this round found.** Adding a piece with a password selected used the password's id as the gate id, which put the piece in no gate at all. New items now go to the open area, or the first one.
+
+**Traps for later rounds.**
+- Plainer words must not make a stronger promise. My first pass said "The host can't read it", which is false for a reader with remote access on, and that's the default. It also said a removed reader's password "opens nothing", when it still opens any old copy they saved. Both were caught before committing and now match `docs/SECURITY.md`. Check that file before rewording anything about encryption.
+- `SAMPLE_LAYOUT` in `actions.ts`: bump it when the layout changes, or a sample already in a browser keeps its old positions. Real maps never reflow, so one made before this round keeps its force-drawn layout.
+- Labels are placed inside the pointer handler whenever what you're pointing at changes. My coast test took the worst case to 20 ms, or 59 ms at 4x CPU, so wrapping and measuring are now cached and the cheapest tests run first. Keep it that way.
+- `shots.mjs` finds land by looking for pixels at 250 or brighter, so a darker land colour breaks its `12-area-panel` step.
+- The fit inset in `computeFit` (300) has to match `.left-col`'s width (272) plus the gutter.
+- `flow4`, `flow5`, `cross`, `stress` and `touch2` still use the old selectors. `shots.mjs` is updated. Round 7 needs to update the rest.
+- `docs/images/seal.png` and `towns.png` in the README show the old page.
+
+**Verified.** Chrome, shipped build, all 26 shots in the fixed set read by eye, plus these, used for real: search, an area panel with its switches and rename, picking a reader, clicking a closed area on the map, Done and Esc, adding and removing a reader, adding a note and an area, the cost button with month and year, adding a document with no AI, going live, closing an area while live (warned, then cleared by Update), moving an item into a sealed area while live (its line named the readers until Update, then sealed again), removing a reader while live, a reader unlocking with a password, panning from land (doesn't open the area), dragging an item between areas with Undo. Light and dark. Widths 760 to 1440 have no overlaps. Real layouts at 1 area with 12 items, 2 with 20, 6 with 100 and 300, 12 with 120, and on a phone with 60. No page errors. Nothing left the machine and there were no CSP refusals across load, picking a reader, prices and a local document. `seal.ts`, the server, the CSP and the dependencies are untouched. 84 tests pass and types are clean.
+
+Firefox and WebKit: main page, a picked reader and a click on land, with those shots read. Firefox was clean. WebKit logged only the two `page.screenshot` refusals described in the logos section. Text metrics differ a little between browsers, so a few labels land on a different side.
+
+On a map with 300 items, 60 services and 374 links, in headless Chrome, JS time only: the pointer handler takes 0.2 ms at the median, 4.9 ms at the 95th percentile and 7 ms at worst, and 0.4, 9.8 and 11.6 ms under 4x throttling. Panning under 4x has a worst frame of 3.7 ms against the logos section's 5.2, probably because links aren't drawn at rest. That run isn't strictly comparable, since the layouts differ. The pre-round build's pointer handler was never measured, so there's no before figure for it.
+
+**Not verified.**
+- No real person has seen this. Every claim about a stranger is my judgement, from someone who read the PRD first.
+- Hosted mode, including the blocked sample and the full-accounts sheet. Their wording changed.
+- Read with Claude, since there's no key. Its wording changed and its logic didn't.
+- Real Safari, a real phone, Windows, and a screen reader. The gates panel was part of the keyboard path, which is now ⌘K, the area panel and the reader switches. I only used ⌘K, Enter and Esc, and focus order wasn't audited.
+- The area and reader panels on a phone.
+- `flow4`, `flow5` and `stress`.
+
+**Regression I accepted.** On a phone, Add is hidden for lack of room, and those buttons used to live in the panel. A phone can now only add a reader. The Studio is for laptops, and the PRD only asks that it doesn't break, but it's a real loss.
+
+**Did it fix "jumbled"?** Between the regions, yes. There's one reading order, the sea is empty, and the 480px squint now shows six named islands, who reads them and the one sealed area. Inside each region, only partly.
+
+**Worst thing left.** Inside an area, the marks are still a loose scatter. 22 of 76 have no name, including a rule waiting for approval (Copy support logs to HelpSync), which wears a badge and says nothing, and three logos: Anthropic API, which also has a badge, Hetzner Storage and Google Workspace. Names land on whichever side fits, so there's no rhythm to read along. At 300 items an area is a wall of repeated pictures with a few logos named. At 1x the signed page and the lined page are nearly the same mark. Round 3 owns this.
+
+**Also left.**
+- 5 of the 12 things that need you are price notes, so the count overstates urgency and the list is long. Its kind label still shows only on the first row of each group, so the rows after it look unrelated.
+- Top right shows the total and the open cartouche shows it again. "Soundings" and "Towns" mean nothing to a stranger, and "3 to check" is cryptic.
+- Go live is the only thing saying a map isn't live.
+- A map closed here but not yet updated still hatches in vermilion, though its words now say otherwise.
+- Remote access and owner key are still jargon.
+- "A note" arrives as a Fact in the kind menu.
+

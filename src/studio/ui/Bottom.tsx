@@ -1,12 +1,9 @@
-// Bottom right: zoom, the legend, and the money cartouche.
+// Bottom right: zoom. Bottom left: the money cartouche.
 
-import { useEffect, useRef } from 'react'
 import { formatMoney, summarize, TOWN_CLASSES } from '../../core/money.ts'
-import { PIECE_KINDS } from '../../core/types.ts'
 import type { MapView } from '../map/MapView.ts'
-import { KIND_LABELS } from '../map/symbols.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon, ServiceMark, Symbol } from './bits.tsx'
+import { Icon } from './bits.tsx'
 import { contentOf } from './data.ts'
 
 export function Cartouche() {
@@ -93,47 +90,18 @@ export function Cartouche() {
   )
 }
 
-function Legend() {
-  return (
-    <div className="legend panel" aria-label="Legend">
-      {PIECE_KINDS.map((k) => (
-        <div className="legend-row" key={k}>
-          {k === 'service' ? <ServiceMark name="Service" size={14} /> : <Symbol kind={k} size={14} />}
-          {KIND_LABELS[k]}
-        </div>
-      ))}
-      <div className="legend-row">
-        <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px dotted var(--ink)', flex: 'none' }} />
-        Needs you
-      </div>
-    </div>
-  )
-}
-
 export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
   const zoom = useStore((s) => s.zoom)
   const panel = useStore((s) => s.panel)
   const hasContent = useStore((s) => (contentOf(s)?.pieces.length ?? 0) > 0)
   const selected = useStore((s) => s.selected)
-  const shareOpen = panel === 'share'
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (panel !== 'legend') return
-    const close = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setState({ panel: null })
-    }
-    window.addEventListener('mousedown', close)
-    return () => window.removeEventListener('mousedown', close)
-  }, [panel])
 
   if (!hasContent) return null
   // The side panel occupies this corner while it's open.
-  const hidden = shareOpen || !!selected
+  const hidden = panel === 'share' || panel === 'area' || !!selected
 
   return (
-    <div className="bottom-right" ref={ref} style={hidden ? { right: 396 } : undefined}>
-      {panel === 'legend' && <Legend />}
+    <div className="bottom-right" style={hidden ? { right: 396 } : undefined}>
       <div className="zoom panel">
         <button className="icon-btn" aria-label="Zoom out" onClick={() => map.current?.zoomBy(1 / 1.3)}>
           <Icon name="minus" size={14} />
@@ -143,10 +111,6 @@ export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
         </button>
         <button className="icon-btn" aria-label="Zoom in" onClick={() => map.current?.zoomBy(1.3)}>
           <Icon name="plus" size={14} />
-        </button>
-        <span className="sep" />
-        <button className="legend-btn" aria-expanded={panel === 'legend'} onClick={() => setState({ panel: panel === 'legend' ? null : 'legend' })}>
-          Legend
         </button>
       </div>
     </div>

@@ -43,14 +43,21 @@ export function updateVault(change: (v: Vault) => Vault) {
 }
 
 export function placeNewPieces(v: Vault, opts: { reflow?: boolean } = {}): Vault {
-  const moved = layoutPieces(v.gates, v.pieces, v.links, opts)
+  const moved = layoutPieces(v.gates, v.pieces, v.links, { wide: window.innerWidth > window.innerHeight, ...opts })
   if (!moved.size) return v
   return { ...v, pieces: v.pieces.map((p) => (moved.has(p.id) ? { ...p, ...moved.get(p.id) } : p)) }
 }
 
+/** Bump when the layout changes, so a sample already in this browser gets redrawn. Real maps keep their positions. */
+const SAMPLE_LAYOUT = 2
+
 export async function openVault(v: Vault) {
-  const placed = placeNewPieces(v)
-  setState({ vault: placed, selected: null, lens: null, panel: null, dollars: false, agentView: false, mode: 'studio', view: null })
+  let placed = placeNewPieces(v)
+  if (v.sample && (await storage.get<number>('sampleLayout')) !== SAMPLE_LAYOUT) {
+    placed = placeNewPieces(placed, { reflow: true })
+    await storage.set('sampleLayout', SAMPLE_LAYOUT)
+  }
+  setState({ vault: placed, selected: null, lens: null, area: null, panel: null, dollars: false, agentView: false, mode: 'studio', view: null })
   await storage.saveVault(placed)
   await storage.set('lastVault', placed.id)
   const all = await storage.vaults()
@@ -98,7 +105,7 @@ export async function deleteCurrentMap() {
     await openVault(rest[0])
   } else {
     await storage.remove('lastVault')
-    setState({ vault: null, vaultList: [], selected: null, lens: null, panel: null, sheet: null })
+    setState({ vault: null, vaultList: [], selected: null, lens: null, area: null, panel: null, sheet: null })
   }
   setState({ sheet: null })
   toast(`Deleted ${v.company.name}.`)
@@ -109,7 +116,7 @@ export async function deleteCurrentMap() {
 export function addPiece(partial: Partial<Piece> = {}): string {
   const id = newId()
   const v = getState().vault!
-  const gate = partial.gate ?? getState().lens ?? v.gates[0]?.id
+  const gate = partial.gate ?? getState().area ?? v.gates[0]?.id
   const piece: Piece = { id, title: 'Untitled', summary: '', body: '', kind: 'fact', gate: gate!, updatedAt: Date.now(), ...partial }
   updateVault((x) => placeNewPieces({ ...x, pieces: [...x.pieces, piece] }))
   setState({ selected: id })
@@ -131,7 +138,7 @@ export function deletePiece(id: string) {
     costs: x.costs.filter((c) => c.piece !== id),
   }))
   setState({ selected: null })
-  toast(`Deleted ${piece?.title ?? 'piece'}.`, {
+  toast(`Deleted ${piece?.title ?? 'that item'}.`, {
     label: 'Undo',
     run: () => updateVault((x) => ({ ...x, ...before })),
   })
@@ -177,6 +184,13 @@ export function addGate(name: string): string {
   return id
 }
 
+/** An area with nothing in it has no land on the map, so a new one starts with a first note. */
+export function addArea() {
+  const id = addGate('New area')
+  addPiece({ gate: id })
+  setState({ selected: null, area: id, panel: 'area' })
+}
+
 export function renameGate(id: string, name: string) {
   updateVault((v) => ({ ...v, gates: v.gates.map((g) => (g.id === id ? { ...g, name } : g)) }))
 }
@@ -185,7 +199,7 @@ export function deleteGate(gate: Gate) {
   const v = getState().vault!
   if (gate.builtin === 'money') return
   if (v.pieces.some((p) => p.gate === gate.id)) {
-    toast('Move the pieces out of this gate first.')
+    toast('Move the items out of this area first.')
     return
   }
   updateVault((x) => ({
@@ -197,10 +211,10 @@ export function deleteGate(gate: Gate) {
 
 // Passwords
 
-export function createPassword(name = 'New password'): Password {
+export function createPassword(name = 'New reader'): Password {
   const pw: Password = { id: newId(), name, key: generatePassword(), gates: [], remote: true, createdAt: Date.now() }
   updateVault((v) => ({ ...v, passwords: [...v.passwords, pw] }))
-  setState({ lens: pw.id })
+  setState({ lens: pw.id, selected: null })
   return pw
 }
 
@@ -221,11 +235,12 @@ export async function revokePassword(id: string) {
   const pw = v.passwords.find((p) => p.id === id)
   if (!pw) return
   updateVault((x) => ({ ...x, passwords: x.passwords.filter((p) => p.id !== id) }))
-  setState({ lens: null })
+  // Their panel goes with them, so it can't hold the map's right-hand side open with nothing in it.
+  setState({ lens: null, agentView: false, panel: getState().panel === 'share' ? null : getState().panel })
   // Revoking takes effect right away. Waiting for a later publish would be a false sense of safety.
   if (v.site && v.published) {
     const ok = await publish()
-    if (ok) toast(`Revoked ${pw.name}. It can't read anything published from now on.`)
+    if (ok) toast(`Removed ${pw.name}. They can't read anything that goes live from now on.`)
   } else {
     toast(`Removed ${pw.name}.`)
   }
@@ -287,8 +302,8 @@ export async function publish(): Promise<boolean> {
     if (res.status === 409) {
       // Another device published first. Publishing over it from this older copy
       // could quietly bring back a password that was revoked there.
-      lastPublishFailure = { code: 'stale', message: 'A newer version was published from another device, so this one was not published.' }
-      toast(`${lastPublishFailure.message} Loading it replaces unpublished changes here.`, { label: 'Load it', run: () => void reloadFromHost() })
+      lastPublishFailure = { code: 'stale', message: "A newer version went live from another device, so this one didn't." }
+      toast(`${lastPublishFailure.message} Loading it replaces any changes here that aren't live yet.`, { label: 'Load it', run: () => void reloadFromHost() })
       return false
     }
     if (!res.ok) {
@@ -330,7 +345,7 @@ export async function refreshServer() {
 export async function signIn(name: string, ownerKey: string): Promise<string | null> {
   try {
     const res = await fetch(`/s/${encodeURIComponent(name)}/bundle.json`)
-    if (res.status === 404) return `Nothing is published under "${name}".`
+    if (res.status === 404) return `Nothing is live under "${name}".`
     if (!res.ok) return `The host answered ${res.status}.`
     const bundle = (await res.json()) as Bundle
     const vault = await openOwnerCopy(bundle, ownerKey)
@@ -350,7 +365,7 @@ export async function unlockViewer(name: string, key: string): Promise<string | 
   try {
     const prefix = location.pathname.startsWith('/s/') ? `/s/${name}` : ''
     const res = await fetch(`${prefix}/bundle.json`)
-    if (res.status === 404) return 'Nothing is published here yet.'
+    if (res.status === 404) return 'Nothing is live here yet.'
     if (!res.ok) return `The host answered ${res.status}.`
     const view = await openBundle((await res.json()) as Bundle, key.trim())
     // A reader gets a map of what they can see, drawn fresh, with no gaps where closed gates sit.

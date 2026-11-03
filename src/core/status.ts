@@ -75,7 +75,7 @@ export function pending(v: Vault): Pending {
   }
 
   const exposures: Pending['exposures'] = []
-  const gateName = (id: string) => v.gates.find((g) => g.id === id)?.name ?? 'a deleted gate'
+  const gateName = (id: string) => v.gates.find((g) => g.id === id)?.name ?? 'a deleted area'
 
   // A gate closed on a password stays open until the next publish.
   for (const pw of v.passwords) {
@@ -84,7 +84,7 @@ export function pending(v: Vault): Pending {
     const closed = before.filter((g) => !pw.gates.includes(g))
     if (closed.length) {
       exposures.push({
-        message: `${pw.name} can still read ${closed.map(gateName).join(' and ')} until you publish.`,
+        message: `${pw.name} can still read ${closed.map(gateName).join(' and ')} until you update.`,
         pieces: [],
       })
     }
@@ -94,13 +94,13 @@ export function pending(v: Vault): Pending {
   for (const id of Object.keys(pub.passwords)) {
     if (v.passwords.some((p) => p.id === id)) continue
     const name = pub.passwordInfo?.[id]?.name ?? 'A removed password'
-    exposures.push({ message: `${name} still works until you publish.`, pieces: [] })
+    exposures.push({ message: `${name} still works until you update.`, pieces: [] })
   }
 
   // Remote access switched off still lets the host decrypt for this password.
   for (const pw of v.passwords) {
     if (pub.passwordInfo?.[pw.id]?.remote && !pw.remote) {
-      exposures.push({ message: `${pw.name} can still be read through the host until you publish.`, pieces: [] })
+      exposures.push({ message: `${pw.name} can still read through the host until you update.`, pieces: [] })
     }
   }
 
@@ -108,7 +108,7 @@ export function pending(v: Vault): Pending {
   const deleted = Object.keys(pub.pieces).filter((id) => !v.pieces.some((p) => p.id === id))
   if (deleted.length) {
     exposures.push({
-      message: `${deleted.length === 1 ? '1 deleted piece is' : `${deleted.length} deleted pieces are`} still readable until you publish.`,
+      message: `${deleted.length === 1 ? '1 deleted item is' : `${deleted.length} deleted items are`} still readable until you update.`,
       pieces: [],
     })
   }
@@ -123,7 +123,7 @@ export function pending(v: Vault): Pending {
   }
   if (moved.length) {
     exposures.push({
-      message: `${moved.length === 1 ? '1 moved piece is' : `${moved.length} moved pieces are`} still readable from the old gate until you publish.`,
+      message: `${moved.length === 1 ? '1 moved item is' : `${moved.length} moved items are`} still readable from the old area until you update.`,
       pieces: moved,
     })
   }
@@ -145,7 +145,7 @@ export function needs(v: Vault, now = Date.now()): Need[] {
     out.push({
       id: `secret-${p.id}`,
       kind: 'secret',
-      message: `A live secret was found in "${p.source?.file ?? p.title}" and removed. Rotate it: anyone who has that file has the key.`,
+      message: `A real secret, like an API key, was in "${p.source?.file ?? p.title}". It's been taken off the map. Change it, because anyone with that file has it.`,
       pieces: [p.id],
     })
   }
@@ -155,7 +155,7 @@ export function needs(v: Vault, now = Date.now()): Need[] {
       out.push({
         id: `rule-${p.id}`,
         kind: 'proposal',
-        message: `Shredding proposes a rule for every agent${p.source?.file ? `, from ${p.source.file}` : ''}. It stays out until you approve it.`,
+        message: `A document suggests a rule for every AI tool${p.source?.file ? `: ${p.source.file}` : ''}. It stays out until you approve it.`,
         pieces: [p.id],
         quote: `${p.title}. ${p.summary}`,
       })
@@ -164,7 +164,7 @@ export function needs(v: Vault, now = Date.now()): Need[] {
       out.push({
         id: `mcp-${p.id}`,
         kind: 'proposal',
-        message: `A document names an MCP server for ${p.title}: ${p.mcp.url}. It stays out until you approve it.`,
+        message: `A document says AI tools should connect to ${p.title} at ${p.mcp.url}. It stays out until you approve it.`,
         pieces: [p.id],
       })
     }
