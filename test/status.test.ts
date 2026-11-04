@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createSample } from '../src/core/sample.ts'
-import { levelOf, needs, pending, priceNotes, snapshot, sortNeeds } from '../src/core/status.ts'
+import { levelOf, needs, pending, priceNotes, snapshot, sortNeeds, whatChanged } from '../src/core/status.ts'
 import type { Vault } from '../src/core/types.ts'
 
 const live = (v: Vault): Vault => ({ ...v, site: { name: 'meridian', ownerKey: 'vdo_x', origin: 'http://localhost' }, published: snapshot(v, 1) })
@@ -73,4 +73,23 @@ test('a deleted item in an area nobody could read is not called readable there',
   const inPeople = v.pieces.find((p) => p.gate === 'people')!
   const item = pending({ ...v, pieces: v.pieces.filter((p) => p.id !== inPeople.id) }).exposures.find((x) => x.message.includes('deleted'))!
   assert.deepEqual(item.gates, [], 'no live password opens People')
+})
+
+test('what has not gone live is said by name, so you can tell whether it is worth updating', () => {
+  const v = live(createSample())
+  assert.deepEqual(whatChanged(v), [])
+  const [first, second] = v.pieces
+  const edited: Vault = {
+    ...v,
+    pieces: [{ ...first, summary: 'Changed.' }, ...v.pieces.slice(2)],
+    passwords: [{ ...v.passwords[0], gates: [] }, ...v.passwords.slice(1)],
+  }
+  const said = whatChanged(edited)
+  assert.ok(said.includes(`Edited ${first.title}`))
+  assert.ok(said.includes('Deleted 1 item'))
+  assert.ok(said.includes(`What ${v.passwords[0].name} can read`))
+  assert.ok(!said.some((c) => c.includes(second.title)))
+  // A new password for a reader leaves the old one out there until the update, and it says so.
+  const replaced: Vault = { ...v, passwords: [{ ...v.passwords[0], id: 'fresh', key: 'vdr_fresh' }, ...v.passwords.slice(1)] }
+  assert.ok(pending(replaced).exposures.some((e) => e.message === `${v.passwords[0].name} still works until you update.`))
 })

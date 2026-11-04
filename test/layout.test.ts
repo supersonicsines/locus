@@ -105,14 +105,38 @@ test('once something is moved by hand, new items move nothing else', () => {
   assertNothingLandsOnAnything(withPositions([...dragged, ...added], moved))
 })
 
-test('an area with no land takes no room, and on a map arranged by hand a new area goes beside what is there', () => {
+test('an area with no land takes no room, and on a map arranged by hand a new area keeps clear of what is there', () => {
   const { gates, pieces } = sample()
   const placed = withPositions(pieces, layoutPieces(gates, pieces)).map((p, i) => (i === 0 ? { ...p, x: p.x! - 40 } : p))
-  const east = Math.max(...placed.map((p) => p.x!))
-  const moved = layoutPieces([...gates, { id: 'new', name: 'New' }], [...placed, { id: 'n1', kind: 'fact', title: 'First thing here', summary: '', body: '', gate: 'new', updatedAt: 1 }])
+  const added: Piece = { id: 'n1', kind: 'fact', title: 'First thing here', summary: '', body: '', gate: 'new', updatedAt: 1 }
+  const moved = layoutPieces([...gates, { id: 'new', name: 'New' }], [...placed, added])
   assert.equal(moved.size, 1)
-  assert.ok(moved.get('n1')!.x > east)
+  assertNothingLandsOnAnything(withPositions([...placed, added], moved))
   assert.deepEqual(layoutPieces([{ id: 'empty', name: 'Empty' }], []), new Map())
+})
+
+test('areas added one at a time to an arranged map leave room for their names, and do not make a sausage', () => {
+  // Built by hand: a renamed note means it's no longer as drawn, so each area joins what's there.
+  const gates: Gate[] = [{ id: 'a', name: 'First' }]
+  let pieces: Piece[] = fresh([{ id: 'p0', kind: 'fact', title: 'Something renamed by hand', summary: '', body: '', gate: 'a', updatedAt: 1 } as Piece])
+  pieces = withPositions(pieces, new Map([['p0', { x: 37, y: 11 }]]))
+  for (const name of ['Sales', 'Support', 'Finance', 'Partners', 'Research', 'Marketing']) {
+    gates.push({ id: name, name })
+    const next: Piece = { id: `n-${name}`, kind: 'fact', title: 'Untitled', summary: '', body: '', gate: name, updatedAt: 1 }
+    const moved = layoutPieces(gates, [...pieces, next], { wide: true, room: 1.45 })
+    assert.equal(moved.size, 1)
+    pieces = withPositions([...pieces, next], moved)
+  }
+  assertNothingLandsOnAnything(pieces)
+  // Anything sharing a row stands far enough apart for a name.
+  for (const a of pieces) {
+    for (const b of pieces) {
+      if (a !== b && Math.abs(a.y! - b.y!) < 60) assert.ok(Math.abs(a.x! - b.x!) >= 400, `${a.gate} and ${b.gate} share a row ${Math.abs(a.x! - b.x!)} apart`)
+    }
+  }
+  const across = Math.max(...pieces.map((p) => p.x!)) - Math.min(...pieces.map((p) => p.x!))
+  const down = Math.max(...pieces.map((p) => p.y!)) - Math.min(...pieces.map((p) => p.y!))
+  assert.ok(down > 0 && across / down < 4, `${across} across by ${down} down`)
 })
 
 test('long names wrap at a word, and a name with no spaces is cut, not lost', () => {

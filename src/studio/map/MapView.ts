@@ -69,6 +69,8 @@ export interface MapCallbacks {
   gateClick(id: string): void
   /** A click on an area's land or name with no reader picked, or null for the open sea. */
   areaClick(id: string | null): void
+  /** Pointing at an item, or at nothing, in page coordinates. */
+  itemHover?(id: string | null, x: number, y: number): void
   gateHover(id: string | null): void
   pieceMoved(id: string, x: number, y: number, gate: string | null): void
   cameraChanged(k: number, fitK: number): void
@@ -210,6 +212,7 @@ export class MapView {
   /** How far each area's block moves into the middle of its land when zoomed out, in world units. */
   private overviewShift = new Map<string, { x: number; y: number }>()
   private shownNames = new Map<string, string>()
+  private familyLevels = new Map<string, number>()
   private waterlines: Path2D[] = []
   /** 1 when every item stands on its own, 0 when they've gathered into lines. */
   private lodT = 1
@@ -373,11 +376,13 @@ export class MapView {
     this.summary = data.costs ? summarize(data.costs, data.gates, data.pieces, data.currency) : null
 
     let positionsChanged = prev.size !== data.pieces.length
+    let movedCount = 0
     this.nodes = data.pieces.map((p) => {
       const old = prev.get(p.id)
       const x = p.x ?? old?.tx ?? 0
       const y = p.y ?? old?.ty ?? 0
       if (!old || old.tx !== x || old.ty !== y || old.piece.gate !== p.gate) positionsChanged = true
+      if (old && (old.tx !== x || old.ty !== y)) movedCount++
       const cost = costOf.get(p.id) ?? null
       return {
         piece: p,
@@ -401,6 +406,17 @@ export class MapView {
         tipX: old?.tipX ?? 0,
       }
     })
+    // The whole map was drawn again: the land changes at once, so what's on it does too, or marks slide about under names that have already gone.
+    const otherMap = prev.size > 0 && data.pieces.length > 0 && !data.pieces.some((p) => prev.has(p.id))
+    const redrawn = otherMap || (movedCount > 1 && movedCount >= prev.size * 0.3)
+    if (redrawn) {
+      for (const n of this.nodes) {
+        n.x = n.tx
+        n.y = n.ty
+        n.ovx = n.tx
+        n.ovy = n.ty
+      }
+    }
     const ordered = this.nodes.filter((n) => n.cost).sort((a, b) => (b.month ?? -1) - (a.month ?? -1))
     ordered.forEach((n, i) => (n.rank = i))
     this.byId = new Map(this.nodes.map((n) => [n.piece.id, n]))
@@ -418,9 +434,9 @@ export class MapView {
       if (!this.hasFitted) {
         this.fit(false)
         this.hasFitted = true
-      } else if (prev.size !== data.pieces.length && !this.userMoved) {
-        // Something arrived or went, so the land changed shape. The map stays whole unless you've moved it yourself.
-        this.fit(true)
+      } else if (redrawn || (prev.size !== data.pieces.length && !this.userMoved)) {
+        // Something arrived or went, so the land changed shape. The map stays whole unless you've moved it yourself. Drawn again, where you'd moved to doesn't mean anything any more.
+        this.fit(!redrawn)
       }
       this.appeared = true
     } else {
@@ -596,9 +612,9 @@ export class MapView {
       }
     }
     const minX = Math.min(...xs)
-    const maxX = Math.max(...xs)
-    const minY = Math.min(...ys)
-    const maxY = Math.max(...ys)
+    let maxX = Math.max(...xs)
+    let minY = Math.min(...ys)
+    let maxY = Math.max(...ys)
     // Leave room for the panels that float over the map.
     const narrow = this.w < 720
     const left = narrow ? 16 : 300
@@ -607,7 +623,22 @@ export class MapView {
     const top = narrow ? 130 : this.w <= 1100 ? 116 : 70
     const bottom = narrow ? (this.dollarOn && withOverlay ? 150 : 40) : 24
     // A small map sits at a size where its words and its land still go together, and doesn't balloon to fill the screen.
-    const k = clamp(Math.min((this.w - left - right) / (maxX - minX || 1), (this.h - top - bottom) / (maxY - minY || 1)), MIN_K, 0.9)
+    const kFor = (toX: number, fromY: number, toY: number) => clamp(Math.min((this.w - left - right) / (toX - minX || 1), (this.h - top - bottom) / (toY - fromY || 1)), MIN_K, 0.9)
+    let k = kFor(maxX, minY, maxY)
+    // Land running off the sheet suits a big map and looks like a mistake on a small one. If a little less zoom shows all of it, it gets that, but never at the cost of the names. Land can still run under the card on the left.
+    if (this.territories.length && !narrow) {
+      const reach = 18 / k
+      const landRight = Math.max(maxX, ...this.territories.map((t) => t.maxX + reach))
+      const landTop = Math.min(minY, ...this.territories.map((t) => t.minY - reach))
+      const landBottom = Math.max(maxY, ...this.territories.map((t) => t.maxY + reach))
+      const whole = kFor(landRight, landTop, landBottom)
+      if (whole >= Math.max(k * 0.85, Math.min(k, DETAIL_K + 0.01))) {
+        k = whole
+        maxX = landRight
+        minY = landTop
+        maxY = landBottom
+      }
+    }
     return {
       k,
       x: left + (this.w - left - right - (maxX - minX) * k) / 2 - minX * k,
@@ -781,6 +812,7 @@ export class MapView {
     const hit = !this.spaceDown && !middle ? this.hitNode(x, y) : null
     // Zoomed out, things stand in a line and not where they live, so there's nowhere meaningful to drag them from.
     if (hit && !this.data.readOnly && !this.overview) {
+      this.cb.itemHover?.(null, 0, 0)
       this.drag = { kind: 'piece', id: hit.piece.id, sx: x, sy: y, moved: false, lastX: x, lastY: y }
     } else if (hit) {
       this.drag = { kind: 'pan', id: hit.piece.id, sx: x, sy: y, moved: false, lastX: x, lastY: y }
@@ -823,6 +855,7 @@ export class MapView {
       const id = hit?.piece.id ?? null
       if (id !== this.hovered) {
         this.hovered = id
+        this.cb.itemHover?.(id, x, y)
         this.scheduleLabels(0)
         this.invalidate()
       }
@@ -904,6 +937,7 @@ export class MapView {
   }
 
   private onLeave = () => {
+    this.cb.itemHover?.(null, 0, 0)
     this.hoverDistrict = null
     if (this.hoverGate) {
       this.hoverGate = null
@@ -2029,30 +2063,18 @@ export class MapView {
     return at - x - 6
   }
 
-  /** The longest way of saying this that fits on its own land. Failing that the shortest, as far as the next area, because these lines say who can read. */
-  private fitted(gate: string, faces: string[], ...tries: string[]): string {
-    const t = this.territories.find((o) => o.gate === gate)
-    if (!t) return tries[0]
-    const [x, y] = this.gateLabelPos(t)
-    const font = `11.5px ${this.sans}`
-    const onLand = this.landRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)
-    const found = tries.find((text) => this.measure(text, font) <= onLand)
-    if (found) return found
-    const last = tries[tries.length - 1]
-    // Cut to nothing it would say nothing. Better it runs long.
-    return this.fitLine(last, font, this.neighbourRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)) || last
-  }
-
   /** An area's name, as far as the next area. Its panel always has the whole of it. Once a frame per area, because every label asks. */
   private shownName(t: Territory): string {
     const had = this.shownNames.get(t.gate)
     if (had !== undefined) return had
     const name = this.data.gates.find((g) => g.id === t.gate)?.name ?? ''
     const [x, y] = this.gateLabelPos(t)
-    const room = this.neighbourRoom(t, x, y - 15, y + 3) - (this.data.sealedToAll.has(t.gate) || this.data.exposed.has(t.gate) ? 38 : 0)
+    // Room for the small seal or pin beside the name, which only stands there when no reader is picked.
+    const room = this.neighbourRoom(t, x, y - 15, y + 3) - (!this.lensActive && (this.data.sealedToAll.has(t.gate) || this.data.exposed.has(t.gate)) ? 38 : 0)
     let shown = name
-    if (this.nameWidth(name) > room) {
-      let lo = 1
+    // "L…" says nothing. A short name stays whole and runs a little long, and a long one keeps enough to recognise.
+    if (name.length > 8 && this.nameWidth(name) > room) {
+      let lo = 6
       let hi = name.length - 1
       while (lo < hi) {
         const mid = Math.ceil((lo + hi) / 2)
@@ -2065,41 +2087,71 @@ export class MapView {
     return shown
   }
 
-  /** The line under an area's name: who can read it, as marks you can see and words you can read. */
-  private areaNote(gate: string): { text: string; sealed: boolean; faces: string[]; exposed: boolean } {
-    const none = { sealed: false, faces: [] as string[], exposed: false }
-    if (this.data.readOnly) return { ...none, text: '' }
+  /** What the line under an area's name can say, longest first, and which family of lines it belongs to. Neighbours in one family use the same words for the same fact. */
+  private lineFor(gate: string): { family: string; tries: string[]; sealed: boolean; faces: string[]; exposed: boolean } {
+    const none = { family: '', sealed: false, faces: [] as string[], exposed: false }
+    if (this.data.readOnly) return { ...none, tries: [''] }
     if (this.lensActive) {
-      if (!this.sealTarget.has(gate)) return { ...none, text: 'Can read' }
+      if (!this.sealTarget.has(gate)) return { ...none, tries: ['Can read'] }
       // Still readable out there, so it isn't sealed yet, and vermilion would say it was.
-      if (this.pendingSeal.has(gate)) return { ...none, text: 'Can read until you update', exposed: true }
-      if (!this.data.pricesReadable.has(gate)) return { ...none, text: "Can't read", sealed: true }
+      if (this.pendingSeal.has(gate)) return { ...none, tries: ['Can read until you update'], exposed: true }
+      if (!this.data.pricesReadable.has(gate)) return { ...none, tries: ["Can't read"], sealed: true }
       // Money shows each service's name, plan and price, so "prices" alone would understate it. The area's panel spells it out.
-      return { ...none, text: this.fitted(gate, [], "Can't read, except service names and prices", "Can't read, except names and prices", 'Names and prices only'), sealed: true }
+      return { ...none, family: 'lens-prices', tries: ["Can't read, except service names and prices", "Can't read, except names and prices", 'Names and prices only'], sealed: true }
     }
     // Everyone's mark stays beside the warning. The words are about one fact, and the map may never understate who can read.
     const exposed = this.data.exposed.get(gate)
     // Where there's no room for the whole sentence it gets shorter: the marks still say who, and the line at top centre says it in full.
-    if (exposed) {
-      const faces = this.data.readers.get(gate) ?? []
-      return { ...none, text: this.fitted(gate, faces, exposed, 'Still readable until you update'), exposed: true, faces }
-    }
+    if (exposed) return { ...none, family: 'exposed', tries: [exposed, 'Still readable until you update'], exposed: true, faces: this.data.readers.get(gate) ?? [] }
     if (this.data.sealedToAll.has(gate)) {
       // Money lists every service's name and price, so an area of services is only closed apart from those.
-      if (!this.data.pricesReadable.has(gate)) return { ...none, text: 'No one can read this', sealed: true }
+      if (!this.data.pricesReadable.has(gate)) return { ...none, tries: ['No one can read this'], sealed: true }
       const end = this.data.live ? ' can be read' : ', once live'
-      return { ...none, text: this.fitted(gate, [], `Only service names and prices${end}`, `Only names and prices${end}`, 'Names and prices only'), sealed: true }
+      return { ...none, family: 'prices', tries: [`Only service names and prices${end}`, `Only names and prices${end}`, 'Names and prices only'], sealed: true }
     }
     const names = this.data.readers.get(gate) ?? []
-    if (!names.length) return { ...none, text: '' }
+    if (!names.length) return { ...none, tries: [''] }
     // Until there's a copy online, nobody reads anything, so "Read by" would be wrong. It's who the area is for.
     const live = this.data.live
-    const shown = names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} and ${names[1]}` : `${names[0]} and ${names.length - 1} others`
+    const lead = live ? 'Read by' : 'For'
+    if (names.length === 1) return { ...none, family: 'readers', faces: names, tries: [`${lead} ${names[0]}`] }
+    const shown = names.length === 2 ? `${names[0]} and ${names[1]}` : `${names[0]} and ${names.length - 1} others`
+    const first = `${names[0]} and ${names.length - 1} ${names.length === 2 ? 'other' : 'others'}`
     // Names when there's room, a count when there isn't.
     const count = live ? `${names.length} can read this` : `For ${names.length} readers`
-    const first = `${names[0]} and ${names.length - 1} ${names.length === 2 ? 'other' : 'others'}`
-    const lead = live ? 'Read by' : 'For'
-    return { ...none, faces: names, text: names.length > 1 ? this.fitted(gate, names, `${lead} ${shown}`, `${lead} ${first}`, count) : this.fitted(gate, names, `${lead} ${shown}`) }
+    return { ...none, family: 'readers', faces: names, tries: [`${lead} ${shown}`, `${lead} ${first}`, count] }
+  }
+
+  /** How short this family's lines have to get for all of them to fit. Once a frame, because every label asks. */
+  private familyLevel(family: string): number {
+    const had = this.familyLevels.get(family)
+    if (had !== undefined) return had
+    const font = `11.5px ${this.sans}`
+    let level = 0
+    for (const t of this.territories) {
+      const line = this.lineFor(t.gate)
+      if (line.family !== family || line.tries.length < 2) continue
+      const [x, y] = this.gateLabelPos(t)
+      const room = this.landRoom(t, x, y + 6, y + 23) - this.facesWidth(line.faces.length)
+      const fits = line.tries.findIndex((text) => this.measure(text, font) <= room)
+      level = Math.max(level, fits < 0 ? line.tries.length - 1 : fits)
+    }
+    this.familyLevels.set(family, level)
+    return level
+  }
+
+  /** The line under an area's name: who can read it, as marks you can see and words you can read. */
+  private areaNote(gate: string): { text: string; sealed: boolean; faces: string[]; exposed: boolean } {
+    const { family, tries, sealed, faces, exposed } = this.lineFor(gate)
+    const out = { sealed, faces, exposed }
+    const text = tries[family ? Math.min(this.familyLevel(family), tries.length - 1) : 0]
+    const t = this.territories.find((o) => o.gate === gate)
+    if (!t || !text) return { ...out, text }
+    const [x, y] = this.gateLabelPos(t)
+    const font = `11.5px ${this.sans}`
+    if (this.measure(text, font) <= this.landRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)) return { ...out, text }
+    // Cut to nothing it would say nothing. Better it runs long.
+    return { ...out, text: this.fitLine(text, font, this.neighbourRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)) || text }
   }
 
   private facesWidth(count: number): number {
@@ -2170,6 +2222,7 @@ export class MapView {
     if (!p || !this.w) return
     this.ensurePatterns()
     this.shownNames.clear()
+    this.familyLevels.clear()
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
     this.sea = this.seaColour()
@@ -2898,7 +2951,10 @@ export class MapView {
         const wax = this.waxSeal(waxSize)
         const cx = (t.holds.minX + t.holds.maxX) / 2
         const cy = (t.holds.minY + t.holds.maxY) / 2
-        const [sx, sy] = this.toScreen(cx, cy)
+        const [sx, middle] = this.toScreen(cx, cy)
+        // Below the name and the line under it, however little land there is to be in the middle of.
+        const [, nameAt] = this.gateLabelPos(t)
+        const sy = Math.max(middle, nameAt + 24 + waxSize / 2)
         const draw = waxSize * scale
         ctx.globalAlpha = Math.min(1, s * 2) * (landed ? land : s)
         ctx.drawImage(wax, sx - draw / 2, sy - draw / 2, draw, draw)

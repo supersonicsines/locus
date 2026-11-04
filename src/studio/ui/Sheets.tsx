@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { CATALOG, CATALOG_AS_OF, findInCatalog, type CatalogEntry } from '../../core/catalog.ts'
+import type { Gate } from '../../core/types.ts'
 import { generateOwnerKey, looksLikeKey } from '../../core/seal.ts'
 import { shredLocally, DEFAULT_GATES } from '../../core/shred-local.ts'
-import { addPiece, copy, deleteCurrentMap, downloadText, lastPublishFailure, placeNewPieces, publish, refreshServer, setCost, signIn, siteAddress, toast, updateVault } from '../actions.ts'
+import { addPiece, askFit, copy, createPassword, deleteCurrentMap, downloadText, lastPublishFailure, placeNewPieces, publish, refreshServer, setCost, signIn, siteAddress, toast, updateVault } from '../actions.ts'
 import { MODELS, shredWithClaude } from '../shred/claude.ts'
 import { estimateTokens, extract, type Extracted } from '../shred/extract.ts'
 import { merge } from '../shred/merge.ts'
@@ -12,7 +13,7 @@ import { getState, setState, storage, useStore } from '../store.ts'
 import { newId } from '../../core/seal.ts'
 import { normaliseName, type KnownService } from '../logos/lookup.ts'
 import { allServices, serviceFor, useLogosVersion } from '../logos/store.ts'
-import { plural, ServiceMark, useEscape } from './bits.tsx'
+import { Icon, plural, ServiceMark, useEscape } from './bits.tsx'
 
 function Sheet({ children, onClose, label }: { children: React.ReactNode; onClose?: () => void; label: string }) {
   useEscape(() => onClose?.(), !!onClose)
@@ -43,7 +44,8 @@ function PublishSheet() {
   const [company, setCompany] = useState(vault.company.name === 'Untitled company' ? '' : vault.company.name)
   const [name, setName] = useState(slugify(vault.company.name === 'Untitled company' ? '' : vault.company.name))
   const [touched, setTouched] = useState(false)
-  const [availability, setAvailability] = useState<'idle' | 'checking' | 'free' | 'taken' | 'reserved' | 'invalid'>('idle')
+  const [availability, setAvailability] = useState<'idle' | 'checking' | 'free' | 'taken' | 'reserved' | 'invalid' | 'unreachable'>('idle')
+  const [tries, setTries] = useState(0)
   const [ownerKey] = useState(generateOwnerKey)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -60,11 +62,11 @@ function PublishSheet() {
         const body = await res.json()
         setAvailability(body.available ? 'free' : body.reason === 'taken' ? 'taken' : body.reason === 'reserved' ? 'reserved' : 'invalid')
       } catch {
-        setAvailability('idle')
+        setAvailability('unreachable')
       }
     }, 250)
     return () => clearTimeout(t)
-  }, [name])
+  }, [name, tries])
 
   const address = server?.address.replace('{name}', name || 'yourco').replace(/^https?:\/\//, '') ?? ''
   const domainPart = address.slice((name || 'yourco').length)
@@ -73,12 +75,23 @@ function PublishSheet() {
     idle: '',
     checking: 'Checking.',
     free: 'Available.',
-    taken: 'Already taken.',
-    reserved: 'That name is reserved.',
-    invalid: 'Three or more letters, numbers or hyphens.',
+    taken: 'That address is taken. Try another.',
+    reserved: 'That address is reserved. Try another.',
+    invalid: 'Use three or more letters, numbers or hyphens.',
+    unreachable: "Couldn't reach the host to check that address.",
   }
 
   const ready = availability === 'free' && saved && !!company.trim() && !publishing
+  // The button says the one thing still in the way, in the order you'd come to them.
+  const missing = !company.trim()
+    ? 'Name your company first'
+    : availability === 'unreachable'
+      ? "Can't reach the host"
+      : availability !== 'free' && availability !== 'checking'
+        ? 'Choose an address first'
+        : !saved
+          ? 'Save your key to continue'
+          : 'Go live'
 
   const go = async () => {
     setError('')
@@ -87,10 +100,18 @@ function PublishSheet() {
       company: { ...v.company, name: company.trim() },
       site: { name, ownerKey, origin: siteAddress(name), ownerKeySaved: true },
     }))
-    const ok = await publish()
+    // Quiet, because a failure is said here in the sheet, beside what can fix it.
+    const ok = await publish({ quiet: true })
     if (ok) {
       setState({ sheet: null })
-      toast(`You're live at ${siteAddress(name).replace(/^https?:\/\//, '')}.`)
+      // What going live was for. Nothing else on the page says this is the next step.
+      const reader = getState().vault?.passwords[0]
+      toast(
+        `You're live at ${siteAddress(name).replace(/^https?:\/\//, '')}.`,
+        reader
+          ? { label: `Connect ${reader.name}`, run: () => setState({ lens: reader.id, panel: 'share', selected: null, area: null }) }
+          : { label: 'Add a reader', run: () => { createPassword(); setState({ panel: 'share', area: null }) } },
+      )
     } else {
       // Undo the claim locally so another name can be tried.
       updateVault((v) => ({ ...v, site: undefined }))
@@ -104,9 +125,9 @@ function PublishSheet() {
       <Sheet label="Every free account is taken" onClose={close}>
         <h2>Every free account is taken</h2>
         <p>
-          Your map is safe in this browser, and it works fully without going live. To go live today, run your own host: it takes one command and has no limits.
+          Your map is safe in this browser, and it works fully without going live. To go live today, run your own host: it takes one command, and it has no limit on accounts.
         </p>
-        <div className="code-block">npx vadere serve</div>
+        <div className="code-block"><code>npx vadere serve</code></div>
         <div className="actions">
           {server?.donateUrl && (
             <button className="btn btn-paper" onClick={() => setState({ sheet: { kind: 'donate' } })}>Donate</button>
@@ -120,7 +141,7 @@ function PublishSheet() {
   return (
     <Sheet label="Go live" onClose={publishing ? undefined : close}>
       <h2>Go live</h2>
-      <p>This encrypts the map on this device and puts that copy online at your address. The host only stores the encrypted copy, and nothing opens until you give someone a password.</p>
+      <p>This encrypts the map on this device and puts that copy online at your address. The host only stores the encrypted copy, and nothing opens without a password.</p>
 
       <label htmlFor="company">Company name</label>
       <input
@@ -147,18 +168,21 @@ function PublishSheet() {
         />
         <span>{domainPart}</span>
       </div>
-      <div className="field-note" aria-live="polite">{note[availability]}</div>
+      <div className="field-note" aria-live="polite">
+        {note[availability]}
+        {availability === 'unreachable' && <> <button className="text-btn" onClick={() => setTries(tries + 1)}>Try again</button></>}
+      </div>
 
-      <label>Your owner key</label>
+      <label>Your recovery key</label>
       <code className="owner-key">{ownerKey}</code>
       <p style={{ marginBottom: 8 }}>
-        This is your account. It updates your live map and restores it on another device. <strong style={{ fontWeight: 500, color: 'var(--ink)' }}>Nobody can recover it for you</strong>, so save it in your password manager now.
+        This is your account: it updates your live map, and it brings the map back on another device. <strong style={{ fontWeight: 500, color: 'var(--ink)' }}>Nobody can recover it for you</strong>, so save it in your password manager now.
       </p>
       <div style={{ display: 'flex', gap: 6 }}>
         <button
           className="btn btn-paper"
           onClick={async () => {
-            if (await copy(ownerKey, 'Owner key copied.')) setSaved(true)
+            if (await copy(ownerKey, 'Recovery key copied.')) setSaved(true)
           }}
         >
           Copy it
@@ -166,7 +190,7 @@ function PublishSheet() {
         <button
           className="btn btn-paper"
           onClick={() => {
-            downloadText(`vadere-owner-key-${name || 'map'}.txt`, `Vadere owner key for ${name}\n${ownerKey}\n\nNobody can recover this for you.\n`)
+            downloadText(`vadere-recovery-key-${name || 'map'}.txt`, `Vadere recovery key for ${name}\n${ownerKey}\n\nNobody can recover this for you.\n`)
             setSaved(true)
           }}
         >
@@ -178,8 +202,8 @@ function PublishSheet() {
 
       <div className="actions">
         <button className="btn btn-quiet" disabled={publishing} onClick={close}>Not yet</button>
-        <button className="btn btn-ink" disabled={!ready} onClick={() => void go()} title={!saved ? 'Copy or download your owner key first' : undefined}>
-          {publishing ? 'Going live' : !saved ? 'Save your key to continue' : 'Go live'}
+        <button className="btn btn-ink" disabled={!ready} onClick={() => void go()} title={!saved ? 'Copy or download your recovery key first' : undefined}>
+          {publishing ? 'Going live' : missing}
         </button>
       </div>
     </Sheet>
@@ -201,10 +225,10 @@ function SignInSheet() {
   return (
     <Sheet label="Sign in" onClose={close}>
       <h2>Sign in</h2>
-      <p>Your owner key restores your map from its encrypted copy. It's decrypted here, in this browser.</p>
-      <label htmlFor="si-name">Your address name</label>
+      <p>Your recovery key brings your map back from its encrypted copy. It's decrypted here, in this browser.</p>
+      <label htmlFor="si-name">Your address</label>
       <input id="si-name" className="field" autoFocus value={name} placeholder="yourco" onChange={(e) => setName(e.target.value)} />
-      <label htmlFor="si-key">Owner key</label>
+      <label htmlFor="si-key">Recovery key</label>
       <input id="si-key" className="field mono" value={key} placeholder="vdo_" spellCheck={false} onChange={(e) => setKey(e.target.value)} />
       {error && <p style={{ margin: '10px 0 0', color: 'var(--ink)' }} role="alert">{error}</p>}
       <div className="actions">
@@ -221,13 +245,13 @@ function OwnerKeySheet() {
   const vault = useStore((s) => s.vault)!
   const [shown, setShown] = useState(false)
   return (
-    <Sheet label="Owner key" onClose={close}>
-      <h2>Owner key</h2>
-      <p>This updates your live map and restores it on another device. Anyone who has it owns this map. Nobody can recover it for you.</p>
+    <Sheet label="Recovery key" onClose={close}>
+      <h2>Recovery key</h2>
+      <p>This updates your live map, and it brings the map back on another device. Anyone who has it controls this map. Nobody can recover it for you.</p>
       <code className="owner-key">{shown ? vault.site?.ownerKey : `vdo_${'•'.repeat(26)}`}</code>
       <div className="actions">
         <button className="btn btn-paper" onClick={() => setShown(!shown)}>{shown ? 'Hide' : 'Show'}</button>
-        <button className="btn btn-paper" onClick={() => void copy(vault.site?.ownerKey ?? '', 'Owner key copied.')}>Copy</button>
+        <button className="btn btn-paper" onClick={() => void copy(vault.site?.ownerKey ?? '', 'Recovery key copied.')}>Copy</button>
         <button className="btn btn-ink" onClick={close}>Done</button>
       </div>
     </Sheet>
@@ -262,7 +286,7 @@ function DeleteSheet() {
     <Sheet label="Delete this map" onClose={close}>
       <h2>Delete {vault.company.name}?</h2>
       <p>
-        This removes the map from this browser{vault.published ? ' and takes it off the host, so every password stops working' : ''}. It can't be undone.
+        This removes the map from this browser{vault.published ? ' and takes it off the host, so no password can read it there. Anything readers already saved, they keep' : ''}. It can't be undone.
       </p>
       <div className="actions">
         <button className="btn btn-quiet" onClick={close}>Keep it</button>
@@ -409,13 +433,17 @@ function AddServiceSheet() {
   )
 }
 
-function ShredSheet({ files }: { files: File[] }) {
+/** Why a file can't go on the map, and what would work. */
+const READS = 'Vadere reads PDFs, Word documents, images and text files such as Markdown, CSV and JSON.'
+
+function ShredSheet({ files, error }: { files: File[]; error?: string }) {
   const stored = useStore((s) => s.claudeKey)
   const model = useStore((s) => s.claudeModel)
   const [extracted, setExtracted] = useState<Extracted[] | null>(null)
-  const [mode, setMode] = useState<'claude' | 'local'>('claude')
+  const [picked, setPicked] = useState<'claude' | 'local' | null>(null)
   const [key, setKey] = useState(stored)
-  const [remember, setRemember] = useState(!!stored)
+  const saved = useStore((s) => s.claudeKeySaved)
+  const [remember, setRemember] = useState(saved)
 
   useEffect(() => {
     let live = true
@@ -426,26 +454,64 @@ function ShredSheet({ files }: { files: File[] }) {
   }, [files])
 
   const readable = extracted?.filter((f) => f.type !== 'unreadable') ?? []
+  const unreadable = extracted?.filter((f) => f.type === 'unreadable') ?? []
+  // Images and scanned pages have no text to sort, so only Claude can do anything with them.
+  const sortable = readable.filter((f) => f.text.trim())
+  // What works right now, so the first press does something. Claude if there's a key or nothing else will do.
+  const mode = picked ?? (stored || error || (readable.length && !sortable.length) ? 'claude' : 'local')
   const tokens = extracted ? estimateTokens(readable) : 0
   const m = MODELS.find((x) => x.id === model) ?? MODELS[0]
   const cost = ((tokens * 1.25) / 1e6) * m.input + ((tokens * 0.55) / 1e6) * m.output
   const secrets = extracted?.flatMap((f) => f.secrets) ?? []
-  const imagesOnlyForClaude = extracted?.filter((f) => f.type === 'image').length ?? 0
+  const left = readable.length - sortable.length
+
+  const badKey = mode === 'claude' && !!key && !key.startsWith('sk-')
+  const ready = !!extracted && (mode === 'claude' ? !!readable.length && key.startsWith('sk-') : sortable.length > 0)
 
   const start = () => {
     if (!extracted) return
     if (mode === 'claude') {
-      setState({ claudeKey: key })
+      setState({ claudeKey: key, claudeKeySaved: remember })
       if (remember) void storage.set('claudeKey', key)
       else void storage.remove('claudeKey')
     }
     setState({ sheet: null })
-    void runShred(readable, mode, key, model, extracted.filter((f) => f.type === 'unreadable').map((f) => f.name))
+    const going = mode === 'claude' ? readable : sortable
+    void runShred(going, mode, key, model, extracted.filter((f) => !going.includes(f)).map((f) => f.name), files)
+  }
+
+  // Nothing in the pile can be read, so there's no choice to offer.
+  if (extracted && !readable.length) {
+    const only = extracted.length === 1 ? extracted[0] : null
+    return (
+      <Sheet label="These files can't be added" onClose={close}>
+        <h2>{only ? `Can't add ${only.name}` : `Can't add these ${files.length} files`}</h2>
+        {only ? (
+          <p>{only.note} {only.note === "Vadere can't read this type of file." ? READS : only.note === 'This file seems to be damaged.' ? 'Try saving it again from wherever it came from.' : ''}</p>
+        ) : (
+          <>
+            <ul className="file-list">
+              {extracted.map((f) => (
+                <li key={f.name} className="file-row">
+                  <span>{f.name}</span>
+                  <span>Can't read</span>
+                </li>
+              ))}
+            </ul>
+            <p style={{ marginTop: 10 }}>{READS} Save them as one of those and add them again.</p>
+          </>
+        )}
+        <div className="actions">
+          <button className="btn btn-ink" onClick={close}>Close</button>
+        </div>
+      </Sheet>
+    )
   }
 
   return (
     <Sheet label="Add to the map" onClose={close}>
-      <h2>{files.length === 1 ? files[0].name : `Add ${files.length} files to the map`}</h2>
+      <h2>{files.length === 1 ? `Add ${files[0].name}` : `Add ${files.length} files`}</h2>
+      {error && <p style={{ margin: '0 0 12px', color: 'var(--ink)' }} role="alert">{error}</p>}
       {!extracted ? (
         <p>Reading on this device.</p>
       ) : (
@@ -460,32 +526,43 @@ function ShredSheet({ files }: { files: File[] }) {
               ))}
             </ul>
           )}
+          {unreadable.length > 0 && <p className="hint" style={{ margin: '8px 0 0' }}>The files marked Can't read won't be added. {READS}</p>}
           {secrets.length > 0 && (
             <div className="exposure" role="alert">
-              Found {plural(secrets.length, 'secret')} ({[...new Set(secrets)].join(', ')}) and removed {secrets.length === 1 ? 'it' : 'them'} before anything else happens. Rotate {secrets.length === 1 ? 'it' : 'them'}: anyone with the file has {secrets.length === 1 ? 'it' : 'them'}.
+              Found {plural(secrets.length, 'secret')} ({[...new Set(secrets)].join(', ')}) and took {secrets.length === 1 ? 'it' : 'them'} out before anything else happens. Change {secrets.length === 1 ? 'it' : 'them'}: anyone with the file has {secrets.length === 1 ? 'it' : 'them'}.
             </div>
           )}
 
-          <button className="choice" aria-pressed={mode === 'claude'} onClick={() => setMode('claude')}>
-            <b>Read with Claude</b>
-            <span>The best map: reads PDFs and images, finds contradictions and gaps. These files go to Anthropic under your own key.</span>
+          <button className="choice" aria-pressed={mode === 'local'} onClick={() => setPicked('local')}>
+            <b>Sort it here, with no AI</b>
+            <span>Free, and nothing leaves this device. It splits on headings and guesses from keywords, so the map is rougher.{left ? ` It can't read images or scanned pages.` : ''}</span>
           </button>
-          <button className="choice" aria-pressed={mode === 'local'} onClick={() => setMode('local')}>
-            <b>Sort here, with no AI</b>
-            <span>Nothing leaves this device. Rougher: it splits on headings and guesses from keywords.{imagesOnlyForClaude ? " It can't read images." : ''}</span>
+          <button className="choice" aria-pressed={mode === 'claude'} onClick={() => setPicked('claude')}>
+            <b>Read it with Claude</b>
+            <span>The best map: it reads PDFs and images, and finds contradictions and gaps. These files go to Anthropic, under your own key.</span>
           </button>
+
+          {mode === 'local' && !sortable.length && <p className="hint" style={{ margin: '10px 0 0' }}>There's no text in this to sort. Read it with Claude instead.</p>}
 
           {mode === 'claude' && (
             <>
               <label htmlFor="claude-key">Your Claude API key</label>
-              <input id="claude-key" className="field mono" autoFocus={!stored} value={key} placeholder="sk-ant-" spellCheck={false} autoComplete="off" onChange={(e) => setKey(e.target.value.trim())} />
-              <div className="row-between" style={{ marginTop: 8, alignItems: 'center' }}>
-                <select className="select" aria-label="Model" value={model} onChange={(e) => setState({ claudeModel: e.target.value })}>
-                  {MODELS.map((x) => (
-                    <option key={x.id} value={x.id}>{x.name}: {x.note}</option>
-                  ))}
-                </select>
-                <span className="hint">About ${cost < 0.01 ? '0.01' : cost.toFixed(2)}</span>
+              <input id="claude-key" className="field mono" autoFocus={!stored} value={key} placeholder="sk-ant-" spellCheck={false} autoComplete="off" aria-invalid={badKey} onChange={(e) => setKey(e.target.value.trim())} />
+              <p className="hint" style={{ margin: '6px 0 0' }} role={badKey ? 'alert' : undefined}>
+                {badKey ? "That doesn't look like a Claude key. They start with sk-ant-. " : ''}
+                {!key || badKey ? <>Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer noopener">console.anthropic.com</a>. </> : null}
+                You pay Anthropic directly: about ${cost < 0.01 ? '0.01' : cost.toFixed(2)} for this.
+              </p>
+              <div className="row-between" style={{ marginTop: 10, alignItems: 'center' }}>
+                <label className="hint" htmlFor="claude-model" style={{ margin: 0 }}>Model</label>
+                <div className="select-wrap">
+                  <select id="claude-model" className="select" value={model} onChange={(e) => setState({ claudeModel: e.target.value })}>
+                    {MODELS.map((x) => (
+                      <option key={x.id} value={x.id}>{x.name}: {x.note}</option>
+                    ))}
+                  </select>
+                  <Icon name="chevron" size={12} />
+                </div>
               </div>
               <button className="row-between" style={{ width: '100%', marginTop: 10, alignItems: 'center' }} role="switch" aria-checked={remember} onClick={() => setRemember(!remember)}>
                 <span className="hint">Remember the key in this browser</span>
@@ -497,7 +574,7 @@ function ShredSheet({ files }: { files: File[] }) {
       )}
       <div className="actions">
         <button className="btn btn-quiet" onClick={close}>Cancel</button>
-        <button className="btn btn-ink" disabled={!extracted || !readable.length || (mode === 'claude' && !key.startsWith('sk-'))} onClick={start}>
+        <button className="btn btn-ink" disabled={!ready} onClick={start}>
           Add to the map
         </button>
       </div>
@@ -505,15 +582,46 @@ function ShredSheet({ files }: { files: File[] }) {
   )
 }
 
+/** What went wrong with Claude, and what to do about it. */
+function claudeTrouble(e: any): string {
+  const status = e?.status
+  const said = String(e?.message ?? '')
+  if (status === 401) return 'Claude rejected that key. Check you copied all of it, or sort with no AI.'
+  if (status === 403) return "That key isn't allowed to do this. Check its permissions in your Anthropic account."
+  if (status === 429) return 'Claude is rate limiting this key. Wait a minute and try again.'
+  if (status === 413) return 'Those files are too big to send in one go. Add them a few at a time, or split them.'
+  if (status === 400 && /credit/i.test(said)) return "That key's account has run out of credit. Top it up with Anthropic, or sort with no AI."
+  if (status >= 500 && status < 600) return 'Claude is having trouble right now. Try again in a few minutes.'
+  if (!status && /connect|network|fetch/i.test(`${e?.name} ${said}`)) return "Couldn't reach Claude. Check your connection and try again."
+  if (!status && said) return said
+  return "Couldn't finish reading them. Try again in a moment."
+}
+
+/** Where items wait during a read, before they've been sorted. It's only a real area if the read stops before it can sort them. */
+const ARRIVALS: Gate = { id: 'arrivals', name: 'New arrivals' }
+
 /** Runs a shred, landing pieces on the map as they arrive. */
-export async function runShred(files: Extracted[], mode: 'claude' | 'local', key: string, model: string, skipped: string[] = []) {
+export async function runShred(files: Extracted[], mode: 'claude' | 'local', key: string, model: string, skipped: string[] = [], originals: File[] = []) {
+  const counted = () => getState().vault?.pieces.length ?? 0
+  const startedWith = counted()
+  // Starting again means the last failure has been heard. It mustn't sit beside the run that fixed it.
+  setState({ toasts: getState().toasts.filter((t) => t.action) })
+  const landed = () => {
+    const added = counted() - startedWith
+    if (added <= 0) return 'Those files were on the map already, and it now matches them.'
+    return `${plural(added, startedWith ? 'more item' : 'item')} on the map.`
+  }
+  const skips = skipped.length ? ` Skipped ${skipped.join(', ')}.` : ''
+
   if (mode === 'local') {
     setState({ shred: { phase: 'Sorting on this device', done: 0, total: 1, pieces: 0 } })
     await new Promise((r) => setTimeout(r, 30))
-    const result = shredLocally(files.filter((f) => f.text).map((f) => ({ name: f.name, text: f.text })), () => newId())
+    const result = shredLocally(files.map((f) => ({ name: f.name, text: f.text })), () => newId())
     updateVault((v) => placeNewPieces(merge(v, result)))
     setState({ shred: null })
-    toast(`${plural(result.pieces.length, 'item')} on the map.${skipped.length ? ` Skipped ${skipped.join(', ')}.` : ''}`)
+    askFit()
+    // A file too long to sort says so here, and stays in what needs you until someone deals with it.
+    toast(`${landed()}${result.cut.length ? ` Only the start of ${result.cut.join(', ')} fits. The rest is not on the map.` : ''}${skips}`)
     return
   }
 
@@ -521,24 +629,24 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
   let input = 0
   let output = 0
   let count = 0
-  setState({ shred: { phase: 'Reading', done: 0, total: files.length + 1, pieces: 0 } })
+  setState({ shred: { phase: 'Reading your files', done: 0, total: files.length + 1, pieces: 0 } })
 
-  // Pieces already on the map keep their place and gate through a re-drop.
-  const before = new Set(getState().vault?.pieces.map((p) => p.id))
+  // Pieces already on the map keep their place and area through a re-drop. Those still waiting from a read that stopped don't count: they haven't been sorted.
+  const before = new Set(getState().vault?.pieces.filter((p) => p.gate !== ARRIVALS.id).map((p) => p.id))
   const idMap = new Map<string, string>()
 
   try {
     const result = await shredWithClaude(files, key, model, {
       pieces(pieces, costs) {
         count += pieces.length
-        // Pieces land on the map as they're read, then settle once the map is drawn.
-        updateVault((v) => placeNewPieces(merge(v, { gates: DEFAULT_GATES, pieces, links: [], costs }, idMap)))
+        // Pieces land on the map as they're read, in one place, because nothing has sorted them yet.
+        updateVault((v) => placeNewPieces(merge(v, { gates: [ARRIVALS], pieces: pieces.map((p) => ({ ...p, gate: ARRIVALS.id })), links: [], costs }, idMap)))
         const s = getState().shred
-        if (s) setState({ shred: { ...s, pieces: count } })
+        if (s) setState({ shred: { ...s, pieces: counted() - startedWith } })
       },
       progress(phase, done, total) {
         const s = getState().shred
-        setState({ shred: { phase, done, total, pieces: s?.pieces ?? count, usage: s?.usage } })
+        setState({ shred: { phase, done, total, pieces: s?.pieces ?? 0, usage: s?.usage } })
       },
       usage(i, o) {
         input += i
@@ -553,7 +661,7 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
       const gates = [...v.gates]
       const gateIds = new Map<string, string>()
       for (const g of result.gates) {
-        const same = gates.find((x) => x.name.toLowerCase() === g.name.toLowerCase())
+        const same = gates.find((x) => x.id === g.id) ?? gates.find((x) => x.name.toLowerCase() === g.name.toLowerCase())
         if (same) gateIds.set(g.id, same.id)
         else {
           gates.push(g)
@@ -577,7 +685,7 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
       const named = v.company.name && v.company.name !== 'Untitled company'
       return placeNewPieces({
         ...v,
-        gates,
+        gates: gates.filter((g) => g.id !== ARRIVALS.id || pieces.some((p) => p.gate === ARRIVALS.id)),
         pieces,
         links,
         findings,
@@ -588,13 +696,19 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
 
     const spent = (input / 1e6) * m.input + (output / 1e6) * m.output
     setState({ shred: null })
-    toast(`${plural(result.pieces.length, 'item')} on the map. That cost about $${spent < 0.01 ? '0.01' : spent.toFixed(2)}.${skipped.length ? ` Skipped ${skipped.join(', ')}.` : ''}`)
+    askFit()
+    const unread = result.failed.length ? ` Claude couldn't read ${result.failed.join(', ')}, so ${result.failed.length === 1 ? "it isn't" : "they aren't"} on the map. Add ${result.failed.length === 1 ? 'it' : 'them'} again to try once more.` : ''
+    toast(`${landed()} That cost about $${spent < 0.01 ? '0.01' : spent.toFixed(2)}.${skips}${unread}`)
   } catch (e: any) {
     setState({ shred: null })
-    const status = e?.status
-    if (status === 401) toast('Claude rejected that API key.')
-    else if (status === 429) toast('Claude is rate limiting this key. Try again in a minute.')
-    else toast(e?.message && !status ? e.message : "Couldn't finish reading them. What's on the map so far is saved.")
+    const trouble = claudeTrouble(e)
+    // Nothing landed, so nothing is lost if the same files come straight back with the reason on them.
+    if (!count && originals.length) {
+      setState({ sheet: { kind: 'shred', files: originals, error: trouble } })
+      return
+    }
+    askFit()
+    toast(`${trouble} What was read so far is on the map, in ${ARRIVALS.name}. Add the files again to finish.`)
   }
 }
 
@@ -617,7 +731,7 @@ export function Sheets() {
     case 'add-service':
       return <AddServiceSheet />
     case 'shred':
-      return <ShredSheet files={sheet.files} />
+      return <ShredSheet files={sheet.files} error={sheet.error} />
   }
 }
 
@@ -628,11 +742,12 @@ export function ShredStrip() {
     <div className="shred-strip panel" role="status" aria-live="polite">
       <div className="line">
         <span>{shred.phase}</span>
-        <span>{plural(shred.pieces, 'item')}</span>
+        {shred.pieces > 0 && <span>{plural(shred.pieces, 'item')}</span>}
       </div>
       <div className="shred-bar">
         <i style={{ width: `${Math.round((shred.done / Math.max(shred.total, 1)) * 100)}%` }} />
       </div>
+      <div className="shred-note">Keep this tab open until it's finished.</div>
     </div>
   )
 }

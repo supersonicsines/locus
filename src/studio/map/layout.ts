@@ -135,7 +135,8 @@ function flow(boxes: Box[], width: number, heading: boolean): Block {
     return widths
   }
   const total = (widths: number[]) => widths.reduce((sum, w) => sum + w, 0) + GUTTER * (widths.length - 1)
-  let cols = Math.max(1, Math.min(boxes.length, 5))
+  // More of a kind than a person would count gets more columns, or a long list becomes a very tall thin country.
+  let cols = Math.max(1, Math.min(boxes.length, Math.max(5, Math.ceil(Math.sqrt(boxes.length)) + 2)))
   while (cols > 1 && total(columnWidths(cols)) > width) cols--
   while (cols > 1 && Math.ceil(boxes.length / (cols - 1)) === Math.ceil(boxes.length / cols)) cols--
   const widths = columnWidths(cols)
@@ -209,7 +210,7 @@ interface Island {
 
 const byReading = (a: Box['piece'], b: Box['piece']) => {
   const def = districtOf(a.kind)
-  return def.kinds.indexOf(a.kind) - def.kinds.indexOf(b.kind) || a.title.localeCompare(b.title, 'en', { sensitivity: 'base' })
+  return def.kinds.indexOf(a.kind) - def.kinds.indexOf(b.kind) || a.title.localeCompare(b.title, 'en', { sensitivity: 'base', numeric: true })
 }
 
 /** An area's own arrangement, centred on (0, 0), at whichever width comes closest to the shape the screen wants. */
@@ -365,6 +366,47 @@ function placeInto(piece: Piece, inArea: { piece: Box['piece']; x: number; y: nu
   return spots.find((s) => clear(s.x, s.y)) ?? { x: startX, y: startY + 41 * ROW }
 }
 
+/** The ground an area needs: what's on it, room for its name above, and room across for that name and the line under it. */
+function claimOf(boxes: Rect[]): Rect {
+  const x = Math.min(...boxes.map((r) => r.x))
+  const y = Math.min(...boxes.map((r) => r.y))
+  const w = Math.max(LEAST_ACROSS, Math.max(...boxes.map((r) => r.x + r.w)) - x)
+  const bottom = Math.max(...boxes.map((r) => r.y + r.h))
+  return { x, y: y - NAME_ROOM - world(20), w, h: bottom - y + NAME_ROOM + world(20) }
+}
+
+/**
+ * Where a new area goes, among those already there: beside or under one of them, wherever nothing's in the way and the whole map comes closest to the shape of the room.
+ * Always beside the end of a row would give a long thin sausage, with no room for any name.
+ */
+function beside(claimed: Rect[], island: Island, room: number): { centre: { x: number; y: number }; claim: Rect } {
+  const w = Math.max(island.w, LEAST_ACROSS)
+  const h = island.h + NAME_ROOM + world(20)
+  const clear = (x: number, y: number) =>
+    !claimed.some((c) => x < c.x + c.w + AREA_GAP && x + w + AREA_GAP > c.x && y < c.y + c.h + ROW_GAP && y + h + ROW_GAP > c.y)
+  const left = Math.min(...claimed.map((c) => c.x))
+  const right = Math.max(...claimed.map((c) => c.x + c.w))
+  const top = Math.min(...claimed.map((c) => c.y))
+  const bottom = Math.max(...claimed.map((c) => c.y + c.h))
+  const spots: [number, number][] = [[right + AREA_GAP, top], [left, bottom + ROW_GAP]]
+  for (const c of claimed) spots.push([c.x + c.w + AREA_GAP, c.y], [c.x, c.y + c.h + ROW_GAP])
+  let best: [number, number] = spots[0]
+  let bestScore = Infinity
+  for (const [x, y] of spots) {
+    if (!clear(x, y)) continue
+    const across = Math.max(right, x + w) - Math.min(left, x)
+    const down = Math.max(bottom, y + h) - Math.min(top, y)
+    // The room's shape first, and between two as good, the one that leaves the least empty corner.
+    const score = Math.abs(Math.log(across / down) - Math.log(room)) + 0.15 * ((across * down) / ((right - left) * (bottom - top) + w * h) - 1)
+    if (score < bestScore) {
+      bestScore = score
+      best = [x, y]
+    }
+  }
+  const [x, y] = best
+  return { centre: { x: x + island.w / 2, y: y + NAME_ROOM + world(20) + island.h / 2 }, claim: { x, y, w, h } }
+}
+
 /**
  * Gives every unplaced item a position. Mutates nothing: returns the positions that changed.
  * A map still as it was drawn is drawn again with the newcomers in it, so it stays in order.
@@ -405,13 +447,15 @@ export function layoutPieces(gates: Gate[], pieces: Piece[], opts: { reflow?: bo
     return out
   }
 
-  // A new area on a map that already has land goes beside it, not on top of it.
-  let east = -Infinity
-  for (const p of pieces) if (isPlaced(p)) east = Math.max(east, footprint(p, p.x!, p.y!).x + footprint(p, p.x!, p.y!).w)
+  // A new area on a map that already has land goes where the map stays the shape of the screen, not on top of anything.
+  const claimed = gates.flatMap((g) => {
+    const here = inGate(g.id).filter(isPlaced)
+    return here.length ? [claimOf(here.map((p) => footprint(p, p.x!, p.y!)))] : []
+  })
   for (const f of fresh) {
-    const across = Math.max(f.island.w, LEAST_ACROSS)
-    write(f.island, { x: east + AREA_GAP + f.island.w / 2, y: 0 })
-    east += AREA_GAP + across
+    const at = beside(claimed, f.island, opts.room ?? (wide ? 1.45 : 0.6))
+    write(f.island, at.centre)
+    claimed.push(at.claim)
   }
 
   // New items in areas that are already drawn keep what's there where you know it.
@@ -528,7 +572,12 @@ function groundOf(own: { piece: Box['piece']; x: number; y: number }[], nameRoom
   const top = Math.min(...main.map((o) => o.y)) - ROW / 2 - (own.length >= HEADINGS_FROM ? HEADING : 0)
   // A fixed width and not the name's own, or renaming an area would move its border. No wider than what's under it, or it would take a neighbour's land.
   const under = Math.max(...main.map((o) => footprint(o.piece, o.x, o.y).x + footprint(o.piece, o.x, o.y).w)) - left
-  rects.push({ x: left, y: top - nameRoom, w: Math.min(nameAcross, Math.max(under, NAME_ACROSS)), h: nameRoom })
+  const across = Math.min(nameAcross, Math.max(under, NAME_ACROSS))
+  // A few short names don't fill that width. Half the spare goes on the left, so they stand in the middle of their land and not against one side of it.
+  const from = left - (across - Math.min(across, under)) / 2
+  // The line under the name takes the width. The air above the name doesn't need it, and a square top makes a county bulge up between its neighbours.
+  rects.push({ x: from, y: top - nameRoom * 0.6, w: across, h: nameRoom * 0.6 })
+  rects.push({ x: from, y: top - nameRoom, w: across * 0.55, h: nameRoom * 0.4 })
   return rects
 }
 
@@ -571,6 +620,22 @@ function groundNoise(seed: number, wavelength: number) {
     const top = corner(i, j) * (1 - sx) + corner(i + 1, j) * sx
     const bottom = corner(i, j + 1) * (1 - sx) + corner(i + 1, j + 1) * sx
     return top * (1 - sy) + bottom * sy
+  }
+}
+
+/**
+ * Noise whose zero crossings don't come at even intervals. One layer's crossings are nearly evenly spaced, and a crease along them turns a shore into the edge of a stamp.
+ * A second layer at a length that doesn't divide into the first breaks that up, and a slow third stretches and squeezes both.
+ */
+function uneven(seed: number, wavelength: number) {
+  const a = groundNoise(seed, wavelength)
+  const b = groundNoise(seed + 101, wavelength * 0.618)
+  const warpX = groundNoise(seed + 102, wavelength * 2.3)
+  const warpY = groundNoise(seed + 103, wavelength * 2.3)
+  return (x: number, y: number) => {
+    const u = x + warpX(x, y) * wavelength * 0.8
+    const v = y + warpY(x, y) * wavelength * 0.8
+    return a(u, v) * 0.72 + b(u, v) * 0.42
   }
 }
 
@@ -657,15 +722,19 @@ const LAND = {
   seed: 23,
   /** How far land runs on past what's on it, before anything else. */
   base: 34,
-  wander: [[620, 60], [260, 30]],
+  wander: [[620, 46], [260, 24]],
   /** Headlands: wavelength, how far out, how narrow. */
-  heads: [[360, 62, 5], [170, 34, 5]],
+  heads: [[360, 48, 5], [170, 28, 5]],
   /** Inlets: wavelength, how far in, how narrow. */
   lochs: [[340, 170, 7], [160, 110, 6.5], [74, 46, 4.5], [34, 14, 3]],
   /** The hand: wavelength and size. */
   fine: [[9, 1.5], [18, 2.8], [42, 5]],
   /** Water narrower than twice this between things on the land is filled in, until an inlet says otherwise. */
   closing: world(90),
+  /** Water narrower than twice this is land: a firth ends in a head, not a hairline. */
+  narrowest: 13,
+  /** The shortest coast worth drawing. Anything less is a speck that reads as a stray mark, and nothing on the land is ever this small. */
+  shortest: 340,
   /** The least margin around what's on the land, whatever else happens. */
   hard: 20,
   /** The margin it usually gets, and how much that wanders, slowly and quickly. */
@@ -687,7 +756,8 @@ function reachOf(size = 1) {
   const t = LAND
   const wander = t.wander.map(([length, a], i) => ({ n: groundNoise(t.seed + 1 + i, length), a }))
   const heads = t.heads.map(([length, depth, sharp], i) => ({ n: groundNoise(t.seed + 11 + i, length), depth, sharp }))
-  const lochs = t.lochs.map(([length, depth, sharp], i) => ({ n: groundNoise(t.seed + 21 + i, length), depth, sharp, i }))
+  // The long firths keep their own layer, because that's what gives the country its shape. It's the short creases that come out even.
+  const lochs = t.lochs.map(([length, depth, sharp], i) => ({ n: i < 2 ? groundNoise(t.seed + 21 + i, length) : uneven(t.seed + 21 + i, length), depth, sharp, i }))
   const busy = groundNoise(t.seed + 31, 520)
   return (x: number, y: number) => {
     let r = 0
@@ -757,8 +827,26 @@ function coastField(rects: Rect[], minX: number, minY: number, n: number, m: num
       field[k] = smax(kept, reach(x, y) - closed, t.soft)
     }
   }
+  // In this order, because closing a narrow mouth can leave what's behind it as a lake.
+  closeNarrows(field, n, m, Math.max(1, Math.round(t.narrowest / cell)), cell)
   fillLakes(field, n, m)
   return field
+}
+
+/**
+ * Water too narrow to read as water becomes land, so a firth ends in a rounded head and not a long sliver.
+ * It's a morphological opening of the sea: shrink it, grow it back, and whatever didn't come back was narrower than that.
+ */
+function closeNarrows(field: Float32Array, n: number, m: number, radius: number, cell: number) {
+  const fromLand = new Float32Array(n * m)
+  for (let k = 0; k < n * m; k++) fromLand[k] = field[k] > 0 ? 0 : 1e6
+  chamfer(fromLand, n, m)
+  const fromCore = new Float32Array(n * m)
+  for (let k = 0; k < n * m; k++) fromCore[k] = fromLand[k] > radius ? 0 : 1e6
+  chamfer(fromCore, n, m)
+  for (let k = 0; k < n * m; k++) {
+    if (field[k] <= 0 && fromCore[k] > radius) field[k] = cell * 0.5
+  }
 }
 
 /**
@@ -868,7 +956,7 @@ export function landShape(gates: Gate[], items: { piece: Box['piece']; gate: str
   const m = Math.ceil((bottom + pad - minY) / cell)
   // A few things don't need a country: the land's features are drawn smaller, so it stays about what's on it.
   const landField = coastField(all, minX, minY, n, m, cell, clamp(longest / 1400, 0.45, 1))
-  const coast = traceCoast(landField, minX, minY, n, m, cell, 90)
+  const coast = traceCoast(landField, minX, minY, n, m, cell, t.shortest)
 
   // The areas, on a coarser grid, because a border has no fine detail. Their fields are read through a slow warp, so a border wanders as one does, and the warp dies away near what's on the land.
   const size = cell * 2
@@ -942,7 +1030,8 @@ export function landShape(gates: Gate[], items: { piece: Box['piece']; gate: str
     const out: number[][][] = []
     for (const polygon of contours().size([cn, cm]).smooth(true).thresholds([0])(f as unknown as number[])[0].coordinates as number[][][][]) {
       for (const raw of polygon) {
-        const line = generalise(resample(raw.map(([x, y]) => [x * size + minX, y * size + minY]), 5), 1.6)
+        // Smoothed enough that where three areas meet there's no spike. More than this rounds each corner away from the others, and leaves a white chip in the middle of a junction.
+        const line = generalise(resample(raw.map(([x, y]) => [x * size + minX, y * size + minY]), 5), 2.5)
         line.push(line[0])
         out.push(line)
         // Each stretch of border is shared by two areas. Whichever comes first draws it, so a dashed line doesn't lay itself over itself.

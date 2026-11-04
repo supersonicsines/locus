@@ -9,7 +9,7 @@ import { PIECE_KINDS } from '../../core/types.ts'
 import { changePiece, deletePiece, setCost } from '../actions.ts'
 import { KIND_LABELS } from '../map/symbols.ts'
 import { setState, useStore } from '../store.ts'
-import { GrowingText, Icon, Markdown, NeedActions, NeedMark, PieceMark, plural, useEscape } from './bits.tsx'
+import { GrowingText, Icon, Markdown, NeedActions, NeedMark, PieceMark, plural, useEscape, usePanelFocus } from './bits.tsx'
 import { contentOf } from './data.ts'
 
 const LINK_NOTE: Record<string, string> = { conflicts: 'Conflicts', governs: 'Governs', uses: 'Uses' }
@@ -127,6 +127,7 @@ export function Peek() {
   const close = () => setState({ selected: null })
   useEscape(close, !!selected)
   useEffect(() => setEditingBody(false), [selected])
+  const focusRef = usePanelFocus(selected)
 
   if (!content || !selected) return null
   const piece = content.pieces.find((p) => p.id === selected)
@@ -138,7 +139,7 @@ export function Peek() {
   const cost = costs?.find((c) => c.piece === piece.id) ?? null
 
   return (
-    <aside className="side panel" aria-label={piece.title} key={piece.id}>
+    <aside className="side panel" aria-label={piece.title} key={piece.id} ref={focusRef} tabIndex={-1}>
       <div className="side-head">
         <span className="piece-kind grow">
           <PieceMark kind={piece.kind} name={piece.title} size={piece.kind === 'service' ? 20 : 14} />
@@ -207,11 +208,24 @@ export function Peek() {
             onClick={(e) => {
               if ((e.target as HTMLElement).tagName !== 'A' && !readOnly) setEditingBody(true)
             }}
+            {...(readOnly
+              ? {}
+              : {
+                  tabIndex: 0,
+                  role: 'button',
+                  'aria-label': 'Edit the detail',
+                  onKeyDown: (e: React.KeyboardEvent) => {
+                    if (e.target === e.currentTarget && e.key === 'Enter') {
+                      e.preventDefault()
+                      setEditingBody(true)
+                    }
+                  },
+                })}
           >
             <Markdown text={piece.body} />
           </div>
         ) : !readOnly ? (
-          <div className="piece-body placeholder" onClick={() => setEditingBody(true)}>Add detail</div>
+          <button className="piece-body placeholder" onClick={() => setEditingBody(true)}>Add detail</button>
         ) : null}
 
         <dl className="props">

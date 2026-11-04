@@ -589,3 +589,198 @@ Dropping costs more, because the whole country is one field and it's all rebuilt
 - On a phone a kind's line can drop out with nothing to say so. Engineering shows Tools and its pins, and not Rules, Plans or Facts. "For Accountant" touches the coast under Money.
 - The stray mark in the list of needs was seen once, in this round's first run on Round 3's build. A fresh run shows nothing on either build, and no after shot has it. Unexplained.
 - `docs/PRD.md` still says territories are drawn as topographic contours, which stopped being true in Round 3.
+
+## Round 5: the whole journey
+
+Walked as a stranger, from nothing to an AI tool reading the map, and on past that. `<QA>/journey.mjs` is the walk and `<QA>/r5-more.mjs` the paths it doesn't reach. Both start their own host, because one step of the walk is the host going away, and both write every word on screen to a file. There's no real Anthropic key here, so everything about Claude is the real SDK under the real CSP talking to canned answers. Nothing about Claude's real output is known.
+
+**The words now. Later rounds work from this.** Internals keep their names.
+
+| The UI says | It used to say | The code and `SECURITY.md` say |
+| --- | --- | --- |
+| Recovery key | Owner key | owner key |
+| Let AI tools in the cloud read this | Remote access | remote |
+| Rings, Discs | Soundings, Towns | soundings, towns |
+| Connect this reader, or How to connect them before going live | Password and setup | share panel |
+| Read it with Claude, Sort it here with no AI | Read with Claude, Sort here | shred |
+| Change it | Rotate it | |
+| New arrivals, for items read but not sorted yet | Everything landed in Product | `arrivals` gate |
+
+**What I saw, worst first.** Written down before any code changed. The whole list is in `<QA>/rounds/r5/DISSECTION.md`.
+
+**How that list started, because it overstated what I'd read.** Its first line said every image had been opened. I had opened 27 of the 52 BEFORE harness shots and a selection of the walks, not all. I corrected the file. Older images also drop out of an agent's context in this environment, so the visual details in it come from reading them at the time, and I re-read only the seven it leans on hardest.
+
+1. Critical. The first file's sheet stopped a stranger dead: Claude chosen by default, the key blank, the button grey, nothing saying why or where a key comes from.
+2. Critical. An unreadable file looked exactly the same, with no word that it couldn't be read.
+3. Critical. A read finished with most of the map off screen, because the camera never refitted.
+4. Critical. A file dropped on the sample mixed real documents into a made-up company, silently, and that could go live. Nothing on the sample's screen said how to start your own.
+5. Critical. A long file silently lost nearly everything. 30 MB became 60 items holding 61,380 characters, and the toast said "60 items on the map."
+6. Critical. Connecting wasn't written for someone who hasn't heard of MCP. It opened with a password and a switch, then a mono command broken mid-word, with no steps. Before going live it printed a command for an address that doesn't exist. On a local address it told you to paste a URL Claude's servers can never reach.
+7. Critical. The password was masked and then printed in full 30 px below.
+8. Critical. There was no way to change a password.
+9. Critical. The country failed at five small areas added by hand: names cut to one letter, a long sausage.
+10. High. Failures threw your work away and named the wrong cause. Rate limits, overload and no network all said "Claude couldn't read a, b, c".
+11. High. Go live's button said "Save your key to continue" when the real block was the address, and with the host gone it went grey in silence.
+12. High. An image with no AI, or an empty file: "0 items on the map."
+13. High. Empty areas were counted and offered. "2 of 6 areas" on a map showing fewer, and searching "delete" listed invisible areas, where Enter deleted Product when I had just emptied Partners.
+14. High. An area couldn't be deleted from its own panel.
+15. High. Jargon, and neighbours saying one fact in different words.
+16. High. A lock page asked for a password for a map that doesn't exist.
+17. High. Live with changes said how many and not what, and Update confirmed nothing.
+18. High. Nothing said what the dots mean.
+
+**The journey, as it now goes.**
+
+| Step | What happens |
+| --- | --- |
+| Arrive | One sentence, Choose files, See an example |
+| The sample | A sentence saying it's made up, and Start your own map. A file dropped on it starts your own map and leaves the sample alone |
+| First file | No AI is chosen, so the first press works. Claude is one click away and says where to get a key and what it costs |
+| A read | Items gather in New arrivals with "Reading your files, 3 of 7 done", then the map is drawn whole and fitted |
+| Review | The list says what's waiting and why. A rule or an MCP server from a document stays out until approved. Pointing at a dot says what it's about |
+| Readers | Add one, name it, click areas on the map or flip its switches, See what they read |
+| Going live | The button says the one thing still in the way. The toast offers Connect, or Add a reader |
+| Connecting | Numbered steps, one tab per tool plus A person, a Copy button, and what you're trusting the host with |
+| After | A hollow dot, what isn't live on a click, Update, and a toast saying it worked. Make a new password. Remove this reader |
+
+**What changed.** Beyond the table above.
+- The shred sheet leads with what works now, has its own page for a pile it can't read at all, and says why a key looks wrong.
+- A Claude failure with nothing read reopens the sheet with the files, the key and the real reason on it. One after items landed says what's on the map and what to do.
+- Every file that isn't sorted is named. A file too long to sort keeps a note under what needs you. 200 sections from one file, up from a silent 60.
+- A panel takes keyboard focus when it opens and gives it back when it closes. Add detail and a body with words in it can be reached and opened from the keyboard.
+- Tidy up is in the company menu as well as ⌘K, and Delete this area is in the area's panel, with Undo.
+- Toasts stay long enough to read the sentence.
+- ⌘K says "say what you want to do", and "delete" found nothing once the empty areas' lines went, so it now offers Delete this map, which asks first.
+- Areas you can't see aren't counted or offered. Money stays while there are prices, because it's the only way to give someone the bill.
+- A new area on an arranged map goes where the map stays the shape of the room, not on the end of a row.
+- Neighbouring lines of one kind shorten together, so one fact has one wording across the map.
+- The wax stays below a name and its line. A short area name is never cut.
+- Coast: short creases come from `uneven` noise, narrow water closes up, specks go, wander and headlands are smaller, and borders are smoother where three areas meet. A name's ground tapers at the top.
+- A map that would almost fit whole, land included, now does.
+- "No prices yet" where nothing has a known price, in place of "$0".
+
+**A false statement or two.** The trap from Rounds 1 and 2 again. All checked against `SECURITY.md`.
+- "The host decrypts it in memory for each request, then forgets." Nothing can prove that of a host, and `SECURITY.md` doesn't claim it. Now it says you're trusting the host with this password.
+- Self-hosting "has no limits". `serve` has a 200 MB limit. Now "no limit on accounts".
+- Deleting a live map meant "every password stops working". An old bundle someone saved still opens. Now "no password can read it there. Anything readers already saved, they keep."
+- A person's link said the password is after the #, "which browsers never send to the host". True, and it read as if you needn't trust the host, when the page itself comes from it. Now it says so.
+- Go live said "nothing opens until you give someone a password", when readers may already have theirs. Now "nothing opens without a password".
+
+**Live and current against live with changes: my ruling after using it.** Good enough for now, and still not a different picture. The pill now differs by a hollow dot, the words, a list on click, and a black button. At 480 px and blurred the two states are still the same picture (`22b-states-blur`, the last row against the row above it). I kept it quiet on purpose. Words that are out of date aren't a risk, and the case that is, someone still able to read what you closed, has its own yellow picture. Making the whole page louder for an ordinary edit would teach people to ignore amber. Where it fails is coming back after a week, when the pill is the only sign. Round 7 should judge that again.
+
+**Decisions and why.**
+- **No AI is the default unless a key is already saved or only Claude can read the pile.** The first press has to work. This reverses the old default, and it means the worse map is the one a stranger sees first. The sheet says Claude's is better.
+- **A new password is a new id.** The old id is what the live copy knows, so until the update lands the map says the old one still works. Reader, areas and colour stay.
+- **The cost button's dot is gone**, which overturns Round 2. It meant "price note inside", and the same dot on the map means "worth a look". Price notes stay under the prices.
+- **A dot explains itself on hover, for the owner only.** A reader's view has no vault, so it can't show one. A phone has no hover, and tapping opens the item.
+- **Passwords are covered in the commands too.** Show uncovers both, and Copy always gives the real thing.
+- **`MAP_LAYOUT` and `SAMPLE_LAYOUT` stay.** No positions change on the sample. Only land does, and land is drawn from positions, so every map's coast moves a little on opening.
+
+**Bugs this round found, older than it.**
+- An area you renamed got a twin with the same id when more files arrived, because `merge` matched by name alone. A new test failed on it first.
+- Pressing New map twice made two empty maps.
+
+**Mistakes in my own work, caught on the screen or by a test.**
+- Quieting the failure toast while revoking also lost Load it when another device was ahead, which is the only way out. Caught reading the code, and `r5-more.mjs` walks two devices.
+- Undo on a deleted area restored the whole old list of passwords. Delete an area, remove a reader within eight seconds, press Undo, and the next update would have made a revoked password work again. Found by reading my own code. There's a test, and `r5-more.mjs` walks it: 401 after Undo and after Update.
+- A regex removing `.cost-dot` took the rule after it with it, which would have put the live pill and Add back on phones. Caught in the diff.
+- The remember switch on the Claude sheet took its default from the key held in memory, so a retry after a failure turned it on and saved a key nobody asked to save. Caught on the sheet, and the walk now reads the browser's storage.
+- My first failure wording said Claude was overloaded for every 5xx.
+- A retry after the last step failed left the old failure's toast beside the new success. So did an update that fixed "couldn't reach the host".
+- Applying `uneven` to every inlet lost the country's long firths. It's only on the short creases now.
+- Evening out margins by reducing wander: see below. Reverted.
+
+**The drawing.** Four things from the orchestrator's own look, with before and after side by side in `<QA>/rounds/r5/compare`.
+
+| Item | Result |
+| --- | --- |
+| Firth ending in a sliver | Fixed. It ends in a rounded head. The cost is a shorter firth, and Round 4 called that its strongest single feature |
+| People's bulge | Reduced to a shoulder at the north-east corner, not gone |
+| Engineering's even lobes | Smaller and less regular. The shore is still nervous, so not solved |
+| Content far from the coast in some counties | Not fixed. See below |
+
+Margins, in world units on the sample, sea-facing sides only and measured to the land's furthest reach: 58 to 137 before, 51 to 123 after, a spread of 78 and then 71. I tried cutting the wander and the margin's slow variation further. The spread stayed 71 and the tightest shore fell to 44, so every margin came down and none evened out. I reverted it. The two widest are Brand's and Legal's west shores, and Brand's runs under the card. Truly even margins mean a line at one distance from the content, which is the pebble Round 4 got rid of.
+
+**Did the country hold?** Yes, better than I expected, and nothing in the walk argues for islands. Plainly:
+
+| Shape | How it reads |
+| --- | --- |
+| Empty | The same coast at the corners of the sheet. Calm |
+| One item, three items | A small island with a plain edge. It no longer reads as a torn scrap, though there's more land to the right of the content than it needs |
+| Two areas | A peanut with a waist at the border. It reads as intended, barely |
+| Four small areas fresh from files | A T with thin arms, because a row of three sits on a row of one. It holds together, and it's a shape nobody would choose |
+| Three to five added by hand | Two columns with names whole. It was a sausage with names cut to one letter. Rows of different lengths leave a square notch in one corner, which is the weakest shape it makes |
+| Six, from real documents | As good as the sample |
+| 300 items | Unchanged and fine |
+
+What jumps is the real weakness. A map nobody has rearranged is redrawn whole with each file: 5 of 5 items moved up to 275 units on the second file, 9 of 9 up to 525 on the third, 19 of 19 up to 274 on the sixth. Smaller files moved less: an invoice that added one item moved nothing, and a tokens file moved 4 items up to 72. On a map someone has touched, a new area moved nothing and deleting one moved nothing. At the end of a read everything leaves New arrivals at once. I made land and marks change together, so nothing slides under a name that has already gone, and the map refits. It's still a jump, and it's Round 3's bargain: order before place, until someone has touched it. Round 6 owns how that moves.
+
+**Round 4's other questions.**
+- Items with no price can't be clicked while prices show, tried on screen. A click there opens the area, whose panel lists them, so nothing is out of reach.
+- An old live map keeps its scatter, and Tidy up is now in the menu you'd look in.
+- Keyboard: a new note's title, then Summary, Add detail, Area and Delete, then out to the page. Esc goes back to Add. It isn't a focus trap, on purpose, because the panel isn't modal. Focus order in the sheets wasn't audited.
+
+**What a reader got.** With what the page gives you to copy, on a local host: the Claude Code command's process, run from `dist` because `npx` can't fetch vadere until it's on npm, the Cursor settings' address and header, the connector URL, the text for any AI tool, and the link for a person. Each read only its areas. A proposed rule wasn't among its rules and a proposed server's URL appeared nowhere, until approved. A rejected rule stayed out. A local-only reader was refused by the host with a 403. A new password gave the old one a 401 and the new one a 200. A removed reader got a 401, a deleted map a 404. A device that was behind was refused, the reader the other device removed stayed removed, and Load it brought the newer map.
+
+**Traps for later rounds.**
+- Older images drop out of an agent's context here, in long sessions. Write down what you see straight after each batch, and read a final build's shots in small batches. Don't say "every image read" from memory.
+- `journey.mjs <out> <port> [parts]` starts its own host, so the port must be free. `JOURNEY_DARK=1`, `JOURNEY_W` and `JOURNEY_H` change the window. It logs any request leaving the machine as an error.
+- The SDK retries a 5xx three times by itself, so a mock has to fail more than once to fail at all.
+- Toast length now depends on the sentence, about 70 ms a character. A script waiting for one to go may need longer than it did.
+- `whatChanged` and `pending().changes` count differently on purpose: deleted items are one line and many changes.
+- Items in `arrivals` don't count as already placed, so a retry sorts them. If that gate outlives a read, it's a real area, closed to everyone.
+- `usePanelFocus` reads the opener while rendering, once. By the time an effect runs, a field may have taken focus.
+- `LAND.narrowest` closes water after the field is built, and `fillLakes` has to come after it, because closing a mouth can leave a lake behind it.
+- One tight county shortens every neighbour's line of the same family. That's the point, and it's why a laptop says "For 2 readers" twice.
+- `areasOnMap` is what the UI counts. `vault.gates` still holds all six.
+- `flow4`, `flow5`, `cross` and `touch2` still use old selectors. `shots.mjs` and `stress.mjs` are updated.
+
+**Frame rate.** 300 items, 60 services, 374 links, 1440x900 at 2x, headless Chrome, capped. JS time and frame spacing, not paint on a real GPU. These ran a build or two before the last. What changed after them doesn't touch the land or the drawing loop, and I didn't run them again. My output cut off the first line, so there's no figure for panning at fit at 1x.
+
+| | Round 4 | Round 5 |
+| --- | --- | --- |
+| Pan and zoom, capped | 60fps, none over 20 ms | 60fps, one frame over 20 ms in all, panning close at 4x CPU |
+| Worst JS frame zooming, 4x | 9.4 to 12 ms | 13 ms |
+| Dropping an item, sample and 300 items, 1x and 4x | 51 to 85 ms, and 179 to 241 ms | 58 to 100 ms, and 218 to 293 ms |
+
+Dropping costs more. I'd put that on closing narrow water, which adds passes over the whole field, but I didn't profile it. A slow machine can feel it, and the obvious fix is still rebuilding only a window round the change.
+
+**Verified.** Real Chrome on the shipped build, with no page errors in any walk and no request leaving the machine except the mocked one to Anthropic. The walk has 158 shots. Errors walked: a wrong password, nonsense in the password box, a password from before a new one, an address with nothing at it, xlsx, zip, a broken PDF, a broken Word file, an empty file, an image, a mixed pile, a 30 MB file, a map over the 10 MB limit, a key of the wrong shape, a rejected key (mock), a rate limit (mock), a 529 (mock), no network to Claude (mock), one file failing and the last step failing (mock) and then the retry, the host stopped while checking a name and on Update and on removing a reader and on a new password, the browser offline on Update and delete and on the lock page, a name taken, a name reserved, every account taken, and two devices. A real PDF and a real Word file with no AI, both read and sorted, and a PDF with no text, which opens on Claude and says why no AI can't help. Also: dark mode for the first file, readers, going live and errors. Firefox and WebKit: main page, prices and the big map, with no request leaving the machine. WebKit logged the one `page.screenshot` line from earlier rounds. 124 tests pass, 8 more than Round 4, and types are clean. `seal.ts`, `agent.ts`, `mcp.ts`, the CSP and the dependencies are untouched. In `app.ts` only the wording of five errors changed.
+
+**What I read and what I didn't.** The brief says every shot. I fell short of that, and these are the real figures.
+- BEFORE harness: 27 of 52. The other 25 were never opened: 08, 09b, 09c, 18b, the eight state tiles at full size, 23b, 23c and eleven area crops.
+- AFTER harness: all 52. 11 on the last build, and the other 41 on one of the two builds before it, which differ from it in wording, the no-prices button and Undo.
+- The walk: 80 of its 158 shots on its last two runs, some of the rest on earlier builds, and the others only through their words. The long sentences and labels across all 158 were read from `words.txt`, with item titles filtered out. Tooltips aren't in that file, so I read those in the code.
+- One line changed after all of that, Delete this map in ⌘K, and `r5-more.mjs` walks it. The walk's own `j10` shot is from before it.
+
+**Not verified.**
+- No real person has seen this. Whether someone who has never heard of MCP can connect a tool from these steps is my judgement.
+- A real Claude run, so real output, real timing, real errors and whether the 400 for no credit, the 403 and the 413 say what I wrote. Those three weren't walked at all.
+- `npx -y vadere`, because it isn't on npm: the command on the Claude Code tab fails today, for anyone. I ran the same code from `dist`.
+- `claude mcp add` itself. I read its help and compared the syntax, and didn't run it, because it would change this machine's settings.
+- Claude's Settings, Connectors path and the Cursor file: wording carried over from before, not walked in either product.
+- A public host over HTTPS. Every address here was local.
+- Closing the tab or reloading during a read. A file over 30 MB. An item dragged far enough to get its islet, this round.
+- A real scanned PDF or a long one. The PDF and the Word file here are small ones I made, and the PDF with no text is a blank page.
+- `docs/design/dollar-overlay.md` still says Soundings and Towns. The operator's choice between them is now on screen as Rings and Discs.
+- Real Safari, a real phone, pinch, Windows and a screen reader. Focus order in the sheets. On a phone I only looked at the sample and the connect panel.
+- Going live from ⌘K during a read: Go live's button is off then, and that path isn't.
+
+**Accepted.**
+- "Updated. Your readers get this the next time they read the map." A local process rereads at most once a minute, and a saved `vadere pull` stays as it was until pulled again.
+- The Money switch can show on a map with no Money land, when services elsewhere have prices.
+- Making a new password says "New password for" and "Removed" for one reader if the update fails, which is two lines for one act.
+
+**Worst thing left.** The default connect tab. Someone who has never heard of MCP gets Claude Code first, which means a terminal, and today that command fails because the package isn't published. The steps are right and the first one still assumes a person I wasn't asked to assume. A plainer default, or choosing by asking what they use, is worth a look once it's on npm.
+
+**Also left.**
+- Each file redraws an untouched map, above.
+- Margins, the lobes on Engineering's east shore and People's shoulder, above.
+- A map stays zoomed where a search took you after you close the item.
+- The new `New arrivals` county is the only hint of what a read is doing, and it looks like any other area.
+- Going live on a local address gives a map nobody else can reach. The panel says so, and the Go live sheet doesn't.
+- The T above, and the square notch on five areas.
+- On a small map from real documents the firth's mouth can curl into a little hook, as between Product and Engineering in the walk's `c10`.
+- With no AI, a shouted heading stays a shouted title: SUPPLIER AGREEMENT, HIRING PLAN. Honest about being rougher, and not pretty.
+- ⌘K knows few words. "Password" finds nothing, and neither does "connect".
+- Inside a county, place still only means what kind of thing. Round 4's worst thing still stands.

@@ -144,6 +144,8 @@ export interface ClaudeResult {
   costs: Cost[]
   findings: Finding[]
   company?: { name: string; about: string }
+  /** Files Claude couldn't read, so aren't on the map. */
+  failed: string[]
 }
 
 export interface ShredEvents {
@@ -269,8 +271,11 @@ export async function shredWithClaude(files: Extracted[], apiKey: string, model:
   const pieces: Piece[] = []
   const costs: Cost[] = []
   const failed: string[] = []
+  // If every file fails, it's rarely the files. The last reason is the one worth saying.
+  let lastFailure: unknown = null
   let done = 0
-  events.progress('Reading', 0, readable.length + 1)
+  const ofFiles = () => (readable.length === 1 ? 'Reading your file' : `Reading your files, ${done} of ${readable.length} done`)
+  events.progress(ofFiles(), 0, readable.length + 1)
 
   // Reader: a few at a time, so a big pile doesn't hit rate limits.
   const queue = [...readable]
@@ -286,20 +291,22 @@ export async function shredWithClaude(files: Extracted[], apiKey: string, model:
         events.pieces(result.pieces, result.costs)
       } catch (e) {
         if (e instanceof Anthropic.AuthenticationError) throw e
+        lastFailure = e
         failed.push(file.name)
       }
       done++
-      events.progress(`Read ${file.name}`, done, readable.length + 1)
+      events.progress(ofFiles(), done, readable.length + 1)
     }
   }
   await Promise.all([worker(), worker(), worker()])
 
   if (!pieces.length) {
-    throw new Error(failed.length ? `Claude couldn't read ${failed.join(', ')}.` : 'There was nothing to read in those files.')
+    if (lastFailure) throw lastFailure
+    throw new Error('There was nothing to read in those files.')
   }
 
   // Cartographer: sees the whole pile at once.
-  events.progress('Drawing the map', done, readable.length + 1)
+  events.progress('Sorting it into areas', done, readable.length + 1)
   const index = pieces.map((p) => ({ id: p.id, kind: p.kind, title: p.title, summary: p.summary, file: p.source?.file }))
   const map = await ask(
     client,
@@ -353,6 +360,7 @@ export async function shredWithClaude(files: Extracted[], apiKey: string, model:
     links,
     costs,
     findings,
+    failed,
     ...(map.company_name ? { company: { name: String(map.company_name).replace(/\s+/g, ' ').trim().slice(0, 80), about: String(map.company_about ?? '').replace(/\s+/g, ' ').trim().slice(0, 240) } } : {}),
   }
 }

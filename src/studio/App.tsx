@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toCheck } from '../core/money.ts'
-import { levelOf, needs, sortNeeds, type NeedLevel } from '../core/status.ts'
+import { levelOf, needs, sortNeeds, type NeedKind, type NeedLevel } from '../core/status.ts'
 import { dismissToast, loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
 import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
@@ -58,8 +58,36 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
   },
 }
 
+const NEED_WORDS: Record<NeedKind, string> = {
+  exposure: 'Still readable',
+  secret: 'Exposed secret',
+  proposal: 'Waiting for your approval',
+  conflict: 'Contradiction',
+  gap: 'Missing',
+  due: 'Coming up',
+  stale: 'Out of date',
+}
+
+/** Point at an item with a mark on it and this says what the mark is about, so the mark doesn't need explaining anywhere else. */
+function MapTip({ tip }: { tip: { id: string; x: number; y: number } | null }) {
+  const vault = useStore((s) => s.vault)
+  const selected = useStore((s) => s.selected)
+  if (!tip || !vault || selected === tip.id) return null
+  const need = sortNeeds(needs(vault)).find((n) => n.pieces.includes(tip.id))
+  if (!need) return null
+  // Beside the pointer, on whichever side has room.
+  const style = { left: Math.min(tip.x + 14, window.innerWidth - 316), top: tip.y + 300 > window.innerHeight ? undefined : tip.y + 16, bottom: tip.y + 300 > window.innerHeight ? window.innerHeight - tip.y + 12 : undefined }
+  return (
+    <div className="map-tip panel" style={style} role="tooltip">
+      <b>{NEED_WORDS[need.kind]}</b>
+      {need.message}
+    </div>
+  )
+}
+
 function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const [tip, setTip] = useState<{ id: string; x: number; y: number } | null>(null)
 
   useLayoutEffect(() => {
     const canvas = ref.current!
@@ -75,6 +103,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
         else if (s.panel === 'area') setState({ area: null, panel: null })
       },
       gateHover: (gate) => setState({ hoverGate: gate }),
+      itemHover: (id, x, y) => setTip(id ? { id, x, y } : null),
       pieceMoved: (id, x, y, gate) => movePiece(id, x, y, gate),
       cameraChanged: (k, fitK) => {
         const s = getState()
@@ -165,6 +194,11 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   useEffect(() => map.current?.setActiveArea(panel === 'area' ? area : null), [panel, area, map])
   useEffect(() => map.current?.setDollars(dollars, style, period), [dollars, style, period, map])
 
+  const fitAsk = useStore((s) => s.fitAsk)
+  useEffect(() => {
+    if (fitAsk) map.current?.fit(true)
+  }, [fitAsk, map])
+
   // Picking a password is about the whole map, wherever you'd zoomed to.
   const hasLens = !!lens
   useEffect(() => {
@@ -188,7 +222,12 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
     )
   }, [vault, lens, map])
 
-  return <canvas ref={ref} className="map-canvas" tabIndex={-1} aria-hidden="true" />
+  return (
+    <>
+      <canvas ref={ref} className="map-canvas" tabIndex={-1} aria-hidden="true" />
+      <MapTip tip={tip} />
+    </>
+  )
 }
 
 function FirstRun() {
@@ -241,21 +280,44 @@ function BlankMap() {
   )
 }
 
+/** Files always land on a real map. The sample is a made-up company, and your documents don't belong in it. */
 async function startWith(files: File[]) {
-  if (!getState().vault) await newMap()
+  const v = getState().vault
+  if (!v || v.sample) await newMap()
   setState({ sheet: { kind: 'shred', files } })
 }
 
 function Locked({ name }: { name: string }) {
   const [key, setKey] = useState('')
+  const lockError = useStore((s) => s.lockError)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [nothing, setNothing] = useState(false)
+  useEffect(() => {
+    // Don't ask for a password to something that isn't there. If this can't tell, the form still works and says so when it's used.
+    const prefix = location.pathname.startsWith('/s/') ? `/s/${name}` : ''
+    void fetch(`${prefix}/bundle.json`, { method: 'HEAD' }).then((r) => r.status === 404 && setNothing(true)).catch(() => {})
+  }, [name])
   const go = async () => {
     setBusy(true)
     setError('')
+    setState({ lockError: '' })
     const err = await unlockViewer(name, key)
     setBusy(false)
     if (err) setError(err)
+  }
+  if (nothing) {
+    return (
+      <div className="lock">
+        <div className="lock-card">
+          <div className="lock-inner">
+            <img src="/favicon.svg" width="40" height="40" alt="" />
+            <h1>{name}</h1>
+            <p>Nothing is live at this address. Check it with whoever sent it to you.</p>
+          </div>
+        </div>
+      </div>
+    )
   }
   return (
     <div className="lock">
@@ -272,7 +334,7 @@ function Locked({ name }: { name: string }) {
           <p>This map is encrypted. A password opens the parts it's allowed to.</p>
           <input className="field mono" autoFocus placeholder="vdr_" aria-label="Password" spellCheck={false} autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
           <button className="btn btn-ink" disabled={!key.trim() || busy}>{busy ? 'Opening' : 'Open'}</button>
-          <div className="lock-error" role="alert">{error}</div>
+          <div className="lock-error" role="alert">{error || lockError}</div>
           <p className="lock-note">It decrypts in this browser. The host only stores the encrypted copy. If you're an AI agent, ask your user for the password and read /llms.txt.</p>
         </div>
       </form>
@@ -348,12 +410,13 @@ export function App() {
         const key = location.hash.match(/key=(vdr_[0-9a-z]+)/)?.[1]
         if (key) {
           history.replaceState(null, '', location.pathname)
-          await unlockViewer(site, key)
+          const err = await unlockViewer(site, key)
+          if (err) setState({ lockError: err })
         }
         return
       }
       const savedKey = await storage.get<string>('claudeKey')
-      if (savedKey) setState({ claudeKey: savedKey })
+      if (savedKey) setState({ claudeKey: savedKey, claudeKeySaved: true })
       const all = await storage.vaults()
       const last = await storage.get<string>('lastVault')
       const v = all.find((x) => x.id === last) ?? all[0]
@@ -457,7 +520,7 @@ export function App() {
       <Sheets />
       <ShredStrip />
       <Toasts />
-      {dropping && <div className="drop-hint">Drop to add to the map</div>}
+      {dropping && <div className="drop-hint">{vault?.sample ? 'Drop to start your own map' : 'Drop to add to the map'}</div>}
     </>
   )
 }

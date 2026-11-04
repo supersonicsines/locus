@@ -6,6 +6,7 @@ import { snapshot } from '../core/status.ts'
 import type { Bundle, Cost, Gate, Password, Piece, Vault } from '../core/types.ts'
 import { layoutPieces, restorePositions } from './map/layout.ts'
 import { getState, setState, storage, type Toast } from './store.ts'
+import { putAreaBack, withoutArea } from './ui/data.ts'
 
 // Toasts
 
@@ -14,7 +15,8 @@ let toastId = 1
 export function toast(message: string, action?: Toast['action']) {
   const id = toastId++
   setState({ toasts: [...getState().toasts, { id, message, action }] })
-  setTimeout(() => dismissToast(id), action ? 7000 : 3600)
+  // Long enough to read. A sentence that says what went wrong is no use gone in three seconds.
+  setTimeout(() => dismissToast(id), Math.max(action ? 8000 : 3600, message.length * 70))
 }
 
 export function dismissToast(id: number) {
@@ -78,8 +80,8 @@ export async function openVault(v: Vault) {
     }
     await storage.set(stamp, MAP_LAYOUT)
   }
-  // An Undo still on screen is about the map being left. Pressed here it would act on this one, and deleting's Undo would overwrite it.
-  setState({ vault: placed, selected: null, lens: null, area: null, panel: null, dollars: false, agentView: false, mode: 'studio', view: null, toasts: getState().toasts.filter((t) => !t.action) })
+  // Anything still on screen is about the map being left. An Undo pressed here would act on this one, and "5 items on the map" over an empty one is simply false.
+  setState({ vault: placed, selected: null, lens: null, area: null, panel: null, dollars: false, agentView: false, mode: 'studio', view: null, toasts: [] })
   await storage.saveVault(placed)
   await storage.set('lastVault', placed.id)
   const all = await storage.vaults()
@@ -100,8 +102,15 @@ export async function loadSample() {
   await openVault(existing ?? createSample())
 }
 
+/** Something has changed the map enough that it should be seen whole, even if you've moved it. */
+export function askFit() {
+  setState({ fitAsk: getState().fitAsk + 1 })
+}
+
 export async function newMap(name = 'Untitled company') {
-  await openVault(createEmptyVault(name))
+  // Asked for twice, that's still one new map. An empty one with no name is the map you were asking for.
+  const spare = (await storage.vaults()).find((v) => !v.sample && !v.site && !v.pieces.length && !v.passwords.length && v.company.name === name)
+  await openVault(spare ?? createEmptyVault(name))
 }
 
 export async function switchVault(id: string) {
@@ -115,7 +124,7 @@ export async function deleteCurrentMap() {
   // Removing it from the host frees the account's spot. If that fails, keep the
   // map: claiming it's gone while every password still works would be worse.
   if (v.site && v.published) {
-    const failed = "Couldn't take it off the host, so nothing was deleted. Every password still works."
+    const failed = "Couldn't take it off the host, so nothing was deleted and every password still works. Check your connection and try again."
     try {
       const token = await publishToken(v.site.ownerKey)
       const res = await fetch(`/api/sites/${v.site.name}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
@@ -238,18 +247,18 @@ export function renameGate(id: string, name: string) {
   updateVault((v) => ({ ...v, gates: v.gates.map((g) => (g.id === id ? { ...g, name } : g)) }))
 }
 
-export function deleteGate(gate: Gate) {
+/** An area and everything on it. The wrong one is a click away from being put back. */
+export function deleteArea(gate: Gate) {
   const v = getState().vault!
   if (gate.builtin === 'money') return
-  if (v.pieces.some((p) => p.gate === gate.id)) {
-    toast('Move the items out of this area first.')
-    return
-  }
-  updateVault((x) => ({
-    ...x,
-    gates: x.gates.filter((g) => g.id !== gate.id),
-    passwords: x.passwords.map((p) => ({ ...p, gates: p.gates.filter((g) => g !== gate.id) })),
-  }))
+  const count = v.pieces.filter((p) => p.gate === gate.id).length
+  updateVault((x) => withoutArea(x, gate.id))
+  setState({ area: null, panel: null, selected: null })
+  askFit()
+  toast(`Deleted ${gate.name}${count ? ` and ${count === 1 ? 'its item' : `its ${count} items`}` : ''}.`, {
+    label: 'Undo',
+    run: () => updateVault((x) => (x.id === v.id ? putAreaBack(x, v, gate.id) : x)),
+  })
 }
 
 // Passwords
@@ -273,6 +282,9 @@ export function toggleGateOnPassword(pwId: string, gateId: string) {
   changePassword(pwId, { gates: open ? pw.gates.filter((g) => g !== gateId) : [...pw.gates, gateId] })
 }
 
+/** Why a password that was meant to stop didn't. What to do follows it, so this is only the what. */
+const whyNot = () => (lastPublishFailure?.code === 'network' ? "Couldn't reach the host." : (lastPublishFailure?.message ?? "Couldn't update."))
+
 export async function revokePassword(id: string) {
   const v = getState().vault!
   const pw = v.passwords.find((p) => p.id === id)
@@ -282,10 +294,31 @@ export async function revokePassword(id: string) {
   setState({ lens: null, agentView: false, panel: getState().panel === 'share' ? null : getState().panel })
   // Revoking takes effect right away. Waiting for a later publish would be a false sense of safety.
   if (v.site && v.published) {
-    const ok = await publish()
+    const ok = await publish({ quiet: true })
     if (ok) toast(`Removed ${pw.name}. They can't read anything that goes live from now on.`)
+    else if (lastPublishFailure?.code !== 'stale') toast(`${whyNot()} So ${pw.name}'s password still works. Press Update to try again.`)
   } else {
     toast(`Removed ${pw.name}.`)
+  }
+}
+
+/**
+ * Stops one password and makes another for the same reader, who keeps their name, their place and what they can read.
+ * A new id too: the old one is what the live copy knows, so until the update lands the map still says the old password works.
+ */
+export async function replacePassword(id: string) {
+  const v = getState().vault!
+  const pw = v.passwords.find((p) => p.id === id)
+  if (!pw) return
+  const fresh: Password = { ...pw, id: newId(), key: generatePassword(), createdAt: Date.now() }
+  updateVault((x) => ({ ...x, passwords: x.passwords.map((p) => (p.id === id ? fresh : p)) }))
+  setState({ lens: fresh.id })
+  if (v.site && v.published) {
+    const ok = await publish({ quiet: true })
+    if (ok) toast(`${pw.name} has a new password, and the old one can't read anything that goes live from now on. Connect them again with the new one.`)
+    else if (lastPublishFailure?.code !== 'stale') toast(`${whyNot()} So the old password still works. Press Update to try again.`)
+  } else {
+    toast(`${pw.name} has a new password.`)
   }
 }
 
@@ -317,7 +350,13 @@ export interface PublishFailure {
 
 export let lastPublishFailure: PublishFailure | null = null
 
-export async function publish(): Promise<boolean> {
+/** Updating from a button: it says it worked, because the only other sign is a small word changing in a corner. */
+export async function publishAndSay() {
+  const wasLive = !!getState().vault?.published
+  if ((await publish()) && wasLive) toast('Updated. Your readers get this the next time they read the map.')
+}
+
+export async function publish({ quiet = false }: { quiet?: boolean } = {}): Promise<boolean> {
   const v = getState().vault
   if (!v) return false
   if (!v.site) {
@@ -346,22 +385,27 @@ export async function publish(): Promise<boolean> {
       // Another device published first. Publishing over it from this older copy
       // could quietly bring back a password that was revoked there.
       lastPublishFailure = { code: 'stale', message: "A newer version went live from another device, so this one didn't." }
+      // Always said, because Load it is the only way out and only this toast offers it.
       toast(`${lastPublishFailure.message} Loading it replaces any changes here that aren't live yet.`, { label: 'Load it', run: () => void reloadFromHost() })
       return false
     }
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      lastPublishFailure = { code: body.code ?? 'error', message: body.error ?? `The host answered ${res.status}.` }
+      // Far over the limit, the host hangs up before it can say why, so a bare 413 has to be explained here.
+      const tooBig = 'This map is too big to go live here: its encrypted copy is over the limit. Take something off the map, or run your own host.'
+      lastPublishFailure = { code: body.code ?? 'error', message: body.error ?? (res.status === 413 ? tooBig : `The host answered ${res.status}. Try again in a moment.`) }
       if (body.accounts) setState({ server: { ...getState().server!, accounts: body.accounts } })
-      toast(lastPublishFailure.message)
+      if (!quiet) toast(lastPublishFailure.message)
       return false
     }
     updateVault((x) => ({ ...x, published: sealedState }))
     void refreshServer()
+    // "Couldn't reach the host, so this password still works" mustn't sit beside the update that fixed it.
+    setState({ toasts: getState().toasts.filter((t) => t.action) })
     return true
   } catch (e) {
-    lastPublishFailure = { code: 'network', message: "Couldn't reach the host. Your map is safe in this browser." }
-    toast(lastPublishFailure.message)
+    lastPublishFailure = { code: 'network', message: "Couldn't reach the host. Your map is safe in this browser. Check your connection and try again." }
+    if (!quiet) toast(lastPublishFailure.message)
     return false
   } finally {
     setState({ publishing: false })
@@ -388,7 +432,7 @@ export async function refreshServer() {
 export async function signIn(name: string, ownerKey: string): Promise<string | null> {
   try {
     const res = await fetch(`/s/${encodeURIComponent(name)}/bundle.json`)
-    if (res.status === 404) return `Nothing is live under "${name}".`
+    if (res.status === 404) return `Nothing is live under "${name}". Check the address.`
     if (!res.ok) return `The host answered ${res.status}.`
     const bundle = (await res.json()) as Bundle
     const vault = await openOwnerCopy(bundle, ownerKey)
@@ -397,8 +441,8 @@ export async function signIn(name: string, ownerKey: string): Promise<string | n
     toast(`Signed in to ${vault.company.name}.`)
     return null
   } catch (e) {
-    if (e instanceof WrongPassword) return "That owner key doesn't open this map."
-    return "Couldn't reach the host."
+    if (e instanceof WrongPassword) return "That recovery key doesn't open this map. Check you copied all of it."
+    return "Couldn't reach the host. Check your connection and try again."
   }
 }
 
@@ -407,16 +451,21 @@ export async function signIn(name: string, ownerKey: string): Promise<string | n
 export async function unlockViewer(name: string, key: string): Promise<string | null> {
   try {
     const prefix = location.pathname.startsWith('/s/') ? `/s/${name}` : ''
-    const res = await fetch(`${prefix}/bundle.json`)
-    if (res.status === 404) return 'Nothing is live here yet.'
-    if (!res.ok) return `The host answered ${res.status}.`
+    let res: Response
+    try {
+      res = await fetch(`${prefix}/bundle.json`)
+    } catch {
+      return "Couldn't reach this map. Check your connection and try again."
+    }
+    if (res.status === 404) return 'Nothing is live at this address.'
+    if (!res.ok) return `The host answered ${res.status}. Try again in a moment.`
     const view = await openBundle((await res.json()) as Bundle, key.trim())
     // A reader gets a map of what they can see, drawn fresh, with no gaps where closed gates sit.
     const moved = layoutPieces(view.gates, view.pieces, { wide: window.innerWidth > window.innerHeight, room: mapRoom() })
     setState({ view: { ...view, pieces: view.pieces.map((p) => ({ ...p, ...moved.get(p.id) })) }, mode: 'viewer' })
     return null
   } catch (e) {
-    if (e instanceof WrongPassword) return "That password doesn't open this map."
+    if (e instanceof WrongPassword) return "That password doesn't open this map. Check you copied all of it, or ask whoever gave it to you for a new one."
     if (e instanceof AlteredBundle) return e.message
     return "Couldn't read this map."
   }

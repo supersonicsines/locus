@@ -7,7 +7,7 @@ What Vadere protects, how, and what it doesn't. **This code has not had a profes
 - The host stores only ciphertext. Your data is encrypted on your device before it's published.
 - A password opens only the gates it was given keys for. That's cryptography, not a permission check.
 - A reader checks everything it reads against what the owner sealed for that password, so neither the host nor another password's holder can change it undetected. The one exception is below.
-- When an agent reads through the host, the host does see the password and the plaintext, in memory, for that one request. If that's not acceptable, decrypt on your own machine or turn **Remote access** off for that password.
+- When an agent reads through the host, the host does see the password and the plaintext, in memory, for that one request. If that's not acceptable, decrypt on your own machine or turn **Remote access** off for that password. The Studio's switch for it says **Let AI tools in the cloud read this**.
 - Which services a company uses stays sealed. Logos come as one file, fetched whole from the same address whatever the map holds, so the request says nothing about what's on the map. No logo is ever fetched from anywhere else.
 
 ## Who can read what
@@ -27,7 +27,7 @@ Open source can't prove what a hosted server is actually running. Only the first
 
 All of it is in `src/core/seal.ts`, using only Web Crypto.
 
-- **Passwords and owner keys** are 130 random bits, generated, never chosen.
+- **Passwords and owner keys** are 130 random bits, generated, never chosen. The Studio calls the owner key your **recovery key**.
 - **No Argon2, on purpose.** The sealed bundle is public, so a human-chosen password could be attacked offline. Slow hashing exists to protect guessable secrets; these aren't guessable. HKDF-SHA-256 turns them into purpose-specific keys, with a different label for each purpose.
 - **Gates:** each has a random AES-256-GCM key, new on every publish.
 - **Passwords:** each has an envelope holding the keys to its gates, sealed under a key derived from the password.
@@ -53,7 +53,7 @@ Gate names, password names, company name, pieces, links, prices and readers' lay
 ## What this does not protect against
 
 - **What someone already read.** Revoking stops them reading anything published afterwards. They keep what they already have, including any old bundle they saved.
-- **Delay.** A closed gate stays readable until you publish, and so does a deleted piece or a password with Remote access switched off. The app says so until you do. An edited piece's old words also stay readable until you publish, which the app shows as a change not yet published. Revoking publishes immediately; if it can't reach the host, the app says the password still works.
+- **Delay.** A closed gate stays readable until you publish, and so does a deleted piece or a password with Remote access switched off. The app says so until you do. An edited piece's old words also stay readable until you publish, which the app shows as a change not yet published. Revoking publishes immediately, and so does making a reader a new password; if it can't reach the host, the app says the old password still works.
 - **A dishonest host serving old versions.** It can't read anything, or change what a password it doesn't hold reads, but it could serve an older bundle, and a reader has no way to detect that yet. Publishing from a device that's behind is refused, so one device can't quietly undo a revoke made on another.
 - **Your own browser.** The Studio keeps your map, passwords and optional Claude key in plain form in this browser's storage. Anyone with access to your browser profile has them.
 - **Anthropic, if you shred with Claude.** Those files go to Anthropic under your own key. The no-AI shredder keeps everything on your device.

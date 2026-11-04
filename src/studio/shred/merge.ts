@@ -35,7 +35,7 @@ export function merge(v: Vault, incoming: Incoming, idMap = new Map<string, stri
   const gateMap = new Map<string, string>()
   const gates = [...v.gates]
   for (const g of incoming.gates) {
-    const same = gates.find((x) => x.name.toLowerCase() === g.name.toLowerCase())
+    const same = gates.find((x) => x.id === g.id) ?? gates.find((x) => x.name.toLowerCase() === g.name.toLowerCase())
     if (same) gateMap.set(g.id, same.id)
     else {
       gates.push(g)
@@ -96,7 +96,9 @@ export function merge(v: Vault, incoming: Incoming, idMap = new Map<string, stri
     costMap.set(piece, mergeCost(costMap.get(piece), { ...c, piece }))
   }
 
-  const findings = [...v.findings, ...(incoming.findings ?? [])].map((f) => ({
+  // Dropping the same file twice raises the same note once.
+  const said = new Set(v.findings.map((f) => f.message))
+  const findings = [...v.findings, ...(incoming.findings ?? []).filter((f) => !said.has(f.message))].map((f) => ({
     ...f,
     id: f.id || newId(),
     pieces: f.pieces.map((id) => idMap.get(id) ?? id).filter((id) => ids.has(id)),

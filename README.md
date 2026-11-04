@@ -36,7 +36,7 @@ Open http://localhost:4747 and choose **See an example**.
 
 ## Connect an agent
 
-Pick a reader, then **Password and setup**, and you get these, filled in for that password.
+Pick a reader, then **Connect this reader**, and you get these, filled in for that password.
 
 ```sh
 # Claude Code. Decrypts on your machine, so the host never sees the password.
@@ -62,7 +62,7 @@ The host stores only ciphertext. Anyone can download it: that's the point of `va
 | Browser | The browser, running code the host served |
 | Bearer header, `/k/` URL | The host, in memory, for that request |
 
-Turn **Remote access** off on a password and the host refuses the last row. A reader also checks everything against what the owner sealed for that password, so a host can't change what a password it doesn't hold reads. The full threat model, including what this doesn't protect against, is in [docs/SECURITY.md](docs/SECURITY.md). This code hasn't had a professional audit.
+Turn **Let AI tools in the cloud read this** off for a reader and the host refuses the last row. A reader also checks everything against what the owner sealed for that password, so a host can't change what a password it doesn't hold reads. The full threat model, including what this doesn't protect against, is in [docs/SECURITY.md](docs/SECURITY.md). This code hasn't had a professional audit.
 
 ## The command line
 
@@ -94,7 +94,7 @@ Or with Docker: `docker build -t vadere . && docker run -p 4747:4747 -v vadere:/
 vadere serve --hosted --max-accounts 500 --donate-url https://… --abuse-contact abuse@…
 ```
 
-An account is a claimed name and an owner key: no email, nothing personal stored. A small proof of work and a per-address limit stop a script taking every spot, and each account is limited to 10 MB, or about 3.7 MB of text. When it's full, the map still works in the browser and the app offers the self-host command. Read the note on abuse in [docs/SECURITY.md](docs/SECURITY.md) before opening one to the public.
+An account is a claimed name and a recovery key: no email, nothing personal stored. A small proof of work and a per-address limit stop a script taking every spot, and each account is limited to 10 MB, or about 3.7 MB of text. When it's full, the map still works in the browser and the app offers the self-host command. Read the note on abuse in [docs/SECURITY.md](docs/SECURITY.md) before opening one to the public.
 
 ## Developing
 

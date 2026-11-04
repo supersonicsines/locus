@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, type MouseEvent as ReactMouseEvent,
 import { linkParts } from '../../core/links.ts'
 import type { Need, NeedLevel } from '../../core/status.ts'
 import type { PieceKind } from '../../core/types.ts'
-import { changePiece, publish, updateVault } from '../actions.ts'
+import { changePiece, publishAndSay, updateVault } from '../actions.ts'
 import { monogramOf } from '../logos/lookup.ts'
 import { logoSource, serviceFor, TILE_PADDING, TILE_RADIUS, useLogosVersion } from '../logos/store.ts'
 import { drawSymbol, readerColour } from '../map/symbols.ts'
@@ -102,7 +102,7 @@ export function NeedActions({ need }: { need: Need }) {
   if (need.kind === 'exposure') {
     return (
       <div className="need-actions">
-        <button className="btn btn-ink" disabled={publishing} onClick={act(() => void publish())}>{publishing ? 'Updating' : 'Update'}</button>
+        <button className="btn btn-ink" disabled={publishing} onClick={act(() => void publishAndSay())}>{publishing ? 'Updating' : 'Update'}</button>
       </div>
     )
   }
@@ -224,6 +224,28 @@ export function plural(n: number, one: string, many = `${one}s`) {
 export function listWords(items: string[]): string {
   if (items.length <= 1) return items[0] ?? ''
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
+}
+
+/**
+ * A panel takes the keyboard when it opens, so Tab walks through it and not through the page behind, and gives it back when it closes.
+ * A panel that puts its own cursor somewhere first keeps it there.
+ */
+export function usePanelFocus<T extends HTMLElement = HTMLElement>(key: unknown) {
+  const ref = useRef<T>(null)
+  // Read while rendering, and once. By the time an effect runs, a field in the panel may have taken focus for itself.
+  const opener = useRef(document.activeElement as HTMLElement | null)
+  useEffect(() => {
+    const el = ref.current
+    if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true })
+  }, [key])
+  useEffect(
+    () => () => {
+      const from = opener.current
+      if (from && from !== document.body && from.isConnected) from.focus({ preventScroll: true })
+    },
+    [],
+  )
+  return ref
 }
 
 /** Closes on Escape. */

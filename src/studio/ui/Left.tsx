@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import type { Password } from '../../core/types.ts'
-import { copy, createPassword, loadSample, newMap, setTheme, siteAddress, switchVault, toggleGateOnPassword } from '../actions.ts'
+import { askFit, copy, createPassword, loadSample, newMap, setTheme, siteAddress, switchVault, tidyMap, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
 import { Icon, plural, ReaderMark, useEscape } from './bits.tsx'
-import { contentOf, NO_GATES, NO_PIECES, readersByArea } from './data.ts'
+import { areasOnMap, contentOf, NO_GATES, NO_PIECES, readersByArea } from './data.ts'
 
 function CompanyMenu({ close }: { close: () => void }) {
   const vault = useStore((s) => s.vault)
@@ -31,7 +31,12 @@ function CompanyMenu({ close }: { close: () => void }) {
             </button>
             {vault.site && (
               <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'owner-key' } }))}>
-                Owner key
+                Recovery key
+              </button>
+            )}
+            {vault.pieces.length > 0 && (
+              <button className="menu-item" role="menuitem" onClick={act(() => { tidyMap(); askFit() })}>
+                Tidy up the map
               </button>
             )}
             <div className="menu-sep" />
@@ -50,7 +55,7 @@ function CompanyMenu({ close }: { close: () => void }) {
               </button>
             )}
             <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'signin' } }))}>
-              Sign in with an owner key
+              Sign in with a recovery key
             </button>
             <div className="menu-sep" />
           </>
@@ -81,8 +86,9 @@ function CompanyMenu({ close }: { close: () => void }) {
   )
 }
 
-function ReaderRow({ pw, index }: { pw: Password; index: number }) {
-  const gates = useStore((s) => s.vault?.gates ?? NO_GATES)
+function ReaderRow({ pw, index, live }: { pw: Password; index: number; live: boolean }) {
+  const vault = useStore((s) => s.vault)
+  const gates = vault ? areasOnMap(vault) : NO_GATES
   const lens = useStore((s) => s.lens)
   const panel = useStore((s) => s.panel)
   const on = lens === pw.id
@@ -120,7 +126,7 @@ function ReaderRow({ pw, index }: { pw: Password; index: number }) {
             )
           })}
           <button className="btn btn-paper reader-setup" aria-expanded={panel === 'share'} onClick={() => setState({ panel: panel === 'share' ? null : 'share', agentView: false })}>
-            Password and setup
+            {live ? 'Connect this reader' : 'How to connect them'}
           </button>
         </div>
       )}
@@ -136,16 +142,20 @@ function Readers() {
     <>
       {live ? (
         <button className="left-about is-live" title="Copy the address" onClick={() => void copy(address, 'Address copied.')}>
-          Live at {address.replace(/^https?:\/\//, '')}
+          <span>Live at {address.replace(/^https?:\/\//, '')}</span>
+          <Icon name="copy" size={13} />
         </button>
       ) : (
-        <p className="left-about">
-          {vault.sample ? "A made-up company's map of what its AI tools and people need to know. Pick a name to see what they can read." : 'What your AI tools and people need to know, on one map. You choose who can read which parts.'}
-        </p>
+        <>
+          <p className="left-about">
+            {vault.sample ? "A made-up company's map of what its AI tools and people need to know. Pick a name to see what they can read." : 'What your AI tools and people need to know, on one map. You choose who can read which parts.'}
+          </p>
+          {vault.sample && <button className="btn btn-paper start-own" onClick={() => void newMap()}>Start your own map</button>}
+        </>
       )}
       <div className="left-title">{live ? 'Who can read it' : 'Who can read it once live'}</div>
       <div className="reader-list">
-        {vault.passwords.map((p, i) => <ReaderRow key={p.id} pw={p} index={i} />)}
+        {vault.passwords.map((p, i) => <ReaderRow key={p.id} pw={p} index={i} live={live} />)}
         {!readersByArea(vault).size && !vault.passwords.length && <p className="reader-none">No one yet, so everything here is private.</p>}
       </div>
       <div className="left-foot">

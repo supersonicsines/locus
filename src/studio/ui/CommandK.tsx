@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { llmsFull, viewFor } from '../../core/agent.ts'
 import { search } from '../../core/search.ts'
 import type { PieceKind } from '../../core/types.ts'
-import { addArea, addPiece, createPassword, deleteGate, downloadText, newMap, publish, setTheme, tidyMap, toast } from '../actions.ts'
+import { addArea, addPiece, createPassword, downloadText, newMap, publishAndSay, setTheme, tidyMap, toast } from '../actions.ts'
 import { getState, setState, useStore } from '../store.ts'
 import { PieceMark, useEscape } from './bits.tsx'
 import { contentOf } from './data.ts'
@@ -39,7 +39,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
     a.push({ id: 'fit', group: 'Actions', title: 'Fit the whole map', meta: '⇧1', run: () => map.current?.fit() })
     if (!readOnly) {
       a.push(
-        { id: 'publish', group: 'Actions', title: published ? 'Update the live map' : 'Go live', run: () => void publish() },
+        { id: 'publish', group: 'Actions', title: published ? 'Update the live map' : 'Go live', run: () => void publishAndSay() },
         { id: 'new-pw', group: 'Actions', title: 'Add a reader', run: () => { setState({ panel: 'share', area: null }); createPassword() } },
         { id: 'add-files', group: 'Actions', title: 'Add documents', run: () => document.getElementById('add-files')?.click() },
         { id: 'add-piece', group: 'Actions', title: 'Add a note', run: () => addPiece() },
@@ -59,16 +59,13 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
           },
         },
         { id: 'new-map', group: 'Actions', title: 'New map', run: () => void newMap() },
+        { id: 'delete-map', group: 'Actions', title: 'Delete this map', run: () => setState({ sheet: { kind: 'confirm-delete' } }) },
       )
-      for (const g of content?.gates ?? []) {
-        if (g.builtin === 'money' || content?.pieces.some((p) => p.gate === g.id)) continue
-        a.push({ id: `delete-gate-${g.id}`, group: 'Actions', title: `Delete the empty area ${g.name}`, run: () => deleteGate(g) })
-      }
       if (server?.mode === 'hosted' || server?.donateUrl) a.push({ id: 'donate', group: 'Actions', title: 'Donate', run: () => setState({ sheet: { kind: 'donate' } }) })
     }
     a.push({ id: 'theme', group: 'Actions', title: theme === 'dark' ? 'Light mode' : 'Dark mode', run: () => setTheme(theme === 'dark' ? 'light' : 'dark') })
     return a
-  }, [content?.costs, content?.gates, content?.pieces, dollars, readOnly, theme, server, published, map])
+  }, [content?.costs, dollars, readOnly, theme, server, published, map])
 
   const items: Item[] = useMemo(() => {
     const needle = q.trim().toLowerCase()

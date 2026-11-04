@@ -172,6 +172,29 @@ export function pending(v: Vault): Pending {
   return { changes, exposures }
 }
 
+/** What isn't live yet, in words, so you can tell whether it's worth updating. */
+export function whatChanged(v: Vault): string[] {
+  const pub = v.published
+  if (!pub) return []
+  const out: string[] = []
+  for (const p of v.pieces) {
+    if (pub.pieces[p.id] === pieceHash(p)) continue
+    out.push(pub.pieces[p.id] ? `Edited ${p.title}` : `Added ${p.title}`)
+  }
+  const deleted = Object.keys(pub.pieces).filter((id) => !v.pieces.some((p) => p.id === id)).length
+  if (deleted) out.push(deleted === 1 ? 'Deleted 1 item' : `Deleted ${deleted} items`)
+  for (const pw of v.passwords) {
+    const before = pub.passwords[pw.id]
+    if (!before) out.push(`New password for ${pw.name}`)
+    else if ([...before].sort().join() !== [...pw.gates].sort().join()) out.push(`What ${pw.name} can read`)
+  }
+  for (const id of Object.keys(pub.passwords)) {
+    if (!v.passwords.some((p) => p.id === id)) out.push(`Removed ${pub.passwordInfo?.[id]?.name ?? 'a reader'}`)
+  }
+  if (pub.rest !== restHash(v)) out.push('Other details, such as areas, links, prices or reader settings')
+  return out
+}
+
 const SECRET_MARK = /\[secret removed: [^\]]+\]/g
 
 export function needs(v: Vault, now = Date.now()): Need[] {
@@ -201,7 +224,7 @@ export function needs(v: Vault, now = Date.now()): Need[] {
       out.push({
         id: `rule-${p.id}`,
         kind: 'proposal',
-        message: `A document suggests a rule for every AI tool${p.source?.file ? `: ${p.source.file}` : ''}. It stays out until you approve it.`,
+        message: `${p.source?.file ? `"${p.source.file}"` : 'A document'} suggests a rule for every AI tool. It stays out until you approve it.`,
         pieces: [p.id],
         quote: `${p.title}. ${p.summary}`,
       })

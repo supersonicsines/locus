@@ -1,9 +1,9 @@
 // An area, opened from the map: what it's called, who can read it, and what's in it.
 
 import { PIECE_KINDS } from '../../core/types.ts'
-import { addPiece, publish, renameGate, toggleGateOnPassword } from '../actions.ts'
+import { addPiece, deleteArea, publishAndSay, renameGate, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon, NeedMark, PieceMark, plural, ReaderMark, useEscape } from './bits.tsx'
+import { Icon, NeedMark, PieceMark, plural, ReaderMark, useEscape, usePanelFocus } from './bits.tsx'
 import { contentOf, exposedAreas, pricesReadableIn, readersByArea } from './data.ts'
 
 export function AreaPanel() {
@@ -14,19 +14,20 @@ export function AreaPanel() {
   const publishing = useStore((s) => s.publishing)
   const close = () => setState({ panel: null, area: null })
   useEscape(close, !selected)
+  const focusRef = usePanelFocus(areaId)
 
   const gate = content?.gates.find((g) => g.id === areaId)
   if (!content || !gate) return null
   const { readOnly } = content
   const items = content.pieces
     .filter((p) => p.gate === gate.id)
-    .sort((a, b) => PIECE_KINDS.indexOf(a.kind) - PIECE_KINDS.indexOf(b.kind) || a.title.localeCompare(b.title))
+    .sort((a, b) => PIECE_KINDS.indexOf(a.kind) - PIECE_KINDS.indexOf(b.kind) || a.title.localeCompare(b.title, undefined, { numeric: true }))
   const readers = vault?.passwords ?? []
   const noOne = !readOnly && readers.length > 0 && !readersByArea(vault).has(gate.id)
   const exposed = readOnly ? undefined : exposedAreas(vault).get(gate.id)
 
   return (
-    <aside className="side panel" aria-label={gate.name}>
+    <aside className="side panel" aria-label={gate.name} ref={focusRef} tabIndex={-1}>
       <div className="side-head">
         {readOnly || gate.builtin === 'money' ? (
           <span className="grow title-input">{gate.name}</span>
@@ -44,7 +45,7 @@ export function AreaPanel() {
             <div>
               {exposed}.
               <div className="need-actions">
-                <button className="btn btn-ink" disabled={publishing} onClick={() => void publish()}>{publishing ? 'Updating' : 'Update'}</button>
+                <button className="btn btn-ink" disabled={publishing} onClick={() => void publishAndSay()}>{publishing ? 'Updating' : 'Update'}</button>
               </div>
             </div>
           </div>
@@ -90,6 +91,9 @@ export function AreaPanel() {
           <button className="btn btn-quiet" onClick={() => addPiece({ gate: gate.id })}>
             <Icon name="plus" size={13} /> Add a note here
           </button>
+          {gate.builtin !== 'money' && (
+            <button className="btn btn-quiet" onClick={() => deleteArea(gate)}>Delete this area</button>
+          )}
         </div>
       )}
     </aside>

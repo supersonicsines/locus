@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { createSample } from '../src/core/sample.ts'
+import { pending, snapshot } from '../src/core/status.ts'
 import type { Password, PublishedState, Vault } from '../src/core/types.ts'
-import { exposedAreas, pricesReadableIn, readersByArea } from '../src/studio/ui/data.ts'
+import { areasOnMap, exposedAreas, pricesReadableIn, putAreaBack, readersByArea, withoutArea } from '../src/studio/ui/data.ts'
 
 const pw = (id: string, name: string, gates: string[]): Password => ({ id, name, key: `vdr_${id}`, gates, remote: false, createdAt: 1 })
 
@@ -86,4 +88,35 @@ test('a closed area of services only counts as closed apart from what Money show
   const closed = { ...base([pw('a', 'Accountant', [])]), ...vault([], { passwords: { a: ['money'] } }), passwords: [pw('a', 'Accountant', [])], gates: base([]).gates, pieces: base([]).pieces, costs: base([]).costs } as unknown as Vault
   assert.deepEqual([...pricesReadableIn(closed)], ['people'])
   assert.deepEqual([...pricesReadableIn(closed, 'a')], ['people'])
+})
+
+test('only areas you can see are counted and offered, and Money stays while there are prices to give someone', () => {
+  const gates = [{ id: 'brand', name: 'Brand' }, { id: 'product', name: 'Product' }, { id: 'money', name: 'Money', builtin: 'money' as const }]
+  const item = { id: 'a', title: 'A', summary: '', body: '', kind: 'fact' as const, gate: 'brand', updatedAt: 1 }
+  assert.deepEqual(areasOnMap({ gates, pieces: [item], costs: [] }).map((g) => g.id), ['brand'])
+  const cost = { piece: 'a', label: 'A', amount: 1, currency: 'USD', unit: 'flat' as const, period: 'month' as const, source: 'you' as const }
+  assert.deepEqual(areasOnMap({ gates, pieces: [item], costs: [cost] }).map((g) => g.id), ['brand', 'money'])
+  assert.deepEqual(areasOnMap({ gates, pieces: [], costs: [] }), [])
+})
+
+test('Undo on a deleted area puts back only what the delete took, and a reader removed since stays removed', () => {
+  const sample = createSample()
+  const v: Vault = { ...sample, site: { name: 'meridian', ownerKey: 'vdo_x', origin: 'http://localhost' }, published: snapshot(sample, 1) }
+  const gate = v.gates.find((g) => g.builtin !== 'money' && v.passwords.some((p) => p.gates.includes(g.id)))!.id
+
+  // Straight back: not a single change left to publish.
+  assert.equal(pending(putAreaBack(withoutArea(v, gate), v, gate)).changes, 0)
+  assert.deepEqual(putAreaBack(withoutArea(v, gate), v, gate).gates, v.gates)
+
+  // A reader removed in the seconds before Undo is pressed. Their password must not come back.
+  const removed = v.passwords[0]
+  const gone = withoutArea(v, gate)
+  const after = putAreaBack({ ...gone, passwords: gone.passwords.filter((p) => p.id !== removed.id) }, v, gate)
+  assert.ok(!after.passwords.some((p) => p.id === removed.id || p.key === removed.key))
+  // Everyone else gets back the area they had.
+  for (const p of after.passwords) assert.equal(p.gates.includes(gate), v.passwords.find((b) => b.id === p.id)!.gates.includes(gate))
+  assert.equal(after.pieces.length, v.pieces.length)
+
+  // Pressed twice, or on a map that has the area again, it does nothing.
+  assert.equal(putAreaBack(after, v, gate), after)
 })

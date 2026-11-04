@@ -125,6 +125,54 @@ export function pricesReadableIn(vault: Vault | null, readerId: string | null = 
   return out
 }
 
+/**
+ * The areas you can actually see. A new map starts with six, and one with nothing on it has no land, so it isn't counted or offered anywhere.
+ * Money stays while there are prices, because it's the only way to give someone the bill, whichever area its services sit in.
+ */
+export function areasOnMap(vault: Pick<Vault, 'gates' | 'pieces' | 'costs'>): Gate[] {
+  const used = new Set(vault.pieces.map((p) => p.gate))
+  return vault.gates.filter((g) => used.has(g.id) || (g.builtin === 'money' && vault.costs.length > 0))
+}
+
+/** An area and everything on it, off the map. */
+export function withoutArea(v: Vault, gate: string): Vault {
+  const gone = new Set(v.pieces.filter((p) => p.gate === gate).map((p) => p.id))
+  return {
+    ...v,
+    gates: v.gates.filter((g) => g.id !== gate),
+    pieces: v.pieces.filter((p) => !gone.has(p.id)),
+    links: v.links.filter((l) => !gone.has(l.from) && !gone.has(l.to)),
+    costs: v.costs.filter((c) => !gone.has(c.piece)),
+    passwords: v.passwords.map((p) => ({ ...p, gates: p.gates.filter((g) => g !== gate) })),
+  }
+}
+
+/** Old order first, so putting everything back counts as no change at all. Anything since keeps its latest form. */
+function inOldOrder<T>(now: T[], was: T[], key: (t: T) => string, comesBack: (t: T) => boolean): T[] {
+  const current = new Map(now.map((t) => [key(t), t]))
+  const out = was.filter((t) => comesBack(t) || current.has(key(t))).map((t) => current.get(key(t)) ?? t)
+  const seen = new Set(out.map(key))
+  return [...out, ...now.filter((t) => !seen.has(key(t)))]
+}
+
+/**
+ * Undo for that. Only what the delete took comes back, and anything done since stays done.
+ * Above all a reader removed since stays removed: restoring the old list would bring their password back, and the next update would make it work again.
+ */
+export function putAreaBack(v: Vault, before: Vault, gate: string): Vault {
+  if (v.gates.some((g) => g.id === gate)) return v
+  const ids = new Set(before.pieces.filter((p) => p.gate === gate).map((p) => p.id))
+  const here = new Set([...v.pieces.map((p) => p.id), ...ids])
+  return {
+    ...v,
+    gates: inOldOrder(v.gates, before.gates, (g) => g.id, (g) => g.id === gate),
+    pieces: inOldOrder(v.pieces, before.pieces, (p) => p.id, (p) => ids.has(p.id)),
+    links: inOldOrder(v.links, before.links, (l) => `${l.from}|${l.to}|${l.kind}`, (l) => (ids.has(l.from) || ids.has(l.to)) && here.has(l.from) && here.has(l.to)),
+    costs: inOldOrder(v.costs, before.costs, (c) => c.piece, (c) => ids.has(c.piece)),
+    passwords: v.passwords.map((p) => (before.passwords.find((b) => b.id === p.id)?.gates.includes(gate) ? { ...p, gates: [...p.gates, gate] } : p)),
+  }
+}
+
 /** Where a need is, in the words the map uses. */
 export function placeOf(vault: Vault, pieces: string[], gates: string[] = []): string | null {
   const gate = gates[0] ?? vault.pieces.find((p) => p.id === pieces[0])?.gate

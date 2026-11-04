@@ -68,6 +68,11 @@ async function readDocx(buffer: ArrayBuffer): Promise<string> {
     .trim()
 }
 
+/** Text with nothing in it can't make an item, so it says why and doesn't pretend to be readable. */
+function orEmpty(out: Extracted): Extracted {
+  return out.text.trim() ? out : { ...out, type: 'unreadable', note: 'There is nothing in this file.' }
+}
+
 export async function extract(file: File): Promise<Extracted> {
   const base = { name: file.name, size: file.size }
   const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
@@ -94,18 +99,18 @@ export async function extract(file: File): Promise<Extracted> {
     if (ext === 'docx') {
       const raw = await readDocx(await file.arrayBuffer())
       const scrubbed = scrubSecrets(raw)
-      return { ...base, type: 'text', text: scrubbed.text, secrets: scrubbed.found }
+      return orEmpty({ ...base, type: 'text', text: scrubbed.text, secrets: scrubbed.found })
     }
     if (TEXT.test(file.name) || file.type.startsWith('text/')) {
       let raw = await file.text()
       if (/\.html?$/i.test(file.name)) raw = stripHtml(raw)
       const scrubbed = scrubSecrets(raw)
-      return { ...base, type: 'text', text: scrubbed.text, secrets: scrubbed.found }
+      return orEmpty({ ...base, type: 'text', text: scrubbed.text, secrets: scrubbed.found })
     }
   } catch {
-    return { ...base, type: 'unreadable', text: '', secrets: [], note: "Couldn't read this file." }
+    return { ...base, type: 'unreadable', text: '', secrets: [], note: 'This file seems to be damaged.' }
   }
-  return { ...base, type: 'unreadable', text: '', secrets: [], note: "Vadere can't read this type of file yet." }
+  return { ...base, type: 'unreadable', text: '', secrets: [], note: "Vadere can't read this type of file." }
 }
 
 /** A rough guess at tokens, for the estimate shown before a Claude run. */

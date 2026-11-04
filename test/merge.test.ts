@@ -53,3 +53,18 @@ test('one service, one cost: invoices beat list prices, and your own number beat
   v = merge(v, { gates, pieces: [svc('s3')], links: [], costs: [{ ...base, piece: 's3', amount: 99, source: 'invoice' }] })
   assert.equal(v.costs[0].amount, 50)
 })
+
+test('dropping the same long file twice raises the same note once', () => {
+  const note = { id: 'n1', kind: 'gap' as const, message: 'Only the start of "a.md" is on the map.', pieces: [] }
+  const once = merge(vault([]), { gates, pieces: [piece('p1', 'One')], links: [], costs: [], findings: [note] })
+  const twice = merge(once, { gates, pieces: [piece('p2', 'One')], links: [], costs: [], findings: [{ ...note, id: 'n2' }] })
+  assert.equal(twice.findings.length, 1)
+})
+
+test('an area you renamed is still that area when more files arrive, and never gets a twin', () => {
+  const renamed = { ...vault([piece('p1', 'One')]), gates: [{ id: 'brand', name: 'Marketing' }, gates[1]] }
+  const next = merge(renamed, { gates, pieces: [piece('p2', 'Two', { source: { file: 'b.md' } })], links: [], costs: [] })
+  assert.deepEqual(next.gates.map((g) => g.id), ['brand', 'money'])
+  assert.equal(next.gates[0].name, 'Marketing')
+  assert.equal(next.pieces.find((p) => p.title === 'Two')?.gate, 'brand')
+})

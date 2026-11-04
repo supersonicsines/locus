@@ -24,7 +24,7 @@ export type Sheet =
   | { kind: 'signin' }
   | { kind: 'donate' }
   | { kind: 'owner-key' }
-  | { kind: 'shred'; files: File[] }
+  | { kind: 'shred'; files: File[]; error?: string }
   | { kind: 'add-service' }
   | { kind: 'confirm-delete' }
   | { kind: 'rename' }
@@ -71,9 +71,15 @@ export interface State {
   toasts: Toast[]
   shred: ShredProgress | null
   publishing: boolean
+  /** Why the password in a link didn't open the map. */
+  lockError: string
   zoom: number
   fitZoom: number
+  /** Goes up when something has changed the map enough that it should be seen whole. */
+  fitAsk: number
   claudeKey: string
+  /** Whether that key is saved in this browser, and not only held in memory for this session. */
+  claudeKeySaved: boolean
   claudeModel: string
 }
 
@@ -109,9 +115,12 @@ let state: State = {
   toasts: [],
   shred: null,
   publishing: false,
+  lockError: '',
   zoom: 1,
   fitZoom: 1,
+  fitAsk: 0,
   claudeKey: '',
+  claudeKeySaved: false,
   claudeModel: 'claude-opus-5-5',
 }
 

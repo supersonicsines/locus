@@ -29,7 +29,7 @@ export function Cartouche() {
     <div className="cartouche" role="group" aria-label="What the company spends">
       {style === 'towns' && (
         <div className="town-legend panel" aria-hidden="true">
-          <span className="hint">Town size, by monthly bill</span>
+          <span className="hint">Disc size, by monthly bill</span>
           {TOWN_CLASSES.map((c) => (
             <div className="town-legend-row" key={c.r}>
               <i style={{ width: c.r * 0.5, height: c.r * 0.5 }} />
@@ -40,7 +40,7 @@ export function Cartouche() {
       )}
       <div className="cartouche-inner">
         <div className="cart-total">
-          {total}
+          {content.costs.every((c) => c.amount === null) ? 'No prices yet' : total}
           {others.length > 0 && <span className="cart-others"> + {others.join(' + ')}</span>}
         </div>
         <div className="cart-per">
@@ -97,8 +97,8 @@ export function Cartouche() {
         <div className="cart-style">
           <span>Show as</span>
           <div className="segmented" role="group" aria-label="Show prices as">
-            <button aria-pressed={style === 'soundings'} onClick={() => setState({ dollarStyle: 'soundings' })}>Soundings</button>
-            <button aria-pressed={style === 'towns'} onClick={() => setState({ dollarStyle: 'towns' })}>Towns</button>
+            <button aria-pressed={style === 'soundings'} onClick={() => setState({ dollarStyle: 'soundings' })}>Rings</button>
+            <button aria-pressed={style === 'towns'} onClick={() => setState({ dollarStyle: 'towns' })}>Discs</button>
           </div>
         </div>
       </div>

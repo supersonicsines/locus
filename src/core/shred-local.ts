@@ -4,7 +4,7 @@
 
 import { CATALOG_AS_OF, findInCatalog, servicesMentionedIn, type CatalogEntry } from './catalog.ts'
 import { tokenize } from './search.ts'
-import type { Cost, Gate, Link, Piece, PieceKind } from './types.ts'
+import type { Cost, Finding, Gate, Link, Piece, PieceKind } from './types.ts'
 
 export interface SourceFile {
   name: string
@@ -16,7 +16,14 @@ export interface ShredResult {
   pieces: Piece[]
   links: Link[]
   costs: Cost[]
+  /** What couldn't be sorted, in words that stay on the map until someone deals with them. */
+  findings: Finding[]
+  /** Files that only partly made it onto the map. */
+  cut: string[]
 }
+
+/** More than this from one file makes a wall on the map, not a map. What's over it is left out, and says so. */
+export const MOST_FROM_ONE_FILE = 200
 
 /** The gates every new map starts with. Shredding fills them; you can rename any but Money. */
 export const DEFAULT_GATES: Gate[] = [
@@ -132,7 +139,7 @@ function split(name: string, text: string): Section[] {
     }
     if (buf.trim()) sized.push({ title: n > 1 ? `${s.title}, part ${n}` : s.title, text: buf })
   }
-  return sized.slice(0, 60)
+  return sized
 }
 
 function serviceSummary(e: CatalogEntry): string {
@@ -184,6 +191,8 @@ export function shredLocally(files: SourceFile[], makeId: () => string): ShredRe
   const pieces: Piece[] = []
   const links: Link[] = []
   const costs: Cost[] = []
+  const findings: Finding[] = []
+  const cut: string[] = []
   const services = new Map<string, Piece>()
   const now = Date.now()
 
@@ -191,7 +200,17 @@ export function shredLocally(files: SourceFile[], makeId: () => string): ShredRe
     const fileGate = guessGate(file.name, file.text)
     const isInvoice = /invoice|receipt/i.test(file.name) || /^\s*(tax )?invoice\b/im.test(file.text.slice(0, 400))
 
-    for (const section of split(file.name, file.text)) {
+    const sections = split(file.name, file.text)
+    if (sections.length > MOST_FROM_ONE_FILE) {
+      cut.push(file.name)
+      findings.push({
+        id: makeId(),
+        kind: 'gap',
+        message: `Only the start of "${file.name}" is on the map: ${MOST_FROM_ONE_FILE} of its ${sections.length.toLocaleString('en-US')} sections. Split the file into smaller ones and add them, or read it with Claude.`,
+        pieces: [],
+      })
+    }
+    for (const section of sections.slice(0, MOST_FROM_ONE_FILE)) {
       const body = section.text.trim()
       const kind = guessKind(file.name, section.title, body)
       const gate = isInvoice ? 'money' : guessGate(section.title, body.slice(0, 1600)) || fileGate
@@ -275,5 +294,5 @@ export function shredLocally(files: SourceFile[], makeId: () => string): ShredRe
     }
   }
 
-  return { gates: DEFAULT_GATES, pieces, links, costs }
+  return { gates: DEFAULT_GATES, pieces, links, costs, findings, cut }
 }

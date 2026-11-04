@@ -335,11 +335,24 @@ a {
 }
 
 .left-about.is-live {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
   color: var(--ink);
+  white-space: nowrap;
+}
+
+.left-about.is-live span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.left-about.is-live svg {
+  flex: none;
+  color: var(--soft);
 }
 
 .left-title {
@@ -727,16 +740,6 @@ a {
 }
 
 /* The unread dot again: there's something to look at in here, when you have a minute. */
-.cost-dot {
-  flex: none;
-  align-self: center;
-  width: 7px;
-  height: 7px;
-  margin: -6px 0 0 2px;
-  border-radius: 50%;
-  background: var(--ink);
-}
-
 .cost-others {
   color: var(--soft);
   font-size: 13.5px;
@@ -745,6 +748,11 @@ a {
 .cost-per {
   color: var(--soft);
   font-size: 12.5px;
+}
+
+.cost-none {
+  align-self: center;
+  margin-top: -6px;
 }
 
 .add-menu {
@@ -765,6 +773,7 @@ a {
 /* Whether it's live is a fact, not a button, so the fact is always there and the button only when there's something to do. */
 
 .live-state {
+  position: relative;
   display: inline-flex;
   align-items: center;
   height: 36px;
@@ -807,6 +816,12 @@ a {
 .live-dot.is-off {
   background: none;
   box-shadow: inset 0 0 0 1.5px var(--faint);
+}
+
+/* Live, but behind: the same colour, not filled in. Whole means readers have all of it. */
+.has-changes .live-dot {
+  background: none;
+  box-shadow: inset 0 0 0 2px var(--live);
 }
 
 /* A phone has no room for the state at top right, so the dot moves in beside the company's name. */
@@ -864,6 +879,7 @@ a {
 
 .side-foot {
   display: flex;
+  justify-content: space-between;
   gap: 6px;
   padding: 10px 12px;
   border-top: 1px solid var(--hair);
@@ -994,6 +1010,32 @@ a {
 
 .placeholder {
   color: var(--faint);
+}
+
+.side:focus {
+  outline: none;
+}
+
+button.piece-body {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+/* What's the matter with an item, when you point at it. */
+.map-tip {
+  position: fixed;
+  z-index: 20;
+  max-width: 300px;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 17px;
+  pointer-events: none;
+}
+
+.map-tip b {
+  display: block;
+  font-weight: 500;
 }
 
 .props {
@@ -1210,23 +1252,122 @@ a {
 }
 
 .code-block {
-  position: relative;
   margin: 8px 0 0;
-  padding: 10px 36px 10px 10px;
+  padding: 10px;
   background: var(--paper);
   border: 1px solid var(--hair);
   border-radius: 7px;
+}
+
+.code-block code {
+  display: block;
   font-family: var(--mono);
   font-size: 11.5px;
   line-height: 17px;
   white-space: pre-wrap;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
-.code-block .icon-btn {
+.code-copy {
+  height: 26px;
+  margin-top: 8px;
+  padding: 0 9px;
+  gap: 5px;
+}
+
+.steps {
+  margin: 10px 0 0;
+  padding: 0 0 0 18px;
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.steps li {
+  margin: 0 0 8px;
+  padding-left: 2px;
+}
+
+.steps li::marker {
+  color: var(--soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.step-note {
+  margin: 2px 0 0;
+}
+
+code.inline {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.select-wrap .select {
+  margin: 0;
+  padding: 3px 22px 3px 8px;
+  border-color: var(--hair);
+}
+
+.select-wrap svg {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  right: 6px;
+  pointer-events: none;
+}
+
+.start-own {
+  margin: 10px 12px 2px;
+  align-self: flex-start;
+}
+
+.shred-note {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--soft);
+}
+
+.live-changes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.changes {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  padding: 12px 14px;
+  z-index: 30;
+  white-space: normal;
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.changes p {
+  margin: 0 0 6px;
+  color: var(--soft);
+}
+
+.changes ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.changes li {
+  padding: 2px 0;
+  overflow-wrap: anywhere;
+}
+
+.changes .quiet {
+  color: var(--soft);
 }
 
 .row-between {
@@ -1263,7 +1404,7 @@ a {
   top: 56px;
   right: 396px;
   bottom: var(--gutter);
-  left: 244px;
+  left: 296px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1907,10 +2048,14 @@ a {
 }
 
 .sheet .actions {
+  position: sticky;
+  bottom: 0;
   display: flex;
   justify-content: flex-end;
   gap: 6px;
-  margin-top: 18px;
+  margin-top: 8px;
+  padding: 10px 0 0;
+  background: var(--raised);
 }
 
 .sheet label {
@@ -1972,7 +2117,7 @@ a {
 }
 
 .file-list {
-  max-height: 180px;
+  max-height: min(180px, 20vh);
   overflow-y: auto;
   margin: 0 0 12px;
   padding: 0;
@@ -2485,8 +2630,7 @@ a {
   }
   .top-right .live-state,
   .top-right .add-menu,
-  .cost-others,
-  .cost-dot {
+  .cost-others {
     display: none;
   }
   .phone-only {

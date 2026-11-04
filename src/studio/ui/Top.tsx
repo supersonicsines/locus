@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatMoney, summarize } from '../../core/money.ts'
-import { levelOf, needs, pending, priceNotes, sortNeeds, type Need, type NeedKind } from '../../core/status.ts'
-import { addArea, addPiece, publish } from '../actions.ts'
+import { levelOf, needs, pending, priceNotes, sortNeeds, whatChanged, type Need, type NeedKind } from '../../core/status.ts'
+import { addArea, addPiece, publishAndSay } from '../actions.ts'
 import type { MapView } from '../map/MapView.ts'
 import { setState, useStore } from '../store.ts'
 import { Icon, NeedActions, NeedMark, plural, ServiceMark, useEscape } from './bits.tsx'
@@ -104,7 +104,7 @@ export function StatusLine() {
           {rest > 0 && <span className="status-more">and {rest} more</span>}
           <Icon name="chevron" size={13} />
         </button>
-        {worst.kind === 'exposure' && <button className="status-do go-live" disabled={publishing} onClick={() => void publish()}>{publishing ? 'Updating' : 'Update'}</button>}
+        {worst.kind === 'exposure' && <button className="status-do go-live" disabled={publishing} onClick={() => void publishAndSay()}>{publishing ? 'Updating' : 'Update'}</button>}
       </div>
     )
   }
@@ -194,6 +194,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
 function AddMenu() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const button = useRef<HTMLButtonElement>(null)
   useEscape(() => setOpen(false), open)
   useEffect(() => {
     if (!open) return
@@ -206,12 +207,14 @@ function AddMenu() {
 
   const act = (fn: () => void) => () => {
     setOpen(false)
+    // The item you pressed is about to go, so what opens next hands focus back to Add when it closes.
+    button.current?.focus()
     fn()
   }
 
   return (
     <div className="add-menu" ref={ref}>
-      <button className="btn btn-paper" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button ref={button} className="btn btn-paper" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <Icon name="plus" size={13} /> Add
       </button>
       {open && (
@@ -234,7 +237,10 @@ export function TopRight() {
   const publishing = useStore((s) => s.publishing)
   const server = useStore((s) => s.server)
   const lens = useStore((s) => s.lens)
+  const shredding = useStore((s) => !!s.shred)
   const content = useStore((s) => contentOf(s))
+  const [changesOpen, setChangesOpen] = useState(false)
+  useEscape(() => setChangesOpen(false), changesOpen)
 
   const hasMoney = view ? !!view.costs : !!vault && vault.costs.length > 0
   const p = vault ? pending(vault) : null
@@ -249,6 +255,8 @@ export function TopRight() {
     const s = summarize(content.costs, content.gates, content.pieces, content.currency)
     const mult = period === 'year' ? 12 : 1
     return {
+      // A service with no known price isn't free, so a bill of nothing but those isn't $0.
+      unknown: content.costs.length > 0 && content.costs.every((c) => c.amount === null),
       notes: priceNotes(content.costs).length,
       approx: s.approximate,
       main: formatMoney(s.total * mult, s.currency),
@@ -265,30 +273,55 @@ export function TopRight() {
           title={`${dollars ? 'Hide prices on the map ($)' : 'Show what each service costs on the map ($)'}${total.notes ? `. ${plural(total.notes, 'price note')} to look at.` : ''}`}
           onClick={() => setState({ dollars: !dollars })}
         >
-          <span className="cost-figure">
-            {total.approx ? '≈' : ''}{total.main}
-            {total.others.length > 0 && <span className="cost-others"> + {total.others.join(' + ')}</span>}
-          </span>
-          <span className="cost-per">a {period}<span className="optional"> on tools</span></span>
-          {total.notes > 0 && <i className="cost-dot" aria-hidden="true" />}
+          {total.unknown ? (
+            <span className="cost-per cost-none">No prices yet</span>
+          ) : (
+            <>
+              <span className="cost-figure">
+                {total.approx ? '≈' : ''}{total.main}
+                {total.others.length > 0 && <span className="cost-others"> + {total.others.join(' + ')}</span>}
+              </span>
+              <span className="cost-per">a {period}<span className="optional"> on tools</span></span>
+            </>
+          )}
         </button>
       )}
       {vault && <AddMenu />}
       {vault && (vault.pieces.length > 0 || isLive) && (
-        <div className={`live-state ${isLive ? 'is-live' : 'is-not-live'} ${clean || barHasUpdate ? 'is-current' : ''}`} title={clean ? 'Everything on this map is live.' : isLive ? `Readers are still seeing the last update.` : 'Saved in this browser. No reader can open it until it goes live.'}>
-          <span className="live-word">
-            <i className="live-dot" aria-hidden="true" />
-            {clean ? 'Live, up to date' : isLive ? `${plural(p?.changes ?? 0, 'change')} not live` : 'Not live'}
-          </span>
+        <div className={`live-state ${isLive ? 'is-live' : 'is-not-live'} ${clean || barHasUpdate ? 'is-current' : ''} ${isLive && !clean ? 'has-changes' : ''}`} title={clean ? 'Everything on this map is live.' : isLive ? `Readers are still seeing the last update.` : 'Saved in this browser. No reader can open it until it goes live.'}>
+          {isLive && !clean ? (
+            <button className="live-word live-changes" aria-expanded={changesOpen} onClick={() => setChangesOpen(!changesOpen)}>
+              <i className="live-dot" aria-hidden="true" />
+              {plural(p?.changes ?? 0, 'change')} not live
+              <Icon name="chevron" size={12} />
+            </button>
+          ) : (
+            <span className="live-word">
+              <i className="live-dot" aria-hidden="true" />
+              {clean ? 'Live, up to date' : 'Not live'}
+            </span>
+          )}
           {!clean && !barHasUpdate && (
             <button
               className="btn btn-ink go-live"
-              disabled={publishing || isSampleHosted}
-              title={isSampleHosted ? "The sample can't go live here. Drop your own files." : isLive ? `${plural(p?.changes ?? 0, 'change')} not live yet.` : 'Puts an encrypted copy online for your readers. Nothing can be read without a password.'}
-              onClick={() => void publish()}
+              disabled={publishing || isSampleHosted || shredding}
+              title={shredding ? 'Wait for the files to finish.' : isSampleHosted ? "The sample can't go live here. Start your own map." : isLive ? `${plural(p?.changes ?? 0, 'change')} not live yet.` : 'Puts an encrypted copy online for your readers. Nothing can be read without a password.'}
+              onClick={() => void publishAndSay()}
             >
               {publishing ? (isLive ? 'Updating' : 'Going live') : isLive ? 'Update' : 'Go live'}
             </button>
+          )}
+          {changesOpen && isLive && !clean && vault && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 29 }} onClick={() => setChangesOpen(false)} />
+              <div className="changes panel" role="dialog" aria-label="What isn't live yet">
+                <p>Your readers still see the last update, without these:</p>
+                <ul>
+                  {whatChanged(vault).slice(0, 8).map((c, i) => <li key={i}>{c}</li>)}
+                  {whatChanged(vault).length > 8 && <li className="quiet">and {whatChanged(vault).length - 8} more</li>}
+                </ul>
+              </div>
+            </>
           )}
         </div>
       )}

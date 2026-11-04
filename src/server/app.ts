@@ -247,7 +247,7 @@ export function createHandler(config: Config) {
     }
 
     if (req.method === 'PUT') {
-      if (!validName(name)) return json({ error: 'That name is not available.' }, 400)
+      if (!validName(name)) return json({ error: "That address isn't available. Choose another." }, 400)
       const token = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
       if (!/^[0-9a-f]{64}$/.test(token)) return json({ error: 'Missing publish token.' }, 401)
 
@@ -255,7 +255,7 @@ export function createHandler(config: Config) {
       const size = Buffer.byteLength(raw)
       if (size > config.maxBundleBytes) {
         const mb = Math.round(config.maxBundleBytes / 1_048_576)
-        return json({ error: `This map is over the ${mb} MB limit.`, code: 'too-large' }, 413)
+        return json({ error: `This map is too big to go live here: its encrypted copy is over the ${mb} MB limit. Take something off the map, or run your own host.`, code: 'too-large' }, 413)
       }
       let bundle: unknown
       try {
@@ -275,7 +275,7 @@ export function createHandler(config: Config) {
 
       if (meta) {
         if (!timingSafeEqual(meta.tokenHash, tokenHash)) {
-          return json({ error: 'That name is taken, and this owner key does not match it.', code: 'taken' }, 403)
+          return json({ error: "That address is taken, and this recovery key doesn't match it. Choose another address.", code: 'taken' }, 403)
         }
         if (bundle.version <= meta.version) {
           return json({ error: `A newer version (${meta.version}) is already live.`, code: 'stale', version: meta.version }, 409)
@@ -287,7 +287,7 @@ export function createHandler(config: Config) {
       // A name is claimed by its first successful publish, so there are no empty reservations.
       if (config.hosted) {
         if (!limiter.allow(`claim:${ip}`, 6, 3_600_000)) {
-          return json({ error: 'Too many new accounts from this address. Try again in an hour.' }, 429)
+          return json({ error: 'Too many new accounts from your connection. Try again in an hour.' }, 429)
         }
         if (!powPassed) return json({ error: 'Proof of work failed.', code: 'pow' }, 400)
         if (store.count() >= config.maxAccounts) {
@@ -303,7 +303,7 @@ export function createHandler(config: Config) {
       const token = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
       const meta = store.meta(name)
       if (!meta) return json({ error: 'No such account.' }, 404)
-      if (!timingSafeEqual(meta.tokenHash, await sha256Hex(token))) return json({ error: 'That owner key does not match.' }, 403)
+      if (!timingSafeEqual(meta.tokenHash, await sha256Hex(token))) return json({ error: "That recovery key doesn't match." }, 403)
       store.remove(name)
       return json({ ok: true })
     }
