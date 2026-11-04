@@ -5,6 +5,8 @@
   --on-alert: #15191e;
   --live: #1f9d63;
   --paper: #e2e6ea;
+  /* A field or a key on a raised sheet. It was the sea's colour once, and it didn't deepen when the sea did. */
+  --field: #eef1f3;
   --raised: #fcfdfd;
   --ink: #15191e;
   --ink-rgb: 21, 25, 30;
@@ -35,6 +37,7 @@
 
 :root[data-theme='dark'] {
   --paper: #0e1319;
+  --field: #0e1319;
   --raised: #161c24;
   --ink: #e8e6df;
   --ink-rgb: 232, 230, 223;
@@ -293,7 +296,7 @@ a {
   width: 100%;
   height: 34px;
   padding: 0 10px;
-  background: var(--paper);
+  background: var(--field);
   border: 1px solid var(--hair);
   border-radius: var(--control-radius);
   outline: none;
@@ -1576,7 +1579,7 @@ button.piece-body {
   align-items: center;
   gap: 4px;
   padding: 4px 4px 4px 10px;
-  background: var(--paper);
+  background: var(--field);
   border: 1px solid var(--hair);
   border-radius: var(--control-radius);
 }
@@ -1626,7 +1629,7 @@ button.piece-body {
 .code-block {
   margin: 8px 0 0;
   padding: 10px;
-  background: var(--paper);
+  background: var(--field);
   border: 1px solid var(--hair);
   border-radius: 7px;
 }
@@ -2379,7 +2382,7 @@ body:has(.agent-view) .map-canvas {
 /* A monogram is plainly not a logo: paper, a hairline, and the first letter. */
 
 .svc-tile.svc-mono {
-  background: var(--paper);
+  background: var(--field);
   color: var(--soft);
   font-family: var(--sans);
   font-weight: 500;
@@ -2588,7 +2591,7 @@ body:has(.sheet) .empty > * {
   display: flex;
   align-items: center;
   height: 34px;
-  background: var(--paper);
+  background: var(--field);
   border: 1px solid var(--hair);
   border-radius: var(--control-radius);
   transition: border-color 120ms ease;
@@ -2645,7 +2648,7 @@ body:has(.sheet) .empty > * {
   display: block;
   padding: 12px;
   margin: 4px 0 10px;
-  background: var(--paper);
+  background: var(--field);
   border: 1px solid var(--hair);
   border-radius: 7px;
   font-family: var(--mono);
@@ -3195,6 +3198,12 @@ body:has(.empty-foot) .toasts {
 }
 body:has(.left.is-folded) .agent-view {
   left: var(--gutter);
+}
+/* Clear of the folded heading, which stands a little lower than the top row's controls. */
+@media (min-width: 721px) {
+  body:has(.left.is-folded) .agent-view {
+    top: 66px;
+  }
 }
 
 @media (max-width: 1100px) {

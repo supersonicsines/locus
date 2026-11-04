@@ -719,6 +719,8 @@ const LAND = {
   closing: world(90),
   /** Water narrower than twice this is land: a firth ends in a head, not a hairline. */
   narrowest: 20,
+  /** Land thinner than twice this, with nothing on it, is sea: a shore has no hairs. */
+  thinnest: 24,
   /** The shortest coast worth drawing. Anything less is a speck that reads as a stray mark, and nothing on the land is ever this small. */
   shortest: 340,
   /** The least margin around what's on the land, whatever else happens. */
@@ -815,6 +817,7 @@ function coastField(rects: Rect[], minX: number, minY: number, n: number, m: num
   }
   // In this order, because closing a narrow mouth can leave what's behind it as a lake.
   closeNarrows(field, n, m, Math.max(1, Math.round((t.narrowest * far) / cell)), cell)
+  dropSpits(field, near, n, m, Math.max(1, Math.round((t.thinnest * far) / cell)), cell)
   fillLakes(field, n, m)
   return field
 }
@@ -832,6 +835,22 @@ function closeNarrows(field: Float32Array, n: number, m: number, radius: number,
   chamfer(fromCore, n, m)
   for (let k = 0; k < n * m; k++) {
     if (field[k] <= 0 && fromCore[k] > radius) field[k] = cell * 0.5
+  }
+}
+
+/**
+ * Land too thin to read as land goes back to the sea, so a shore has no hairs on it. The same opening as above, of the land this time.
+ * Never within the hard margin of what's on the land, so everything still stands on land by construction.
+ */
+function dropSpits(field: Float32Array, near: Float32Array, n: number, m: number, radius: number, cell: number) {
+  const fromSea = new Float32Array(n * m)
+  for (let k = 0; k < n * m; k++) fromSea[k] = field[k] > 0 ? 1e6 : 0
+  chamfer(fromSea, n, m)
+  const fromCore = new Float32Array(n * m)
+  for (let k = 0; k < n * m; k++) fromCore[k] = fromSea[k] > radius ? 0 : 1e6
+  chamfer(fromCore, n, m)
+  for (let k = 0; k < n * m; k++) {
+    if (field[k] > 0 && fromCore[k] > radius && near[k] * cell > LAND.hard) field[k] = -cell * 0.5
   }
 }
 
