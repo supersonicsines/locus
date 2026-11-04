@@ -8,7 +8,7 @@ import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
 import { readerColour } from './map/symbols.ts'
 import { getState, setState, storage, useStore } from './store.ts'
-import { ReaderMark, useEscape, useNarrow } from './ui/bits.tsx'
+import { NeedMark, ReaderMark, useEscape, useNarrow } from './ui/bits.tsx'
 import { BottomRight, Cartouche } from './ui/Bottom.tsx'
 import { CommandK } from './ui/CommandK.tsx'
 import { areasOnMap, contentOf, exposedAreas, pricesReadableIn, readersByArea } from './ui/data.ts'
@@ -17,7 +17,7 @@ import { Left } from './ui/Left.tsx'
 import { Peek } from './ui/Peek.tsx'
 import { AgentView, SharePanel } from './ui/Share.tsx'
 import { Sheets, ShredStrip } from './ui/Sheets.tsx'
-import { NeedsPanel, StatusLine, TopRight } from './ui/Top.tsx'
+import { NeedsPanel, StatusLine, stillOpenFor, TopRight } from './ui/Top.tsx'
 
 const PALETTES: Record<'light' | 'dark', Palette> = {
   light: {
@@ -92,6 +92,8 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
 
   useLayoutEffect(() => {
     const canvas = ref.current!
+    // Read once and kept until something on the page changes, because the map asks for this on every frame it draws.
+    let floatingOver: DOMRect[] | null = null
     const view = new MapView(canvas, {
       select: (id) => setState({ selected: id }),
       gateClick: (gate) => {
@@ -117,15 +119,26 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
         if (s.zoom !== k || s.fitZoom !== fitK || s.mapMoved !== moved) setState({ zoom: k, fitZoom: fitK, mapMoved: moved })
       },
       covers: () => Array.from(document.querySelectorAll('.left-col > *'), (el) => el.getBoundingClientRect()),
+      overlays: () => (floatingOver ??= Array.from(document.querySelectorAll('.left-col > *, .status.panel, .side, .top-right > *, .lens-sheet'), (el) => el.getBoundingClientRect())),
     })
     map.current = view
     view.setPalette(PALETTES[getState().theme])
 
-    const size = () => view.resize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio || 1, 2.5))
+    const size = () => {
+      floatingOver = null
+      view.resize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio || 1, 2.5))
+    }
     size()
     window.addEventListener('resize', size)
     void document.fonts?.ready.then(() => view.fontsReady())
+    // An area's name gives way to what's floating over it, so when something opens or closes, the map has to look again.
+    const floating = new MutationObserver(() => {
+      floatingOver = null
+      view.invalidate()
+    })
+    floating.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] })
     return () => {
+      floating.disconnect()
       window.removeEventListener('resize', size)
       view.destroy()
       map.current = null
@@ -257,6 +270,7 @@ function PhoneLens({ map }: { map: React.RefObject<MapView | null> }) {
   }, [narrow, hasReader, showing, map])
   if (!showing || !pw || !vault) return null
   const live = !!vault.published && !!vault.site
+  const still = stillOpenFor(vault, pw.name)
   return (
     <section className="lens-sheet panel" aria-label={`What ${pw.name} can read`} ref={ref}>
       <div className="lens-head">
@@ -264,6 +278,12 @@ function PhoneLens({ map }: { map: React.RefObject<MapView | null> }) {
         <span className="grow">Seeing the map as <b style={{ fontWeight: 500 }}>{pw.name}</b></span>
         <button className="status-done" onClick={() => setState({ lens: null, agentView: false })}>Done</button>
       </div>
+      {still && (
+        <div className="lens-still-row" role="alert">
+          <NeedMark level="now" />
+          <span>{still}.</span>
+        </div>
+      )}
       <div className="lens-chips">
         <span className="lens-note">Can read</span>
         {areasOnMap(vault).map((g) => (
@@ -283,7 +303,7 @@ function FirstRun() {
     <div className="empty">
       <div className="empty-word">Vadere</div>
       <h1>Teach your AI tools about your company.</h1>
-      <p><span>Drop in your documents: brand book, contracts, specs, invoices.</span> <span>They become one map, and you choose which parts each AI tool or person can read.</span></p>
+      <p><span>Add your documents: brand book, contracts, specs, invoices.</span> <span>They become one map, and you choose which parts each AI tool or person can read.</span></p>
       <div className="empty-actions">
         <button className="btn btn-ink" onClick={() => input.current?.click()}>Choose files</button>
         <button className="btn btn-paper" onClick={() => void loadSample()}>See an example</button>
@@ -314,9 +334,13 @@ function FirstRun() {
 }
 
 function BlankMap() {
+  const reading = useStore((s) => !!s.shred)
+  const coarse = useMemo(() => matchMedia('(pointer: coarse)').matches, [])
+  // It was just given what it's asking for. The progress card takes it from here.
+  if (reading) return null
   return (
     <div className="empty blank">
-      <h1>Drop your files anywhere.</h1>
+      <h1>{coarse ? 'Choose your files.' : 'Drop your files anywhere.'}</h1>
       <p>Brand book, contracts, specs, invoices. They become this map.</p>
       <div className="empty-actions">
         <button className="btn btn-ink" onClick={() => document.getElementById('add-files')?.click()}>Choose files</button>
@@ -329,7 +353,7 @@ function BlankMap() {
 async function startWith(files: File[]) {
   const v = getState().vault
   if (!v || v.sample) await newMap()
-  setState({ sheet: { kind: 'shred', files } })
+  setState({ sheet: { kind: 'shred', files, fromSample: !!v?.sample } })
 }
 
 function Locked({ name }: { name: string }) {
@@ -467,7 +491,7 @@ export function App() {
       const last = await storage.get<string>('lastVault')
       const v = all.find((x) => x.id === last) ?? all[0]
       if (v) await openVault(v)
-      setState({ mode: 'studio', vaultList: all.map((x) => ({ id: x.id, name: x.company.name, sample: x.sample })) })
+      setState({ mode: 'studio', vaultList: all.map((x) => ({ id: x.id, name: x.company.name, sample: x.sample, items: x.pieces.length })) })
       if (new URLSearchParams(location.search).get('sample') !== null && !v) await loadSample()
     })()
   }, [])

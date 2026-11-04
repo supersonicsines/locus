@@ -5,10 +5,10 @@ import { CATALOG, CATALOG_AS_OF, findInCatalog, type CatalogEntry } from '../../
 import type { Gate } from '../../core/types.ts'
 import { generateOwnerKey, looksLikeKey } from '../../core/seal.ts'
 import { shredLocally, DEFAULT_GATES } from '../../core/shred-local.ts'
-import { addPiece, askFit, copy, createPassword, deleteCurrentMap, downloadText, lastPublishFailure, placeNewPieces, publish, refreshServer, setCost, signIn, siteAddress, toast, updateVault } from '../actions.ts'
+import { addPiece, askFit, clearToasts, copy, createPassword, deleteCurrentMap, downloadText, lastPublishFailure, placeNewPieces, publish, refreshServer, setCost, signIn, siteAddress, toast, updateVault } from '../actions.ts'
 import { MODELS, shredWithClaude } from '../shred/claude.ts'
 import { estimateTokens, extract, type Extracted } from '../shred/extract.ts'
-import { merge } from '../shred/merge.ts'
+import { alreadyRejected, merge } from '../shred/merge.ts'
 import { getState, setState, storage, useStore } from '../store.ts'
 import { newId } from '../../core/seal.ts'
 import { normaliseName, type KnownService } from '../logos/lookup.ts'
@@ -18,6 +18,8 @@ import { Icon, plural, ServiceMark, useEscape, usePanelFocus } from './bits.tsx'
 function Sheet({ children, onClose, label }: { children: React.ReactNode; onClose?: () => void; label: string }) {
   useEscape(() => onClose?.(), !!onClose)
   const ref = usePanelFocus<HTMLDivElement>(label)
+  // What was said before this opened would only sit on top of it, sometimes on the very button it's talking about.
+  useEffect(() => clearToasts(), [])
   // A sheet interrupts the page, so Tab stays in it, and focus goes back where it came from afterwards.
   const keepFocus = (e: React.KeyboardEvent) => {
     if (e.key !== 'Tab' || !ref.current) return
@@ -66,6 +68,7 @@ function PublishSheet() {
   const [ownerKey] = useState(generateOwnerKey)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [copiedKey, setCopiedKey] = useState(false)
 
   const full = !!server?.accounts && server.accounts.used >= server.accounts.max
 
@@ -104,11 +107,13 @@ function PublishSheet() {
     ? 'Name your company first'
     : availability === 'unreachable'
       ? "Can't reach the host"
-      : availability !== 'free' && availability !== 'checking'
-        ? 'Choose an address first'
-        : !saved
-          ? 'Save your key to continue'
-          : 'Go live'
+      : availability === 'taken' || availability === 'reserved'
+        ? 'Choose another address'
+        : availability !== 'free' && availability !== 'checking'
+          ? 'Choose an address first'
+          : !saved
+            ? 'Save your key to continue'
+            : 'Go live'
 
   const go = async () => {
     setError('')
@@ -128,6 +133,7 @@ function PublishSheet() {
         reader
           ? { label: `Connect ${reader.name}`, run: () => setState({ lens: reader.id, panel: 'share', selected: null, area: null }) }
           : { label: 'Add a reader', run: () => { createPassword(); setState({ panel: 'share', area: null }) } },
+        { status: true },
       )
     } else {
       // Undo the claim locally so another name can be tried.
@@ -142,9 +148,14 @@ function PublishSheet() {
       <Sheet label="Every free account is taken" onClose={close}>
         <h2>Every free account is taken</h2>
         <p>
-          Your map is safe in this browser, and it works fully without going live. To go live today, run your own host: it takes one command, and it has no limit on accounts.
+          Your map is still here, in this browser, and you can keep building it. Nobody else can read it until it's live. To go live today, run your own host on a computer with Node.js: it takes one command in a terminal, and it has no limit on accounts.
         </p>
-        <div className="code-block"><code>npx vadere serve</code></div>
+        <div className="code-block">
+          <code>npx vadere serve</code>
+          <button className="btn btn-paper code-copy" aria-label="Copy the command" onClick={async () => { if (await copy('npx vadere serve', null)) setCopiedKey(true) }}>
+            <Icon name={copiedKey ? 'check' : 'copy'} size={13} /> {copiedKey ? 'Copied' : 'Copy'}
+          </button>
+        </div>
         <div className="actions">
           {server?.donateUrl && (
             <button className="btn btn-paper" onClick={() => setState({ sheet: { kind: 'donate' } })}>Donate</button>
@@ -158,7 +169,7 @@ function PublishSheet() {
   return (
     <Sheet label="Go live" onClose={publishing ? undefined : close}>
       <h2>Go live</h2>
-      <p>This encrypts the map on this device and puts that copy online at your address. The host only stores the encrypted copy, and nothing opens without a password.</p>
+      <p>This encrypts the map on this device and puts that copy online at your address. The host, the server that keeps it online, only stores the encrypted copy, and nothing opens without a password.</p>
 
       <label htmlFor="company">Company name</label>
       <input
@@ -185,7 +196,7 @@ function PublishSheet() {
         />
         <span>{domainPart}</span>
       </div>
-      <div className="field-note" aria-live="polite">
+      <div className={`field-note ${availability === 'taken' || availability === 'reserved' || availability === 'invalid' || availability === 'unreachable' ? 'is-wrong' : ''}`} aria-live="polite">
         {note[availability]}
         {availability === 'unreachable' && <> <button className="text-btn" onClick={() => setTries(tries + 1)}>Try again</button></>}
       </div>
@@ -199,10 +210,13 @@ function PublishSheet() {
         <button
           className="btn btn-paper"
           onClick={async () => {
-            if (await copy(ownerKey, 'Recovery key copied.')) setSaved(true)
+            if (await copy(ownerKey, null)) {
+              setSaved(true)
+              setCopiedKey(true)
+            }
           }}
         >
-          Copy it
+          {copiedKey ? 'Copied' : 'Copy it'}
         </button>
         <button
           className="btn btn-paper"
@@ -261,6 +275,7 @@ function SignInSheet() {
 function OwnerKeySheet() {
   const vault = useStore((s) => s.vault)!
   const [shown, setShown] = useState(false)
+  const [copied, setCopied] = useState(false)
   return (
     <Sheet label="Recovery key" onClose={close}>
       <h2>Recovery key</h2>
@@ -268,7 +283,7 @@ function OwnerKeySheet() {
       <code className="owner-key">{shown ? vault.site?.ownerKey : `vdo_${'•'.repeat(26)}`}</code>
       <div className="actions">
         <button className="btn btn-paper" onClick={() => setShown(!shown)}>{shown ? 'Hide' : 'Show'}</button>
-        <button className="btn btn-paper" onClick={() => void copy(vault.site?.ownerKey ?? '', 'Recovery key copied.')}>Copy</button>
+        <button className="btn btn-paper" onClick={async () => { if (await copy(vault.site?.ownerKey ?? '', null)) setCopied(true) }}>{copied ? 'Copied' : 'Copy'}</button>
         <button className="btn btn-ink" onClick={close}>Done</button>
       </div>
     </Sheet>
@@ -413,14 +428,14 @@ function AddServiceSheet() {
   }
 
   return (
-    <Sheet label="Add a service" onClose={close}>
-      <h2>Add a service</h2>
+    <Sheet label="Add a tool" onClose={close}>
+      <h2>Add a tool</h2>
       <p>List prices were checked on {CATALOG_AS_OF}, and show as estimates until you drop an invoice or type your own.</p>
       <input
         className="field"
         autoFocus
-        placeholder="Find a service"
-        aria-label="Find a service"
+        placeholder="Find a tool"
+        aria-label="Find a tool"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onKeyDown={(e) => {
@@ -451,9 +466,19 @@ function AddServiceSheet() {
 }
 
 /** Why a file can't go on the map, and what would work. */
+/** Around here a file has more sections than one file can put on the map. It's a warning, so it doesn't have to be exact. */
+const LONG_FILE = 400_000
+
 const READS = 'Vadere reads PDFs, Word documents, images and text files such as Markdown, CSV and JSON.'
 
-function ShredSheet({ files, error }: { files: File[]; error?: string }) {
+/** What a run costs beyond the files' own words: the instructions and schema on each call, what comes back, and the step that sorts the map. Rough, and on the safe side, because it's someone's own money. Not yet checked against a real bill. */
+const PER_CALL_IN = 1200
+const PER_CALL_OUT = 900
+
+/** Why a row in the list won't be added, in the fewest words that are true. */
+const whyNot = (note?: string) => (note === 'This file seems to be damaged.' ? 'Damaged' : "Can't read")
+
+function ShredSheet({ files, error, fromSample }: { files: File[]; error?: string; fromSample?: boolean }) {
   const stored = useStore((s) => s.claudeKey)
   const model = useStore((s) => s.claudeModel)
   const [extracted, setExtracted] = useState<Extracted[] | null>(null)
@@ -478,9 +503,13 @@ function ShredSheet({ files, error }: { files: File[]; error?: string }) {
   const mode = picked ?? (stored || error || (readable.length && !sortable.length) ? 'claude' : 'local')
   const tokens = extracted ? estimateTokens(readable) : 0
   const m = MODELS.find((x) => x.id === model) ?? MODELS[0]
-  const cost = ((tokens * 1.25) / 1e6) * m.input + ((tokens * 0.55) / 1e6) * m.output
+  // One call for each file, and one more to sort them all.
+  const calls = readable.length + 1
+  const cost = ((tokens * 1.25 + calls * PER_CALL_IN) / 1e6) * m.input + ((tokens * 0.55 + calls * PER_CALL_OUT) / 1e6) * m.output
   const secrets = extracted?.flatMap((f) => f.secrets) ?? []
   const left = readable.length - sortable.length
+  const overflowing = sortable.filter((f) => f.text.length > LONG_FILE).map((f) => f.name)
+  const listOf = (names: string[]) => (names.length === 1 ? names[0] : `${names.length} of these`)
 
   const badKey = mode === 'claude' && !!key && !key.startsWith('sk-')
   const ready = !!extracted && (mode === 'claude' ? !!readable.length && key.startsWith('sk-') : sortable.length > 0)
@@ -504,14 +533,14 @@ function ShredSheet({ files, error }: { files: File[]; error?: string }) {
       <Sheet label="These files can't be added" onClose={close}>
         <h2>{only ? `Can't add ${only.name}` : `Can't add these ${files.length} files`}</h2>
         {only ? (
-          <p>{only.note} {only.note === "Vadere can't read this type of file." ? READS : only.note === 'This file seems to be damaged.' ? 'Try saving it again from wherever it came from.' : ''}</p>
+          <p>{only.note} {only.note === "Vadere can't read this type of file." ? READS : only.note === 'This file seems to be damaged.' ? 'Try saving it again from wherever it came from.' : ''}{/\.(xlsx?|numbers|ods)$/i.test(only.name) ? ' For a spreadsheet, save it as CSV and add that.' : ''}</p>
         ) : (
           <>
             <ul className="file-list">
               {extracted.map((f) => (
                 <li key={f.name} className="file-row">
                   <span>{f.name}</span>
-                  <span>Can't read</span>
+                  <span>{whyNot(f.note)}</span>
                 </li>
               ))}
             </ul>
@@ -528,7 +557,7 @@ function ShredSheet({ files, error }: { files: File[]; error?: string }) {
   return (
     <Sheet label="Add to the map" onClose={close}>
       <h2>{files.length === 1 ? `Add ${files[0].name}` : `Add ${files.length} files`}</h2>
-      {error && <p style={{ margin: '0 0 12px', color: 'var(--ink)' }} role="alert">{error}</p>}
+      {fromSample && <p className="sheet-aside">This starts your own map. The sample stays in the menu.</p>}
       {!extracted ? (
         <p>Reading on this device.</p>
       ) : (
@@ -538,12 +567,12 @@ function ShredSheet({ files, error }: { files: File[]; error?: string }) {
               {extracted.map((f) => (
                 <li key={f.name} className="file-row">
                   <span>{f.name}</span>
-                  <span>{f.type === 'unreadable' ? "Can't read" : f.type === 'image' ? 'Image' : f.pages ? plural(f.pages, 'page') : plural(f.text.trim().split(/\s+/).length, 'word')}</span>
+                  <span>{f.type === 'unreadable' ? whyNot(f.note) : f.type === 'image' ? 'Image' : f.pages ? plural(f.pages, 'page') : plural(f.text.trim().split(/\s+/).length, 'word')}</span>
                 </li>
               ))}
             </ul>
           )}
-          {unreadable.length > 0 && <p className="hint" style={{ margin: '8px 0 0' }}>The files marked Can't read won't be added. {READS}</p>}
+          {unreadable.length > 0 && <p className="hint" style={{ margin: '8px 0 0' }}>{unreadable.length === 1 ? "The one marked here won't be added." : "The ones marked here won't be added."} {READS}</p>}
           {secrets.length > 0 && (
             <div className="exposure" role="alert">
               Found {plural(secrets.length, 'secret')} ({[...new Set(secrets)].join(', ')}) and took {secrets.length === 1 ? 'it' : 'them'} out before anything else happens. Change {secrets.length === 1 ? 'it' : 'them'}: anyone with the file has {secrets.length === 1 ? 'it' : 'them'}.
@@ -551,15 +580,16 @@ function ShredSheet({ files, error }: { files: File[]; error?: string }) {
           )}
 
           <button className="choice" aria-pressed={mode === 'local'} onClick={() => setPicked('local')}>
-            <b>Sort it here, with no AI</b>
+            <b>Sort {files.length === 1 ? 'it' : 'them'} here, with no AI</b>
             <span>Free, and nothing leaves this device. It splits on headings and guesses from keywords, so the map is rougher.{left ? ` It can't read images or scanned pages.` : ''}</span>
           </button>
           <button className="choice" aria-pressed={mode === 'claude'} onClick={() => setPicked('claude')}>
-            <b>Read it with Claude</b>
-            <span>The best map: it reads PDFs and images, and finds contradictions and gaps. These files go to Anthropic, under your own key.</span>
+            <b>Read {files.length === 1 ? 'it' : 'them'} with Claude</b>
+            <span>The best map: it reads PDFs and images, and finds contradictions and gaps. {files.length === 1 ? 'This file goes' : 'These files go'} to Anthropic, under your own key.</span>
           </button>
 
           {mode === 'local' && !sortable.length && <p className="hint" style={{ margin: '10px 0 0' }}>There's no text in this to sort. Read it with Claude instead.</p>}
+          {mode === 'local' && overflowing.length > 0 && <p className="hint" style={{ margin: '10px 0 0' }}>{listOf(overflowing)} {overflowing.length === 1 ? 'is' : 'are'} very long. Only the start will fit on the map this way, and the map will say so.</p>}
 
           {mode === 'claude' && (
             <>
@@ -582,17 +612,19 @@ function ShredSheet({ files, error }: { files: File[]; error?: string }) {
                 </div>
               </div>
               <button className="row-between" style={{ width: '100%', marginTop: 10, alignItems: 'center' }} role="switch" aria-checked={remember} onClick={() => setRemember(!remember)}>
-                <span className="hint">Remember the key in this browser</span>
+                <span className="hint">Remember the key in this browser, unencrypted</span>
                 <span className="switch" aria-checked={remember} />
               </button>
             </>
           )}
         </>
       )}
+      {/* The sheet came straight back with the same files on it, so what stopped them goes where the eye ends up, beside the button. */}
+      {error && <p className="sheet-error" role="alert">{error}</p>}
       <div className="actions">
         <button className="btn btn-quiet" onClick={close}>Cancel</button>
-        <button className="btn btn-ink" disabled={!ready} onClick={start}>
-          Add to the map
+        <button className="btn btn-ink" aria-busy={!extracted} disabled={!ready} onClick={start}>
+          {extracted ? 'Add to the map' : 'Reading the file'}
         </button>
       </div>
     </Sheet>
@@ -605,7 +637,7 @@ function claudeTrouble(e: any): string {
   const said = String(e?.message ?? '')
   if (status === 401) return 'Claude rejected that key. Check you copied all of it, or sort with no AI.'
   if (status === 403) return "That key isn't allowed to do this. Check its permissions in your Anthropic account."
-  if (status === 429) return 'Claude is rate limiting this key. Wait a minute and try again.'
+  if (status === 429) return 'Claude has had too many requests from this key. Wait a minute and try again.'
   if (status === 413) return 'Those files are too big to send in one go. Add them a few at a time, or split them.'
   if (status === 400 && /credit/i.test(said)) return "That key's account has run out of credit. Top it up with Anthropic, or sort with no AI."
   if (status >= 500 && status < 600) return 'Claude is having trouble right now. Try again in a few minutes.'
@@ -629,16 +661,21 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
     return `${plural(added, startedWith ? 'more item' : 'item')} on the map.`
   }
   const skips = skipped.length ? ` Skipped ${skipped.join(', ')}.` : ''
+  const stayedOff = (n: number) => (n ? ` ${n === 1 ? 'One thing you rejected stayed' : `${n} things you rejected stayed`} off the map.` : '')
+  // Reading them again is the answer to having missed them.
+  const clearUnread = () => updateVault((v) => ({ ...v, findings: v.findings.filter((f) => !files.some((x) => f.id === `unread-${x.name}`)) }))
 
   if (mode === 'local') {
     setState({ shred: { phase: 'Sorting on this device', done: 0, total: 1, pieces: 0 } })
     await new Promise((r) => setTimeout(r, 30))
     const result = shredLocally(files.map((f) => ({ name: f.name, text: f.text })), () => newId())
+    const refused = alreadyRejected(getState().vault!, result.pieces)
+    clearUnread()
     updateVault((v) => placeNewPieces(merge(v, result)))
     setState({ shred: null })
     askFit()
     // A file too long to sort says so here, and stays in what needs you until someone deals with it.
-    toast(`${landed()}${result.cut.length ? ` Only the start of ${result.cut.join(', ')} fits. The rest is not on the map.` : ''}${skips}`)
+    toast(`${landed()}${stayedOff(refused)}${result.cut.length ? ` Only the start of ${result.cut.join(', ')} fits. The rest is not on the map.` : ''}${skips}`)
     return
   }
 
@@ -651,11 +688,14 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
   // Pieces already on the map keep their place and area through a re-drop. Those still waiting from a read that stopped don't count: they haven't been sorted.
   const before = new Set(getState().vault?.pieces.filter((p) => p.gate !== ARRIVALS.id).map((p) => p.id))
   const idMap = new Map<string, string>()
+  let refused = 0
+  const nameWas = getState().vault?.company.name
 
   try {
     const result = await shredWithClaude(files, key, model, {
       pieces(pieces, costs) {
         count += pieces.length
+        refused += alreadyRejected(getState().vault!, pieces)
         // Pieces land on the map as they're read, in one place, because nothing has sorted them yet.
         updateVault((v) => placeNewPieces(merge(v, { gates: [ARRIVALS], pieces: pieces.map((p) => ({ ...p, gate: ARRIVALS.id })), links: [], costs }, idMap)))
         const s = getState().shred
@@ -698,7 +738,12 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
         ...v.links,
         ...result.links.map((l) => ({ ...l, from: final(l.from), to: final(l.to) })).filter((l) => known.has(l.from) && known.has(l.to) && l.from !== l.to),
       ]
-      const findings = [...v.findings, ...result.findings.map((f) => ({ ...f, pieces: f.pieces.map(final) }))]
+      const findings = [
+        ...v.findings.filter((f) => !files.some((x) => f.id === `unread-${x.name}`)),
+        // What a message would have said and lost: this file isn't on the map, until someone adds it again.
+        ...result.failed.map((name) => ({ id: `unread-${name}`, kind: 'gap' as const, message: `Claude couldn't read "${name}", so it isn't on the map. Add it again to try once more.`, pieces: [] })),
+        ...result.findings.map((f) => ({ ...f, pieces: f.pieces.map(final).filter((id) => known.has(id)) })),
+      ]
       const named = v.company.name && v.company.name !== 'Untitled company'
       return placeNewPieces({
         ...v,
@@ -715,7 +760,9 @@ export async function runShred(files: Extracted[], mode: 'claude' | 'local', key
     setState({ shred: null })
     askFit()
     const unread = result.failed.length ? ` Claude couldn't read ${result.failed.join(', ')}, so ${result.failed.length === 1 ? "it isn't" : "they aren't"} on the map. Add ${result.failed.length === 1 ? 'it' : 'them'} again to try once more.` : ''
-    toast(`${landed()} That cost about $${spent < 0.01 ? '0.01' : spent.toFixed(2)}.${skips}${unread}`)
+    const nameNow = getState().vault?.company.name
+    const named = nameNow && nameNow !== nameWas ? ` Named it ${nameNow}, from your files. Change it from the menu.` : ''
+    toast(`${landed()}${stayedOff(refused)}${named} That cost about $${spent < 0.01 ? '0.01' : spent.toFixed(2)}.${skips}${unread}`)
   } catch (e: any) {
     setState({ shred: null })
     const trouble = claudeTrouble(e)
@@ -748,7 +795,7 @@ export function Sheets() {
     case 'add-service':
       return <AddServiceSheet />
     case 'shred':
-      return <ShredSheet files={sheet.files} error={sheet.error} />
+      return <ShredSheet files={sheet.files} error={sheet.error} fromSample={sheet.fromSample} />
   }
 }
 

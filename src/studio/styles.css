@@ -182,6 +182,10 @@ a {
   transform: scale(0.97);
 }
 
+.btn.is-held {
+  opacity: 0.45;
+}
+
 .btn:disabled {
   cursor: default;
 }
@@ -429,6 +433,20 @@ a {
 
 .company-btn:active {
   background: var(--wash-strong);
+}
+
+/* Folded, the heading also says what's inside. Open, what's inside says so itself. */
+.company-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.company-fold {
+  display: none;
+  color: var(--soft);
+  font-size: 11.5px;
+  line-height: 14px;
 }
 
 .company-name {
@@ -771,13 +789,19 @@ a {
   }
 }
 
-/* Nothing to say: no panel, no weight. The page looks calm because it is. */
+/* Nothing to say: hardly any weight. It still needs a ground of its own, because a county's border running through it reads as struck out. */
 .status.is-clear {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: fit-content;
+  min-height: 28px;
+  padding: 4px 10px 4px 8px;
   color: var(--soft);
   font-size: 12.5px;
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  border-radius: var(--control-radius);
 }
 
 /* The one loud thing on the page. Amber, because vermilion means sealed. */
@@ -835,6 +859,34 @@ a {
   color: #fbfcfc;
   font-size: 12.5px;
   font-weight: 500;
+}
+
+/* A picked reader can still read something you've closed, so while their picture is up it's the bar's whole message. */
+.status.is-now.is-lens {
+  gap: 8px;
+}
+
+.status.is-now.is-lens .status-done {
+  background: rgba(21, 25, 30, 0.12);
+}
+
+.lens-still {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.lens-still-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0 2px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--alert) 22%, var(--raised));
+  border-radius: 7px;
+  font-size: 12.5px;
+  line-height: 18px;
 }
 
 .status.is-lens {
@@ -1057,7 +1109,8 @@ a {
   position: fixed;
   top: 56px;
   right: var(--gutter);
-  bottom: var(--gutter);
+  /* As tall as what it holds, up to the foot of the screen. The rest of the height is map. */
+  max-height: calc(100dvh - 56px - var(--gutter));
   width: 372px;
   display: flex;
   flex-direction: column;
@@ -1449,6 +1502,13 @@ button.piece-body {
   margin-top: 8px;
 }
 
+.callout-note {
+  margin: 6px 0 0;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 17px;
+}
+
 .callout .btn {
   height: 26px;
   padding: 0 9px;
@@ -1580,9 +1640,36 @@ button.piece-body {
 
 .code-copy {
   height: 26px;
-  margin-top: 8px;
   padding: 0 9px;
   gap: 5px;
+}
+
+/* Copy is the whole job in here, so it stays at the top of the box, where the box's own length can't push it out of sight. */
+.code-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.code-block .code-copy {
+  order: -1;
+  align-self: flex-end;
+  margin: 0 0 6px;
+}
+
+/* JSON keeps its shape. It scrolls sideways sooner than losing its indents to the left margin. */
+.code-block.is-shaped code {
+  white-space: pre;
+  overflow-x: auto;
+  overflow-wrap: normal;
+}
+
+.steps.is-single {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tab-note {
+  margin: 10px 0 0;
 }
 
 .steps {
@@ -1658,6 +1745,8 @@ code.inline {
 }
 
 .changes {
+  /* It sits inside the pill, which goes to ink when readers are behind, and the list inherits from it. */
+  color: var(--ink);
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -1726,6 +1815,22 @@ code.inline {
 }
 
 /* What an agent sees. */
+
+/* It covers the land, and all that would be left in the gaps round it is stray bits of coast. */
+.map-canvas {
+  transition: opacity 180ms ease;
+}
+
+body:has(.agent-view) .map-canvas {
+  opacity: 0;
+}
+
+.agent-note {
+  display: block;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 16px;
+}
 
 .agent-view {
   position: fixed;
@@ -2481,6 +2586,26 @@ body:has(.sheet) .empty > * {
   min-height: 17px;
 }
 
+/* Something's wrong, so it doesn't look like help text. */
+.field-note.is-wrong,
+.sheet p.hint[role='alert'] {
+  color: var(--ink);
+}
+
+.sheet p.sheet-aside {
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+
+.sheet p.sheet-error {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  background: var(--wash);
+  border-radius: 7px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
 .owner-key {
   display: block;
   padding: 12px;
@@ -2846,8 +2971,8 @@ body:has(.sheet) .empty > * {
 .toasts {
   position: fixed;
   bottom: var(--gutter);
-  left: 50%;
-  transform: translateX(-50%);
+  left: var(--gutter);
+  right: var(--gutter);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2856,11 +2981,20 @@ body:has(.sheet) .empty > * {
   pointer-events: none;
 }
 
+/* A box in a reader's panel comes straight after a button. */
+.side .exposure {
+  margin: 12px 0 0;
+}
+
+.toast span {
+  text-wrap: pretty;
+}
+
 .toast {
   display: flex;
   align-items: center;
   gap: 12px;
-  max-width: calc(100vw - 24px);
+  max-width: min(100%, 680px);
   padding: 8px 12px;
   background: var(--ink);
   color: var(--on-ink);
@@ -2875,6 +3009,17 @@ body:has(.sheet) .empty > * {
     opacity: 0;
     transform: translateY(8px);
   }
+}
+
+/* With a panel open, a message stays in the map's half, clear of the panel's words and above the zoom control. */
+body:has(.side) .toasts {
+  right: calc(372px + var(--gutter) * 2);
+  bottom: 56px;
+}
+
+/* First arrival: above the line with the way to sign in. */
+body:has(.empty-foot) .toasts {
+  bottom: 56px;
 }
 
 .toast button {
@@ -2926,6 +3071,16 @@ body:has(.sheet) .empty > * {
   .left .left-head {
     min-height: 46px;
   }
+  .left:not(.is-open) .company-btn {
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+  .left:not(.is-open) .company-fold {
+    display: block;
+  }
+  .left:not(.is-open) .company-name {
+    line-height: 22px;
+  }
   /* Folded means folded. Or Tab walks through rows nobody can see, and scrolls the heading out of its own card. */
   .left:not(.is-open) > :not(.left-head) {
     visibility: hidden;
@@ -2940,12 +3095,31 @@ body:has(.sheet) .empty > * {
     inset: 0;
     z-index: -1;
   }
+  /* The zoom control takes the foot of a narrow window, and a long message would reach it. */
+  .toasts {
+    bottom: 56px;
+  }
+  /* In a narrow window a panel and these can't all stand on what's left of the map, and the panel is what was asked for. */
+  body:has(.side) .bottom-right,
+  body:has(.side) .cartouche {
+    display: none;
+  }
+  .empty-foot {
+    flex-direction: column;
+    align-items: center;
+  }
+  /* Beside the open card, so what needs you and the way out of a reader's view don't go when it opens. */
   body:has(.left.is-open) .status {
-    visibility: hidden;
+    left: 296px;
+    max-width: calc(100vw - 296px - var(--gutter));
   }
 }
 
 @media (max-width: 1100px) {
+  /* On a line of its own again, so there's room to say what a click does. */
+  .status .optional {
+    display: inline;
+  }
   /* Too narrow to share a line: the status drops under the controls. */
   .top-bar,
   .status-slot {
@@ -2974,6 +3148,7 @@ body:has(.sheet) .empty > * {
   /* Under the line, not across it. */
   .side {
     top: 100px;
+    max-height: calc(100dvh - 100px - var(--gutter));
   }
 }
 
@@ -2989,6 +3164,7 @@ body:has(.sheet) .empty > * {
   }
   .side {
     top: 106px;
+    max-height: calc(100dvh - 106px - var(--gutter));
   }
 }
 
@@ -3004,6 +3180,14 @@ body:has(.sheet) .empty > * {
   .left.is-open {
     width: calc(100vw - var(--gutter) * 2);
     max-height: calc(100dvh - 90px);
+  }
+  /* Here the card has the whole width, and it holds the same things. */
+  body:has(.left.is-open) .status {
+    visibility: hidden;
+  }
+  /* No price beside it, so the name has the whole line. */
+  body:not(:has(.dollar-toggle)) .left {
+    width: calc(100vw - var(--gutter) * 2);
   }
   /* A phone is for checking on the map and answering it. What you do there sits under your thumb: add on the left, going live on the right. */
   .left-col {
@@ -3044,10 +3228,18 @@ body:has(.sheet) .empty > * {
   .toasts {
     bottom: calc(66px + env(safe-area-inset-bottom));
   }
-  /* A panel holds the bottom of the screen, and what you were reading mustn't go under a message. */
-  body:has(.side) .toasts {
-    top: var(--gutter);
+  /* A panel or a reader's sheet holds the bottom of the screen, so a message goes over the map above it, under the header and the line that says what needs you. */
+  body:has(.side) .toasts,
+  body:has(.lens-sheet) .toasts {
+    top: 134px;
+    right: var(--gutter);
     bottom: auto;
+  }
+  body:has(.zoom:not(.is-fit)) .toasts {
+    bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+  body:has(.empty-foot) .toasts {
+    bottom: calc(66px + env(safe-area-inset-bottom));
   }
   /* While a reader is picked, the sheet holds everything, and the map above it is what they can see. */
   .reader-more,
@@ -3098,6 +3290,19 @@ body:has(.sheet) .empty > * {
     text-align: left;
     gap: 2px 8px;
   }
+  /* The mark stays beside the first line, however many lines the words take. */
+  .status.is-now .status-open {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+  }
+  .status.is-now .status-open .need-mark {
+    flex: none;
+    margin-top: 2px;
+  }
+  .status.is-now .status-open b {
+    white-space: normal;
+    overflow: visible;
+  }
   .status-open svg {
     display: none;
   }
@@ -3107,7 +3312,7 @@ body:has(.sheet) .empty > * {
     right: var(--gutter);
     bottom: var(--gutter);
     width: auto;
-    height: 64dvh;
+    max-height: 64dvh;
     z-index: 20;
   }
   .agent-view {
@@ -3144,6 +3349,16 @@ body:has(.sheet) .empty > * {
   .zoom .pct::after {
     content: 'Whole map';
     font-size: 12.5px;
+  }
+}
+
+.panel-go-live {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .panel-go-live {
+    display: inline-flex;
   }
 }
 
@@ -3212,6 +3427,19 @@ body:has(.sheet) .empty > * {
 
 /* A finger needs more room than a pointer, and an input under 16px makes a phone zoom the page. */
 @media (pointer: coarse) {
+  /* At that size a small menu beside its label is the loudest thing in the sheet, so it takes the shape of a field. */
+  .row-between:has(> .select-wrap) {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 4px;
+  }
+  .select-wrap,
+  .select-wrap .select {
+    width: 100%;
+  }
+  .select-wrap .select {
+    min-height: 44px;
+  }
   .btn {
     min-height: 40px;
   }
@@ -3229,16 +3457,32 @@ body:has(.sheet) .empty > * {
     height: 44px;
   }
   .tab {
-    height: 36px;
+    height: 44px;
   }
   .segmented button {
-    height: 32px;
-    padding: 0 10px;
+    height: 44px;
+    padding: 0 12px;
+  }
+  .need-actions .btn,
+  .callout .btn,
+  .lens-chip,
+  .btn {
+    min-height: 44px;
   }
   .need-actions .btn,
   .callout .btn {
-    height: 36px;
+    height: 44px;
+  }
+  .lens-chip {
+    height: 44px;
+  }
+  .toast button {
+    min-height: 32px;
+    padding: 0 4px;
+  }
+  .code-block .code-copy {
     min-height: 36px;
+    height: 36px;
   }
   /* A finger's button needs its own line, or it lands on the words beside it. */
   .need.is-look .need-actions {
@@ -3247,12 +3491,32 @@ body:has(.sheet) .empty > * {
   }
   .status-do,
   .status-done {
-    height: 34px;
+    height: 36px;
   }
   input,
   textarea,
   select {
     font-size: 16px;
+  }
+}
+
+/* A button inside a pill has to stay inside it. */
+@media (pointer: coarse) and (max-width: 720px) {
+  .live-state {
+    height: 46px;
+  }
+  .live-state .go-live {
+    min-height: 38px;
+    height: 38px;
+  }
+  .top-right > .add-menu > .btn {
+    height: 46px;
+  }
+}
+
+@media (pointer: coarse) and (min-width: 721px) {
+  .live-state .go-live {
+    min-height: 28px;
   }
 }
 

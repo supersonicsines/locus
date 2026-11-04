@@ -3,9 +3,10 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { formatMoney, summarize } from '../../core/money.ts'
 import { levelOf, needs, pending, priceNotes, sortNeeds, whatChanged, type Need, type NeedKind } from '../../core/status.ts'
-import { addArea, addPiece, publishAndSay } from '../actions.ts'
+import { addArea, addPiece, clearPlainToasts, newMap, publishAndSay, toast } from '../actions.ts'
 import type { MapView } from '../map/MapView.ts'
 import { setState, useStore } from '../store.ts'
+import type { Vault } from '../../core/types.ts'
 import { Icon, NeedActions, NeedMark, plural, ServiceMark, useEscape, usePanelFocus } from './bits.tsx'
 import { contentOf, placeOf } from './data.ts'
 
@@ -15,7 +16,7 @@ const SUMMARY: Record<NeedKind, (n: number) => string> = {
   secret: (n) => plural(n, 'exposed secret'),
   proposal: (n) => `${n} to approve`,
   conflict: (n) => plural(n, 'contradiction'),
-  gap: (n) => `${n} missing`,
+  gap: (n) => `${n} to look at`,
   due: (n) => `${n} coming up`,
   stale: (n) => `${n} out of date`,
 }
@@ -35,6 +36,12 @@ function summaryOf(list: Need[]): string {
   return words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0]
 }
 
+/** The sentence that says this reader can still read something you've closed, if there is one. */
+export function stillOpenFor(vault: Vault, name: string): string | null {
+  const e = pending(vault).exposures.find((x) => x.message.startsWith(`${name} can still read `))
+  return e ? e.message.replace(/\.$/, '') : null
+}
+
 export function StatusLine() {
   const vault = useStore((s) => s.vault)
   const view = useStore((s) => s.view)
@@ -45,6 +52,7 @@ export function StatusLine() {
   const cmdk = useStore((s) => s.cmdk)
   const publishing = useStore((s) => s.publishing)
   const lensPw = vault?.passwords.find((p) => p.id === lens) ?? null
+  const reading = useStore((s) => s.agentView)
   const done = () => setState({ lens: null, agentView: false, panel: panel === 'share' ? null : panel })
   useEscape(done, !!lensPw && panel !== 'share' && !selected && !sheet && !cmdk)
 
@@ -65,9 +73,20 @@ export function StatusLine() {
   if (!vault.pieces.length && !vault.published) return null
 
   if (lensPw) {
+    // What this reader can still do out there, though you've changed it here. While their picture is showing, nothing else on the page would say so.
+    const still = stillOpenFor(vault, lensPw.name)
+    if (still) {
+      return (
+        <div key="lens-now" className="status panel is-now is-lens" role="alert">
+          <NeedMark level="now" />
+          <b className="lens-still" title={still}>{still}</b>
+          <button className="status-done" onClick={done}>Done</button>
+        </div>
+      )
+    }
     return (
       <div key="lens" className="status panel is-lens" role="status">
-        <span>Seeing the map as <b>{lensPw.name}</b>. <span className="quiet optional">Click an area to change what they can read.</span></span>
+        <span>Seeing the map as <b>{lensPw.name}</b>. {!reading && <span className="quiet optional">Click an area to change this.</span>}</span>
         <button className="status-done" onClick={done}>Done</button>
       </div>
     )
@@ -149,6 +168,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
   const vault = useStore((s) => s.vault)
   useEscape(() => setState({ panel: null, highlight: null }))
   const ref = usePanelFocus<HTMLDivElement>('needs')
+  useEffect(() => clearPlainToasts(), [])
   if (!vault) return null
   const list = sortNeeds(needs(vault))
 
@@ -183,7 +203,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
           const firstQuiet = levelOf(n.kind) === 'look' && (i === 0 || levelOf(list[i - 1].kind) !== 'look')
           return (
             <Fragment key={n.id}>
-            {firstQuiet && <p className="need-group">Worth a look when you have a minute. A dot on the map marks each of these.</p>}
+            {firstQuiet && <p className="need-group">Worth a look when you have a minute. Dots on the map mark these.</p>}
             <div
               className={`need is-${levelOf(n.kind)} ${n.pieces.length || gateOf(n) ? 'clickable' : ''}`}
               onMouseEnter={() => n.pieces.length && setState({ highlight: new Set(n.pieces) })}
@@ -238,7 +258,7 @@ function AddMenu() {
       {open && (
         <div className="menu panel" role="menu">
           <button className="menu-item" role="menuitem" onClick={act(() => document.getElementById('add-files')?.click())}>Documents from your computer</button>
-          <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'add-service' } }))}>A service you use</button>
+          <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'add-service' } }))}>A tool you use</button>
           <button className="menu-item" role="menuitem" onClick={act(() => addPiece())}>A note</button>
           <button className="menu-item" role="menuitem" onClick={act(addArea)}>A new area</button>
         </div>
@@ -321,11 +341,16 @@ export function TopRight() {
           )}
           {!clean && !barHasUpdate && (
             <button
-              className="btn btn-ink go-live"
+              // It can't do this right now, and a greyed button that says nothing can't be told from a broken one, so it looks held back and a press gets the reason.
+              className={`btn btn-ink go-live ${isSampleHosted || shredding ? 'is-held' : ''}`}
               aria-busy={publishing}
-              disabled={publishing || isSampleHosted || shredding}
-              title={shredding ? 'Wait for the files to finish.' : isSampleHosted ? "The sample can't go live here. Start your own map." : isLive ? `${plural(p?.changes ?? 0, 'change')} not live yet.` : 'Puts an encrypted copy online for your readers. Nothing can be read without a password.'}
-              onClick={() => void publishAndSay()}
+              disabled={publishing}
+              title={isLive ? `${plural(p?.changes ?? 0, 'change')} not live yet.` : 'Puts an encrypted copy online for your readers. Nothing can be read without a password.'}
+              onClick={() => {
+                if (shredding) toast('Wait for the files to finish.')
+                else if (isSampleHosted) toast("The sample can't go live here, because it's a made-up company.", { label: 'Start your own map', run: () => void newMap() })
+                else void publishAndSay()
+              }}
             >
               {publishing ? (isLive ? 'Updating' : 'Going live') : isLive ? 'Update' : 'Go live'}
             </button>

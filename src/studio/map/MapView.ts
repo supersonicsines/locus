@@ -78,6 +78,8 @@ export interface MapCallbacks {
   cameraChanged(k: number, fitK: number): void
   /** What floats over the map right now, so names don't go under it. */
   covers(): { left: number; top: number; right: number; bottom: number }[]
+  /** Everything floating over the map, panels and the top line as well as what `covers` lists. */
+  overlays(): { left: number; top: number; right: number; bottom: number }[]
 }
 
 interface Node {
@@ -531,7 +533,8 @@ export class MapView {
     } else {
       this.hasFitted = false
     }
-    this.cb.cameraChanged(this.cam.k, this.fitK)
+    // Where it's heading, or a refit under way leaves the readout on the old number until something next moves it.
+    this.cb.cameraChanged(this.camTarget?.k ?? this.cam.k, this.fitK)
     this.scheduleLabels(0)
     this.invalidate()
   }
@@ -539,7 +542,9 @@ export class MapView {
   setSelected(id: string | null) {
     if (this.selected === id) return
     this.selected = id
-    if (id) this.keepSubjectClear()
+    // Zoomed out this far an item has no name, so what you've just opened or made would be a ring on someone else's row. It comes close enough to have one, and goes back on closing.
+    if (id && (this.camTarget?.k ?? this.cam.k) < DETAIL_K) this.focusPiece(id)
+    else if (id) this.keepSubjectClear()
     else if (!this.activeArea) {
       this.slideBack()
       // A search took you there. Closing what it found brings you back, unless you've since moved the map yourself.
@@ -771,6 +776,14 @@ export class MapView {
         maxX = landRight
         minY = landTop
         maxY = landBottom
+      }
+    }
+    // A reader's panel takes a third of the width, and squeezing the whole map into what's left costs every name on it. So the map gives way only as far as its names can stand, and past that it runs on under the panel, the same as the land does anywhere else. Its west side stays clear, because that's where each area has its name.
+    if (!narrow && this.rightInset > 28) {
+      const whole = clamp(Math.min((this.w - left - 44) / (maxX - minX || 1), (this.h - top - bottom) / (maxY - minY || 1)), MIN_K, 0.9)
+      const named = Math.min(whole, DETAIL_K * 1.03)
+      if (k < named) {
+        return { k: named, x: left - minX * named, y: top + (this.h - top - bottom - (maxY - minY) * named) / 2 - minY * named }
       }
     }
     return {
@@ -1747,7 +1760,8 @@ export class MapView {
         // Close in, there's room to say what it is as well as what it's called.
         if (near && align === 'left' && !overview && n.piece.summary) {
           const room = roomFrom(n.piece.id, n.piece.gate, cx, y)
-          const sub = room >= 72 ? this.fitLine(n.piece.summary, SUB_FONT, room) : ''
+          // Waiting to be sorted they stand too close for it, and the words only run into the next item.
+          const sub = room >= 72 && n.piece.gate !== 'arrivals' ? this.fitLine(n.piece.summary, SUB_FONT, room) : ''
           if (sub) {
             const subW = this.measure(sub, SUB_FONT)
             const raised = cy - 6.5
@@ -1890,7 +1904,8 @@ export class MapView {
           // A kind's name is held with a little padding. What matters here is where its first letter starts, because at a laptop's zoom there's only just room.
           const dx = Math.max(o.x + (o.heading ? 2 : 0) - hx, 0, hx - (o.x + o.w))
           const dy = Math.max(o.y - hy, 0, hy - (o.y + o.h))
-          if (Math.hypot(dx, dy) < r) {
+          // And a kind's name gets a little air: a head touching its first letter reads as one blob.
+          if (Math.hypot(dx, dy) < r + (o.heading ? 3 : 0)) {
             const own = markIds.get(`${o.x},${o.y}`) === n.piece.id
             // A name or a mark it stood on couldn't be read. A kind's name can better spare it.
             if (!own) cover += o.heading ? 2 : 3
@@ -2206,7 +2221,7 @@ export class MapView {
       const [x, y] = this.toScreen(wx, wy)
       const r = towns ? this.townScreenRadius(n) : Math.max(this.soundingScreenRadius(n), tile / 2 + 1)
       const font = this.figureFont(n)
-      const text = figure(n.cost!, this.period)
+      const text = this.priceText(n.cost!)
       // A thing to check carries a small mark after the figure, which needs room too.
       const w = this.measure(text, font) + (this.data.priceChecks.has(n.piece.id) ? 12 : 0)
       let placed: [number, number, CanvasTextAlign, boolean] | null = null
@@ -2419,8 +2434,8 @@ export class MapView {
     if (had !== undefined) return had
     const name = this.data.gates.find((g) => g.id === t.gate)?.name ?? ''
     const [x, y] = this.gateLabelPos(t)
-    // Room for the small seal or pin beside the name, which only stands there when no reader is picked.
-    const room = this.neighbourRoom(t, x, y - 15, y + 3) - (!this.lensActive && (this.data.sealedToAll.has(t.gate) || this.data.exposed.has(t.gate)) ? 38 : 0)
+    // The small seal or pin gives way to the name, not the other way round: where there's no room beside it, it goes to the end of the line below.
+    const room = this.neighbourRoom(t, x, y - 15, y + 3)
     let shown = name
     // "L…" says nothing. A short name stays whole and runs a little long, and a long one keeps enough to recognise.
     // And a name that only just reaches a border stays whole: "Engineeri…" says less than a name touching a dashed line.
@@ -2448,24 +2463,25 @@ export class MapView {
       if (this.pendingSeal.has(gate)) return { ...none, tries: ['Can read until you update'], exposed: true }
       if (!this.data.pricesReadable.has(gate)) return { ...none, tries: ["Can't read"], sealed: true }
       // Money shows each service's name, plan and price, so "prices" alone would understate it. The area's panel spells it out.
-      return { ...none, family: 'lens-prices', tries: ["Can't read, except tool names and prices", "Can't read, except names and prices", 'Names and prices only'], sealed: true }
+      return { ...none, family: 'lens-prices', tries: ["Can't read, except tool names and prices", 'Tool names and prices only', 'Tools and prices only'], sealed: true }
     }
     // Everyone's mark stays beside the warning. The words are about one fact, and the map may never understate who can read.
     const exposed = this.data.exposed.get(gate)
     // Where there's no room for the whole sentence it gets shorter: the marks still say who, and the line at top centre says it in full.
-    if (exposed) return { ...none, family: 'exposed', tries: [exposed, 'Still readable until you update'], exposed: true, faces: this.data.readers.get(gate) ?? [] }
+    if (exposed) return { ...none, family: 'exposed', tries: [exposed, 'Still readable until you update', 'Still readable'], exposed: true, faces: this.data.readers.get(gate) ?? [] }
     if (this.data.sealedToAll.has(gate)) {
       // Money lists every service's name and price, so an area of services is only closed apart from those.
-      if (!this.data.pricesReadable.has(gate)) return { ...none, tries: ['No one can read this'], sealed: true }
+      if (!this.data.pricesReadable.has(gate)) return { ...none, family: 'closed', tries: ['No one can read this', 'No readers'], sealed: true }
       const end = this.data.live ? ' can be read' : ', once live'
-      return { ...none, family: 'prices', tries: [`Only tool names and prices${end}`, `Only names and prices${end}`, 'Names and prices only'], sealed: true }
+      return { ...none, family: 'prices', tries: [`Only tool names and prices${end}`, 'Tool names and prices only', 'Tools and prices only'], sealed: true }
     }
     const names = this.data.readers.get(gate) ?? []
     if (!names.length) return { ...none, tries: [''] }
     // Until there's a copy online, nobody reads anything, so "Read by" would be wrong. It's who the area is for.
     const live = this.data.live
     const lead = live ? 'Read by' : 'For'
-    if (names.length === 1) return { ...none, family: 'readers', faces: names, tries: [`${lead} ${names[0]}`] }
+    // One word for one fact across the whole map: where one area hasn't room for "Read by", none of them says it, and the mark and the name still say who.
+    if (names.length === 1) return { ...none, family: 'readers', faces: names, tries: [`${lead} ${names[0]}`, names[0]] }
     const shown = names.length === 2 ? `${names[0]} and ${names[1]}` : `${names[0]} and ${names.length - 1} others`
     const first = `${names[0]} and ${names.length - 1} ${names.length === 2 ? 'other' : 'others'}`
     // Names when there's room, a count when there isn't.
@@ -2496,6 +2512,11 @@ export class MapView {
     const money = value.toLocaleString('en-US', { maximumFractionDigits: 0 })
     const sym = this.data.currency === 'USD' ? '$' : `${this.data.currency} `
     return whole ? `${sym}${money} a ${this.period}` : `${sym}${money}`
+  }
+
+  /** What a disc says. No known price is a dash, because on this map a question mark means something is waiting for your approval. */
+  private priceText(cost: Cost): string {
+    return cost.amount === null ? '–' : figure(cost, this.period)
   }
 
   /** Whether every area's subtotal has room to say "a month" without crossing its coast. All of them do or none does, and the card says per what. */
@@ -3070,6 +3091,11 @@ export class MapView {
         const leading = leadingAt(this.cam.k)
         ctx.font = `${this.pinOf(n) ? '500 ' : ''}${nameSize(this.cam.k)}px ${this.sans}`
         right = Math.max(right, x + l.x + Math.max(...lines.map((t) => ctx.measureText(t).width)))
+        // What's under the name is part of what arrived, or the wash stops halfway through a sentence.
+        if (l.sub) {
+          ctx.font = `10.5px ${this.sans}`
+          right = Math.max(right, x + l.x + ctx.measureText(l.sub).width)
+        }
         top = Math.min(top, y + l.y - 10)
         bottom = Math.max(bottom, y + l.y + (lines.length - 1) * leading + (l.sub ? leading : 0) + 3)
       }
@@ -3384,7 +3410,7 @@ export class MapView {
       const [x, y] = this.toScreen(wx, wy)
       const fx = x + l.x
       const fy = y + l.y
-      const text = figure(n.cost, this.period)
+      const text = this.priceText(n.cost)
       const trust = trustOf(n.cost)
 
       if (l.leader) {
@@ -3428,11 +3454,16 @@ export class MapView {
     ctx.textBaseline = 'alphabetic'
     ctx.textAlign = 'left'
     const c = ctx as CanvasRenderingContext2D & { letterSpacing?: string }
+    // Half a name under a panel or the top line, "neering", reads as broken. It's better not there, and it's back as soon as the map slides home.
+    const overlays = this.cb.overlays()
+    const cutBy = (rx: number, ry: number, rw: number, rh: number) => overlays.some((o) => rx < o.right && rx + rw > o.left && ry < o.bottom && ry + rh > o.top)
 
     for (const t of this.territories) {
       const gate = this.data.gates.find((g) => g.id === t.gate)
       if (!gate) continue
       const [x, y] = this.gateLabelPos(t)
+      // Only for a name that's partly showing. One wholly under a panel is drawn and nobody sees it, and either way there's nothing to cut.
+      if (cutBy(x, y - size, this.nameWidth(this.shownName(t)), size + 4)) continue
       const s = this.seal.get(t.gate) ?? 0
       const ground = s > 0.5 ? (this.pendingSeal.has(t.gate) ? p.exposedLand : p.sealedLand) : this.groundOf(t.gate)
       const shown = this.shownName(t)
@@ -3450,7 +3481,7 @@ export class MapView {
       // Under the name: who can read it. Prices take this line while they're showing.
       const note = this.areaNote(t.gate)
       const priced = Math.max(this.dollarT, this.subtotalsT)
-      if (note.text && priced < 0.99) {
+      if (note.text && priced < 0.99 && !cutBy(x, y + 6, this.noteWidth(note), 17)) {
         const fade = 1 - EASE(priced)
         const faces = this.facesWidth(note.faces.length)
         if (faces) this.drawFaces(note.faces, x, y + 13.5, fade * arriving * (this.data.live ? 1 : p.dark ? 0.88 : 0.82), now)
@@ -3462,17 +3493,27 @@ export class MapView {
         ctx.globalAlpha = 1
       }
 
-      // Beside the name, so it never sits on the words.
-      const after = x + nameW + 8
-      // A gate no password opens carries a small seal, even with no lens on.
-      if (this.data.sealedToAll.has(t.gate) && !this.lensActive && !this.data.exposed.has(t.gate)) {
-        ctx.drawImage(this.waxSeal(26), after, y - 19, 26, 26)
-      }
-
-      // A closed area someone can still read wears the same pin as anything else that needs you now.
-      if (note.exposed && priced < 0.5) {
+      // Beside the name, so it never sits on the words. On the land too, because a seal out at sea says nothing about what's sealed.
+      const sealHere = this.data.sealedToAll.has(t.gate) && !this.lensActive && !this.data.exposed.has(t.gate)
+      const pinHere = note.exposed && priced < 0.5
+      if (sealHere || pinHere) {
         const r = pinRadius('now', this.cam.k)
-        drawPin(ctx, after + r, y + 2, r, p.alert, p.onAlert, ground, '!', this.sans)
+        const wants = sealHere ? 26 : r * 2 + 2
+        const besideName = this.landRoom(t, x, y - 15, y + 3) >= nameW + 8 + wants
+        const lineEnd = x + this.noteWidth(note) + 6
+        const onLine = !besideName && priced < 0.5 && this.landRoom(t, x, y + 6, y + 23) >= this.noteWidth(note) + 6 + (sealHere ? 20 : 15)
+        const after = x + nameW + 8
+        // A gate no password opens carries a small seal, even with no lens on. Where it fits nowhere, the word in vermilion under the name still says so.
+        if (sealHere) {
+          if (besideName) ctx.drawImage(this.waxSeal(26), after, y - 19, 26, 26)
+          else if (onLine) ctx.drawImage(this.waxSeal(20), lineEnd, y + 3, 20, 20)
+        }
+        // A closed area someone can still read wears the same pin as anything else that needs you now.
+        if (pinHere) {
+          if (besideName) drawPin(ctx, after + r, y + 2, r, p.alert, p.onAlert, ground, '!', this.sans)
+          // Only its head on this line, or the rest of it stands up through the name above.
+          else if (onLine) drawPinHead(ctx, lineEnd + 8, y + 13.5, 7, p.alert, p.onAlert, ground, '!', this.sans)
+        }
       }
 
       // Subtotal under the name while prices are showing.

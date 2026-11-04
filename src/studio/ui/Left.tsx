@@ -45,7 +45,7 @@ function CompanyMenu({ close, done }: { close: () => void; done: () => void }) {
             {list.map((m) => (
               <button key={m.id} className={`menu-item ${m.id === vault.id ? 'is-on' : ''}`} role="menuitem" onClick={act(() => void switchVault(m.id))}>
                 <span>{m.name}</span>
-                <span className="meta">{m.sample ? 'Sample' : m.id === vault.id ? 'Open' : ''}</span>
+                <span className="meta">{m.sample ? 'Sample' : plural(m.items ?? 0, 'item')}</span>
               </button>
             ))}
             <button className="menu-item" role="menuitem" onClick={act(() => void newMap())}>
@@ -209,6 +209,8 @@ export function Left() {
   const company = useStore((s) => contentOf(s)?.company)
   const sample = useStore((s) => !!s.vault?.sample)
   const readOnly = useStore((s) => !!s.view)
+  const readerCount = useStore((s) => s.vault?.passwords.length ?? 0)
+  const areaCount = useStore((s) => s.view?.gates.length ?? 0)
   const [menu, setMenu] = useState(false)
   const [openOnPhone, setOpenOnPhone] = useState(false)
   // A narrow window can't hold the card and a panel with any map between them, and the panel is what was just asked for.
@@ -230,7 +232,11 @@ export function Left() {
             else setMenu(!menu)
           }}
         >
-          <span className="company-name">{company?.name}</span>
+          <span className="company-stack">
+            <span className="company-name">{company?.name}</span>
+            {/* Folded, the heading is all there is of this card, so it says what's inside. */}
+            <span className="company-fold">{readOnly ? `You can read ${plural(areaCount, 'area')}` : readerCount ? plural(readerCount, 'reader') : 'Add a reader'}</span>
+          </span>
           {sample && <span className="tag">Sample</span>}
           <Icon name="chevron" size={14} />
         </button>

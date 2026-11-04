@@ -130,7 +130,7 @@ Re-dropping a file with the same name replaces its pieces. Pieces with the same 
 
 Dropped documents are data, not instructions. Reader and Cartographer are told so, and everything an agent reads is labelled the same way.
 
-**Proposals.** Shredding can't grant itself authority. Anything that would instruct agents, meaning an "Always follow" rule or an MCP server not in the bundled catalog, is a proposal until the user approves it. Until then it's listed under "things that need you" and left out of the agent's rules and routes.
+**Proposals.** Shredding can't grant itself authority. Anything that would instruct agents, meaning an "Always follow" rule or an MCP server not in the bundled catalog, is a proposal until the user approves it. Until then it's listed under "things that need you" and left out of the agent's rules and routes. Its words are still on the map, so a reader of that area gets them as reference; the Studio says so, and a reader's page files them with the facts. Reject takes the item off the map, with Undo, and remembers the words so a re-drop doesn't bring them back. New words ask again. A service with a real price keeps its place and loses only the address.
 
 **Prices stay structured.** Reader puts prices only in the cost field. A local pass strips currency sentences from service pieces. Invoices and pricing documents default to the Money gate.
 

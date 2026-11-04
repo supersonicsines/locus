@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent as ReactM
 import { linkParts } from '../../core/links.ts'
 import type { Need, NeedLevel } from '../../core/status.ts'
 import type { PieceKind } from '../../core/types.ts'
-import { changePiece, publishAndSay, updateVault } from '../actions.ts'
+import { changePiece, publishAndSay, rejectItem, updateVault } from '../actions.ts'
 import { monogramOf } from '../logos/lookup.ts'
 import { logoSource, serviceFor, TILE_PADDING, TILE_RADIUS, useLogosVersion } from '../logos/store.ts'
 import { drawSymbol, readerColour } from '../map/symbols.ts'
@@ -119,7 +119,7 @@ export function NeedActions({ need }: { need: Need }) {
     return (
       <div className="need-actions">
         <button className="btn btn-paper" onClick={act(() => (isRule ? changePiece(id, { always: 'approved' }) : piece?.mcp && changePiece(id, { mcp: { ...piece.mcp, approved: true } })))}>Approve</button>
-        <button className="btn btn-quiet" onClick={act(() => (isRule ? changePiece(id, { always: undefined }) : changePiece(id, { mcp: undefined })))}>Reject</button>
+        <button className="btn btn-quiet" onClick={act(() => rejectItem(id))}>Reject</button>
       </div>
     )
   }
@@ -226,6 +226,13 @@ export function listWords(items: string[]): string {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
 }
 
+/** Whether the last thing the person did was press a key. A ring after a click is only noise on a button nobody is looking at. */
+let lastInputWasKeys = false
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key === 'Enter' || e.key === ' ') lastInputWasKeys = true }, true)
+  window.addEventListener('pointerdown', () => { lastInputWasKeys = false }, true)
+}
+
 /**
  * A panel takes the keyboard when it opens, so Tab walks through it and not through the page behind, and gives it back when it closes.
  * A panel that puts its own cursor somewhere first keeps it there.
@@ -234,6 +241,8 @@ export function usePanelFocus<T extends HTMLElement = HTMLElement>(key: unknown)
   const ref = useRef<T>(null)
   // Read while rendering, and once. By the time an effect runs, a field in the panel may have taken focus for itself.
   const opener = useRef(document.activeElement as HTMLElement | null)
+  // How it was opened decides whether the way back shows a ring, whatever was typed in between.
+  const byKeys = useRef(lastInputWasKeys)
   useEffect(() => {
     const el = ref.current
     if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true })
@@ -241,26 +250,26 @@ export function usePanelFocus<T extends HTMLElement = HTMLElement>(key: unknown)
   useEffect(
     () => () => {
       const from = opener.current
-      if (from && from !== document.body && from.isConnected) from.focus({ preventScroll: true })
+      if (from && from !== document.body && from.isConnected) from.focus({ preventScroll: true, focusVisible: byKeys.current } as FocusOptions)
     },
     [],
   )
   return ref
 }
 
-/** Closes on Escape. */
 /** Whether this is a phone-sized window, kept up to date as it changes. */
-export function useNarrow(): boolean {
-  const [narrow, setNarrow] = useState(() => matchMedia('(max-width: 720px)').matches)
+export function useNarrow(width = 720): boolean {
+  const [narrow, setNarrow] = useState(() => matchMedia(`(max-width: ${width}px)`).matches)
   useEffect(() => {
-    const q = matchMedia('(max-width: 720px)')
+    const q = matchMedia(`(max-width: ${width}px)`)
     const on = () => setNarrow(q.matches)
     q.addEventListener('change', on)
     return () => q.removeEventListener('change', on)
-  }, [])
+  }, [width])
   return narrow
 }
 
+/** Closes on Escape. */
 export function useEscape(run: () => void, active = true) {
   useEffect(() => {
     if (!active) return

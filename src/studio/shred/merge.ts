@@ -4,6 +4,7 @@
 // same title keep their position, so the map stays recognisable.
 
 import { newId } from '../../core/seal.ts'
+import { rejectedId } from '../../core/status.ts'
 import type { Cost, Finding, Gate, Link, Piece, Vault } from '../../core/types.ts'
 
 export interface Incoming {
@@ -22,6 +23,15 @@ function mergeCost(a: Cost | undefined, b: Cost): Cost {
   if (rank[b.source] > rank[a.source]) return { ...b, listAmount: b.listAmount ?? a.listAmount, previous: a.source === 'invoice' ? (a.amount ?? undefined) : b.previous }
   if (rank[b.source] === rank[a.source] && b.source === 'invoice') return { ...b, listAmount: b.listAmount ?? a.listAmount, previous: a.amount ?? undefined }
   return a
+}
+
+const turnedDownIn = (v: Vault) => new Set((v.settled ?? []).filter((s) => s.startsWith('rejected-')))
+
+/** How many of these the owner has already rejected, in these words, so they won't land. A service that's still on the map isn't one: it stays what it is. */
+export function alreadyRejected(v: Vault, pieces: Piece[]): number {
+  const no = turnedDownIn(v)
+  const here = new Set(v.pieces.filter((p) => p.kind === 'service').map((p) => p.title.toLowerCase()))
+  return pieces.filter((p) => no.has(rejectedId(p)) && !(p.kind === 'service' && here.has(p.title.toLowerCase()))).length
 }
 
 /**
@@ -48,6 +58,7 @@ export function merge(v: Vault, incoming: Incoming, idMap = new Map<string, stri
   const byTitle = new Map(replaced.map((p) => [p.title.toLowerCase(), p]))
   const services = new Map(v.pieces.filter((p) => p.kind === 'service').map((p) => [p.title.toLowerCase(), p]))
 
+  const no = turnedDownIn(v)
   const added: Piece[] = []
   for (const p of incoming.pieces) {
     const gate = gateMap.get(p.gate) ?? p.gate
@@ -57,6 +68,8 @@ export function merge(v: Vault, incoming: Incoming, idMap = new Map<string, stri
       idMap.set(p.id, known.id)
       continue
     }
+    // Rejected, in these words. It stays off the map however many times the document is read. New words ask again.
+    if (no.has(rejectedId(p))) continue
     const old = byTitle.get(p.title.toLowerCase())
     if (old) {
       // Each old piece is matched once, even if a file repeats a title.

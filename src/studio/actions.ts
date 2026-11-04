@@ -6,15 +6,20 @@ import { snapshot } from '../core/status.ts'
 import type { Bundle, Cost, Gate, Password, Piece, Vault } from '../core/types.ts'
 import { layoutPieces, restorePositions } from './map/layout.ts'
 import { getState, setState, storage, type Toast } from './store.ts'
-import { putAreaBack, withoutArea } from './ui/data.ts'
+import { asReaderSees, putAreaBack, putPieceBack, rejectKeepsItem, rejectProposal, undoRejectProposal, withoutArea, withoutPiece } from './ui/data.ts'
 
 // Toasts
 
 let toastId = 1
 
-export function toast(message: string, action?: Toast['action']) {
+/**
+ * One message at a time. Two stacked hide more of the map than either, and the newer one usually overtakes the older. The exception is a way out, such as Undo: it stays beside a plain message, until another replaces it.
+ * `status` is for a message about how things stand right now: it goes as soon as they've changed.
+ */
+export function toast(message: string, action?: Toast['action'], { status = false, untilUpdate = false }: { status?: boolean; untilUpdate?: boolean } = {}) {
   const id = toastId++
-  setState({ toasts: [...getState().toasts, { id, message, action }] })
+  const keep = action ? [] : getState().toasts.filter((t) => t.action && !t.status).slice(-1)
+  setState({ toasts: [...keep, { id, message, action, status, untilUpdate }] })
   // Long enough to read. A sentence that says what went wrong is no use gone in three seconds.
   setTimeout(() => dismissToast(id), Math.max(action ? 8000 : 3600, message.length * 70))
 }
@@ -23,12 +28,29 @@ export function dismissToast(id: number) {
   setState({ toasts: getState().toasts.filter((t) => t.id !== id) })
 }
 
+/** Something that interrupts the page has opened. What was said before it opened would only sit on top of it. */
+export function clearToasts() {
+  if (getState().toasts.length) setState({ toasts: [] })
+}
+
+/** A list is opening that fills the page, so what was said before it would only lie across it. A way out stays. */
+export function clearPlainToasts() {
+  const now = getState().toasts
+  if (now.some((t) => !t.action)) setState({ toasts: now.filter((t) => t.action) })
+}
+
+/** "Updated" or "You're live", once that's no longer how things stand. */
+export function clearStatusToasts() {
+  const now = getState().toasts
+  if (now.some((t) => t.status)) setState({ toasts: now.filter((t) => !t.status) })
+}
+
 // Vault changes. Every change saves itself, like Figma and Notion.
 
 let saveTimer = 0
 
 function refreshList(all: Vault[]) {
-  setState({ vaultList: all.map((v) => ({ id: v.id, name: v.company.name, sample: v.sample })) })
+  setState({ vaultList: all.map((v) => ({ id: v.id, name: v.company.name, sample: v.sample, items: v.pieces.length })) })
 }
 
 export function updateVault(change: (v: Vault) => Vault) {
@@ -36,10 +58,11 @@ export function updateVault(change: (v: Vault) => Vault) {
   if (!v) return
   const next = { ...change(v), updatedAt: Date.now() }
   setState({ vault: next })
+  clearStatusToasts()
   clearTimeout(saveTimer)
   saveTimer = window.setTimeout(() => {
     void storage.saveVault(next)
-    const list = getState().vaultList.map((x) => (x.id === next.id ? { ...x, name: next.company.name } : x))
+    const list = getState().vaultList.map((x) => (x.id === next.id ? { ...x, name: next.company.name, items: next.pieces.length } : x))
     setState({ vaultList: list })
   }, 180)
 }
@@ -89,7 +112,21 @@ export async function openVault(v: Vault) {
   if (redrawnFrom) {
     const before = redrawnFrom
     toast('Tidied this map, so like things sit together.', { label: 'Undo', run: () => putBack(placed.id, before) })
-  }
+  } else if (placed.published) await offerTidy(placed)
+}
+
+/**
+ * A live map keeps its positions, so one arranged long ago or by hand can open with names on top of each other, and on a phone there's no dragging them apart. The cure is one press away and otherwise lives in a menu, so it's offered, once for each map.
+ */
+async function offerTidy(v: Vault) {
+  const stamp = `tidyOffered:${v.id}`
+  if (await storage.get<boolean>(stamp)) return
+  const tidy = placeNewPieces(v, { reflow: true })
+  const held = new Map(v.pieces.map((p) => [p.id, p]))
+  const astray = tidy.pieces.filter((p) => Math.hypot(p.x! - (held.get(p.id)?.x ?? p.x!), p.y! - (held.get(p.id)?.y ?? p.y!)) >= 60).length
+  if (astray < Math.max(4, v.pieces.length * 0.4)) return
+  await storage.set(stamp, true)
+  toast("This map's names may sit on top of each other, because of how it was arranged.", { label: 'Tidy up', run: () => { tidyMap(); askFit() } })
 }
 
 /** Undo for anything that redraws the map. By then the person may have gone to another map, which it mustn't touch. */
@@ -170,18 +207,27 @@ export function changePiece(id: string, patch: Partial<Piece>) {
 export function deletePiece(id: string) {
   const v = getState().vault!
   const piece = v.pieces.find((p) => p.id === id)
-  const before = { pieces: v.pieces, links: v.links, costs: v.costs }
-  updateVault((x) => ({
-    ...x,
-    pieces: x.pieces.filter((p) => p.id !== id),
-    links: x.links.filter((l) => l.from !== id && l.to !== id),
-    costs: x.costs.filter((c) => c.piece !== id),
-  }))
+  updateVault((x) => withoutPiece(x, id))
   setState({ selected: null })
   toast(`Deleted ${piece?.title ?? 'that item'}.`, {
     label: 'Undo',
-    run: () => updateVault((x) => ({ ...x, ...before })),
+    run: () => updateVault((x) => (x.id === v.id ? putPieceBack(x, v, id) : x)),
   })
+}
+
+/** Saying no to what a document proposed. It says what that did, because until now the words were reaching readers, and on a live map they still are until the update. */
+export function rejectItem(id: string) {
+  const v = getState().vault
+  const piece = v?.pieces.find((p) => p.id === id)
+  if (!v || !piece) return
+  const keeps = rejectKeepsItem(v, piece)
+  updateVault((x) => rejectProposal(x, id))
+  if (!keeps && getState().selected === id) setState({ selected: null })
+  const live = !!v.published && !!v.site
+  const said = keeps
+    ? `Rejected the address for ${piece.title}. It stays on the map because it has a price. Delete it if you don't use it.`
+    : `Rejected ${piece.title}. It's off the map, ${live ? 'and readers stop getting it at your next update' : 'so no reader will get it'}.`
+  toast(said, { label: 'Undo', run: () => updateVault((x) => (x.id === v.id ? undoRejectProposal(x, v, id) : x)) }, { untilUpdate: live })
 }
 
 /** Puts everything back in order, area by area, for a map that's been dragged about or was drawn long ago. */
@@ -325,7 +371,7 @@ export async function replacePassword(id: string) {
   setState({ lens: fresh.id })
   if (v.site && v.published) {
     const ok = await publish({ quiet: true })
-    if (ok) toast(`${pw.name} has a new password, and the old one can't read anything that goes live from now on. Connect them again with the new one.`)
+    if (ok) toast(`${pw.name} has a new password, and the old one has stopped working. Connect them again with the new one.`)
     else if (lastPublishFailure?.code !== 'stale') toast(`${whyNot()} So the old password still works. Press Update to try again.`)
   } else {
     toast(`${pw.name} has a new password.`)
@@ -363,8 +409,10 @@ export let lastPublishFailure: PublishFailure | null = null
 /** Updating from a button: it says it worked, because the only other sign is a small word changing in a corner. */
 export async function publishAndSay() {
   const wasLive = !!getState().vault?.published
-  if ((await publish()) && wasLive) toast('Updated. Your readers get this the next time they read the map.')
+  if ((await publish()) && wasLive) toast('Updated. Your readers get this the next time they read the map.', undefined, { status: true })
 }
+
+const megabytes = (bytes: number) => `${(bytes / 1_048_576).toFixed(bytes < 10_485_760 ? 1 : 0)} MB`
 
 export async function publish({ quiet = false }: { quiet?: boolean } = {}): Promise<boolean> {
   const v = getState().vault
@@ -384,11 +432,13 @@ export async function publish({ quiet = false }: { quiet?: boolean } = {}): Prom
     const token = await publishToken(v.site.ownerKey)
     // What was sealed is what counts as published, even if you keep editing meanwhile.
     const sealedState = snapshot(v, version)
+    // The sealed copy records its own publish, so a new device starts up to date.
+    const body = JSON.stringify(await sealVault({ ...v, published: sealedState }, version))
+    const sealedBytes = new TextEncoder().encode(body).length
     const res = await fetch(`/api/sites/${v.site.name}`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(nonce ? { 'x-vadere-pow': nonce } : {}) },
-      // The sealed copy records its own publish, so a new device starts up to date.
-      body: JSON.stringify(await sealVault({ ...v, published: sealedState }, version)),
+      body,
     })
 
     if (res.status === 409) {
@@ -400,21 +450,22 @@ export async function publish({ quiet = false }: { quiet?: boolean } = {}): Prom
       return false
     }
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
+      const answer = await res.json().catch(() => ({}))
       // Far over the limit, the host hangs up before it can say why, so a bare 413 has to be explained here.
-      const tooBig = 'This map is too big to go live here: its encrypted copy is over the limit. Take something off the map, or run your own host.'
-      lastPublishFailure = { code: body.code ?? 'error', message: body.error ?? (res.status === 413 ? tooBig : `The host answered ${res.status}. Try again in a moment.`) }
-      if (body.accounts) setState({ server: { ...getState().server!, accounts: body.accounts } })
+      const tooBig = `This map is too big to go live here: its encrypted copy is ${megabytes(sealedBytes)}${server?.maxBundleBytes ? `, and the limit is ${megabytes(server.maxBundleBytes)}` : ', which is over the limit'}. Take something off the map, or run your own host.`
+      // The host knows the limit, and only this side knows how far over it is.
+      lastPublishFailure = { code: answer.code ?? 'error', message: answer.code === 'too-large' || res.status === 413 ? tooBig : (answer.error ?? `The host answered ${res.status}. Try again in a moment.`) }
+      if (answer.accounts) setState({ server: { ...getState().server!, accounts: answer.accounts } })
       if (!quiet) toast(lastPublishFailure.message)
       return false
     }
     updateVault((x) => ({ ...x, published: sealedState }))
     void refreshServer()
     // "Couldn't reach the host, so this password still works" mustn't sit beside the update that fixed it.
-    setState({ toasts: getState().toasts.filter((t) => t.action) })
+    setState({ toasts: getState().toasts.filter((t) => t.action && !t.untilUpdate) })
     return true
   } catch (e) {
-    lastPublishFailure = { code: 'network', message: "Couldn't reach the host. Your map is safe in this browser. Check your connection and try again." }
+    lastPublishFailure = { code: 'network', message: "Couldn't reach the host. Your map is still here, in this browser. Check your connection and try again." }
     if (!quiet) toast(lastPublishFailure.message)
     return false
   } finally {
@@ -471,7 +522,8 @@ export async function unlockViewer(name: string, key: string): Promise<string | 
     if (!res.ok) return `The host answered ${res.status}. Try again in a moment.`
     const view = await openBundle((await res.json()) as Bundle, key.trim())
     // A reader gets a map of what they can see, drawn fresh, with no gaps where closed gates sit.
-    const moved = layoutPieces(view.gates, view.pieces, { wide: window.innerWidth > window.innerHeight, room: mapRoom() })
+    // Laid out as it'll be shown, so a rule that's only reference sits with the facts it's filed with.
+    const moved = layoutPieces(view.gates, view.pieces.map(asReaderSees), { wide: window.innerWidth > window.innerHeight, room: mapRoom() })
     setState({ view: { ...view, pieces: view.pieces.map((p) => ({ ...p, ...moved.get(p.id) })) }, mode: 'viewer' })
     return null
   } catch (e) {
@@ -497,10 +549,11 @@ export function downloadText(filename: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
-export async function copy(text: string, label = 'Copied.') {
+/** With no label, the button that was pressed says so itself, and nothing else on the page has to move. */
+export async function copy(text: string, label: string | null = 'Copied.') {
   try {
     await navigator.clipboard.writeText(text)
-    toast(label)
+    if (label) toast(label)
     return true
   } catch {
     toast("Couldn't reach the clipboard. Select the text and copy it by hand.")

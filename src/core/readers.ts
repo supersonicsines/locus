@@ -5,7 +5,7 @@ import type { Cost, Piece } from './types.ts'
 
 export function pieceForReaders(p: Piece): Piece {
   const out: Piece = { ...p }
-  // Unapproved proposals must never reach an agent as instructions.
+  // Unapproved proposals must never reach an agent as instructions. The piece itself still does, as reference.
   if (out.always === 'proposed') delete out.always
   if (out.mcp && !out.mcp.approved) delete out.mcp
   // Where pieces sit on the owner's map could hint at what's behind closed gates.

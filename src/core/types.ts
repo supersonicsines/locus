@@ -27,7 +27,7 @@ export interface Piece {
   gate: string
   source?: { file: string; where?: string }
   url?: string
-  /** A rule that binds every agent. Shredding can only propose; the owner approves. */
+  /** A rule binding any agent that can read this piece's gate. Shredding can only propose; the owner approves. Until then the piece is reference text like any other. */
   always?: 'proposed' | 'approved'
   /** Remote MCP server for a service. Unapproved servers never reach an agent. */
   mcp?: { url: string; approved: boolean }
@@ -140,7 +140,7 @@ export interface Vault {
   costs: Cost[]
   passwords: Password[]
   findings: Finding[]
-  /** Things the owner has dealt with that the app can't see for itself, like having changed an exposed key. */
+  /** Things the owner has dealt with that the app can't see for itself, like having changed an exposed key, or having rejected what a document proposed. */
   settled?: string[]
   site?: Site
   published?: PublishedState

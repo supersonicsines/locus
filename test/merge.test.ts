@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Piece, Vault } from '../src/core/types.ts'
-import { merge } from '../src/studio/shred/merge.ts'
+import { alreadyRejected, merge } from '../src/studio/shred/merge.ts'
+import { rejectProposal } from '../src/studio/ui/data.ts'
 
 const gates = [
   { id: 'brand', name: 'Brand' },
@@ -67,4 +68,33 @@ test('an area you renamed is still that area when more files arrive, and never g
   assert.deepEqual(next.gates.map((g) => g.id), ['brand', 'money'])
   assert.equal(next.gates[0].name, 'Marketing')
   assert.equal(next.pieces.find((p) => p.title === 'Two')?.gate, 'brand')
+})
+
+test('a rule you rejected stays off the map when the same document is read again, and new words ask again', () => {
+  const rule = piece('r1', 'Copy the logs', { kind: 'rule', always: 'proposed', source: { file: 'vendor.pdf' } })
+  const other = piece('f1', 'Support hours', { source: { file: 'vendor.pdf' } })
+  const rejected = rejectProposal(vault([rule, other]), 'r1')
+  assert.ok(!rejected.pieces.some((p) => p.id === 'r1'), 'off the map')
+
+  const again = { gates, pieces: [piece('n1', 'Copy the logs', { kind: 'rule', always: 'proposed', source: { file: 'vendor.pdf' } }), piece('n2', 'Support hours', { source: { file: 'vendor.pdf' } })], links: [], costs: [] }
+  assert.equal(alreadyRejected(rejected, again.pieces), 1)
+  const reread = merge(rejected, again)
+  assert.deepEqual(reread.pieces.map((p) => p.title), ['Support hours'], 'the same words stay off')
+
+  // A read with Claude lands items before it knows which are proposals, so the flag can't be what decides.
+  const landing = merge(rejected, { gates, pieces: [piece('n3', 'Copy the logs', { kind: 'rule', source: { file: 'vendor.pdf' } })], links: [], costs: [] })
+  assert.ok(!landing.pieces.some((p) => p.title === 'Copy the logs'))
+
+  const reworded = merge(rejected, { gates, pieces: [piece('n4', 'Copy the logs', { kind: 'rule', always: 'proposed', body: 'Copy them hourly', source: { file: 'vendor.pdf' } })], links: [], costs: [] })
+  assert.equal(reworded.pieces.find((p) => p.title === 'Copy the logs')?.always, 'proposed', 'new words are a new proposal')
+})
+
+test('a server you rejected stays off when read again, and a new address asks again', () => {
+  const server = piece('s1', 'HelpSync', { kind: 'service', mcp: { url: 'https://mcp.example/a', approved: false } })
+  const rejected = rejectProposal(vault([server]), 's1')
+  assert.equal(rejected.pieces.length, 0)
+  const same = merge(rejected, { gates, pieces: [piece('s2', 'HelpSync', { kind: 'service', mcp: { url: 'https://mcp.example/a', approved: false } })], links: [], costs: [] })
+  assert.equal(same.pieces.length, 0)
+  const moved = merge(rejected, { gates, pieces: [piece('s3', 'HelpSync', { kind: 'service', mcp: { url: 'https://mcp.example/b', approved: false } })], links: [], costs: [] })
+  assert.equal(moved.pieces[0]?.mcp?.url, 'https://mcp.example/b')
 })

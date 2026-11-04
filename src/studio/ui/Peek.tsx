@@ -6,11 +6,19 @@ import { figure, monthly, trustOf } from '../../core/money.ts'
 import { levelOf, needs, sortNeeds } from '../../core/status.ts'
 import type { Cost, CostUnit, Piece, PieceKind } from '../../core/types.ts'
 import { PIECE_KINDS } from '../../core/types.ts'
-import { changePiece, deletePiece, setCost } from '../actions.ts'
+import { changePiece, deletePiece, rejectItem, setCost } from '../actions.ts'
 import { KIND_LABELS } from '../map/symbols.ts'
 import { setState, useStore } from '../store.ts'
 import { GrowingText, Icon, Markdown, NeedActions, NeedMark, PieceMark, plural, useEscape, usePanelFocus } from './bits.tsx'
-import { contentOf } from './data.ts'
+import { contentOf, rejectKeepsItem } from './data.ts'
+
+/** A body that opens by repeating its summary doesn't need to say it twice in a row. Editing still shows the whole of it. */
+function withoutRepeat(body: string, summary: string): string {
+  const said = summary.trim()
+  if (!said) return body
+  const [first, ...rest] = body.trim().split(/\r?\n\s*\r?\n/)
+  return first.trim() === said ? rest.join('\n\n') : body
+}
 
 const LINK_NOTE: Record<string, string> = { conflicts: 'Conflicts', governs: 'Governs', uses: 'Uses' }
 
@@ -38,7 +46,7 @@ function CostBlock({ piece, cost, readOnly }: { piece: Piece; cost: Cost | null;
   return (
     <>
       <div className="section-title">What it costs</div>
-      {cost && <div className="money-big">{figure(cost, period)}{per}</div>}
+      {cost && cost.amount !== null && <div className="money-big">{figure(cost, period)}{per}</div>}
       {cost?.plan && <p className="source-note" style={{ marginTop: 0 }}>{cost.plan} plan.</p>}
       {seatNote && <p className="source-note" style={{ marginTop: 2 }}>{seatNote}</p>}
       <p className="source-note">{note}</p>
@@ -124,6 +132,11 @@ export function Peek() {
   const selected = useStore((s) => s.selected)
   const content = useStore((s) => contentOf(s))
   const [editingBody, setEditingBody] = useState(false)
+  // The reader's map files a rule nobody approved with the facts, so its panel says why, and this is the one place that can tell.
+  const unapproved = useStore((s) => {
+    const was = s.view?.pieces.find((p) => p.id === selected)
+    return !!was && was.kind === 'rule' && was.always !== 'approved'
+  })
   const close = () => setState({ selected: null })
   useEscape(close, !!selected)
   useEffect(() => setEditingBody(false), [selected])
@@ -137,6 +150,8 @@ export function Peek() {
   const gate = gates.find((g) => g.id === piece.gate)
   const linked = links.filter((l) => l.from === piece.id || l.to === piece.id)
   const cost = costs?.find((c) => c.piece === piece.id) ?? null
+  const areaName = gate?.name ?? 'this area'
+  const body = withoutRepeat(piece.body, piece.summary)
 
   return (
     <aside className="side panel" aria-label={piece.title} key={piece.id} ref={focusRef} tabIndex={-1}>
@@ -161,21 +176,23 @@ export function Peek() {
         {!readOnly && <NeedNotes id={piece.id} />}
         {piece.always === 'proposed' && !readOnly && (
           <div className="callout">
-            A document suggests this as a rule for every AI tool. It stays out until you approve it.
+            A document suggests this as a rule. Until you approve it, AI tools that can read {areaName} see these words as reference, and aren't told to follow them.
             <div className="actions">
               <button className="btn btn-paper" onClick={() => changePiece(piece.id, { always: 'approved' })}>Approve</button>
-              <button className="btn btn-quiet" onClick={() => changePiece(piece.id, { always: undefined })}>Reject</button>
+              <button className="btn btn-quiet" onClick={() => rejectItem(piece.id)}>Reject</button>
             </div>
+            <p className="callout-note">Approving tells them to follow it. Rejecting takes it off the map.</p>
           </div>
         )}
         {piece.mcp && !piece.mcp.approved && !readOnly && (
           <div className="callout">
-            A document names this MCP server, a way for AI tools to connect. They won't be told about it until you approve it.
+            A document names this MCP server, a way for AI tools to connect. Until you approve it, AI tools that can read {areaName} see this item's name and summary as reference, but don't get the address.
             <div className="mono" style={{ marginTop: 6, wordBreak: 'break-all' }}>{piece.mcp.url}</div>
             <div className="actions">
               <button className="btn btn-paper" onClick={() => changePiece(piece.id, { mcp: { ...piece.mcp!, approved: true } })}>Approve</button>
-              <button className="btn btn-quiet" onClick={() => changePiece(piece.id, { mcp: undefined })}>Reject</button>
+              <button className="btn btn-quiet" onClick={() => rejectItem(piece.id)}>Reject</button>
             </div>
+            <p className="callout-note">Approving gives them the address. {rejectKeepsItem({ costs: costs ?? [] }, piece) ? "Rejecting takes the address away, and the item stays, because it has a price." : 'Rejecting takes it off the map.'}</p>
           </div>
         )}
 
@@ -183,6 +200,7 @@ export function Peek() {
           <>
             <h2 className="piece-title" style={{ fontWeight: 400 }}>{piece.title}</h2>
             <p className="piece-summary">{piece.summary}</p>
+            {unapproved && <p className="source-note reader-note">This isn't an approved rule. It's here as reference.</p>}
           </>
         ) : (
           <>
@@ -202,7 +220,7 @@ export function Peek() {
             onBlur={() => setEditingBody(false)}
             onChange={(e) => changePiece(piece.id, { body: e.target.value })}
           />
-        ) : piece.body ? (
+        ) : piece.body && body.trim() ? (
           <div
             className={`piece-body ${readOnly ? 'is-readonly' : ''}`}
             onClick={(e) => {
@@ -222,10 +240,10 @@ export function Peek() {
                   },
                 })}
           >
-            <Markdown text={piece.body} />
+            <Markdown text={body} />
           </div>
         ) : !readOnly ? (
-          <button className="piece-body placeholder" onClick={() => setEditingBody(true)}>Add detail</button>
+          <button className="piece-body placeholder" onClick={() => setEditingBody(true)}>{piece.body ? 'Edit the detail' : 'Add detail'}</button>
         ) : null}
 
         <dl className="props">
@@ -256,7 +274,8 @@ export function Peek() {
               <dd>{piece.date.on}</dd>
             </>
           )}
-          {piece.kind === 'rule' && !readOnly && (
+          {/* While it's a proposal, Approve and Reject are the choice. A switch beside them would look like another one. */}
+          {piece.kind === 'rule' && !readOnly && piece.always !== 'proposed' && (
             <>
               <dt>For AI tools</dt>
               <dd>
@@ -280,7 +299,7 @@ export function Peek() {
                 {readOnly ? (
                   /^https?:\/\//.test(piece.url ?? '') ? <a href={piece.url} target="_blank" rel="noreferrer noopener">{piece.url}</a> : piece.url
                 ) : (
-                  <input className="prop-input" aria-label="Link" placeholder="https://" value={piece.url ?? ''} onChange={(e) => changePiece(piece.id, { url: e.target.value || undefined })} />
+                  <input className="prop-input" aria-label="Link" placeholder="Add a link" value={piece.url ?? ''} onChange={(e) => changePiece(piece.id, { url: e.target.value || undefined })} />
                 )}
               </dd>
             </>

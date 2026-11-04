@@ -84,7 +84,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
       const recent = (content?.pieces ?? []).filter((p) => p.always === 'approved').slice(0, 4)
       return [
         ...actions.slice(0, 7),
-        ...recent.map((p) => ({ id: p.id, group: 'Rules every AI tool follows', title: p.title, kind: p.kind, run: open(p.id) })),
+        ...recent.map((p) => ({ id: p.id, group: 'Rules you approved', title: p.title, kind: p.kind, run: open(p.id) })),
       ]
     }
     const pieces = content?.pieces ?? []

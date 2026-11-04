@@ -197,6 +197,14 @@ export function whatChanged(v: Vault): string[] {
 
 const SECRET_MARK = /\[secret removed: [^\]]+\]/g
 
+/**
+ * What a rejection is remembered by: the words turned down, or for a service the address. The same words read again stay off the map, and new words ask again, as they do after an approval.
+ */
+export function rejectedId(p: Pick<Piece, 'kind' | 'title' | 'summary' | 'body' | 'mcp'>): string {
+  const what = p.kind === 'service' ? [p.title.toLowerCase(), p.mcp?.url ?? ''] : [p.title, p.summary, p.body]
+  return `rejected-${fnv(JSON.stringify(what))}`
+}
+
 export function needs(v: Vault, now = Date.now()): Need[] {
   const out: Need[] = []
   const settled = new Set(v.settled ?? [])
@@ -208,23 +216,27 @@ export function needs(v: Vault, now = Date.now()): Need[] {
   for (const p of v.pieces) {
     const marks = p.body.match(SECRET_MARK)
     if (!marks) continue
+    // Which key, in the words the scan used, because the job here is to go and change it.
+    const named = [...new Set(marks.map((m) => m.replace(/^\[secret removed: /, '').replace(/\]$/, '')))]
     // Which secrets, in the id: saying you've changed one key says nothing about the next.
     const id = `secret-${p.id}-${fnv(marks.join())}`
     if (settled.has(id)) continue
     out.push({
       id,
       kind: 'secret',
-      message: `A real secret, like an API key, was in "${p.source?.file ?? p.title}". It's been taken off the map. Change it, because anyone with that file has it.`,
+      message: `A real secret (${named.join(', ')}) was in "${p.source?.file ?? p.title}". It's been taken off the map. Change it, because anyone with that file has it.`,
       pieces: [p.id],
     })
   }
 
+  // Until it's approved a proposal is still on the map, so it reaches whoever can read its area, as reference. What approving adds is being told to follow it, or the address.
+  const areaOf = (p: Piece) => v.gates.find((g) => g.id === p.gate)?.name ?? 'this area'
   for (const p of v.pieces) {
     if (p.always === 'proposed') {
       out.push({
         id: `rule-${p.id}`,
         kind: 'proposal',
-        message: `${p.source?.file ? `"${p.source.file}"` : 'A document'} suggests a rule for every AI tool. It stays out until you approve it.`,
+        message: `${p.source?.file ? `"${p.source.file}"` : 'A document'} suggests this as a rule. Until you approve it, AI tools that can read ${areaOf(p)} see it as reference and aren't told to follow it.`,
         pieces: [p.id],
         quote: `${p.title}. ${p.summary}`,
       })
@@ -233,7 +245,7 @@ export function needs(v: Vault, now = Date.now()): Need[] {
       out.push({
         id: `mcp-${p.id}`,
         kind: 'proposal',
-        message: `A document says AI tools should connect to ${p.title} at ${p.mcp.url}. It stays out until you approve it.`,
+        message: `A document says AI tools should connect to ${p.title} at ${p.mcp.url}. Until you approve it, AI tools that can read ${areaOf(p)} see ${p.title}'s name and summary as reference, but don't get this address.`,
         pieces: [p.id],
       })
     }

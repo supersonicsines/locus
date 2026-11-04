@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { llmsTxt, viewFor } from '../../core/agent.ts'
 import { pending } from '../../core/status.ts'
 import type { Password } from '../../core/types.ts'
-import { changePassword, copy, publishAndSay, replacePassword, revokePassword, siteAddress, toggleGateOnPassword } from '../actions.ts'
+import { changePassword, clearStatusToasts, copy, newMap, publishAndSay, replacePassword, revokePassword, siteAddress, toast, toggleGateOnPassword } from '../actions.ts'
 import { getState, setState, useStore } from '../store.ts'
 import { Icon, listWords, useEscape, useNarrow, usePanelFocus } from './bits.tsx'
 import { areasOnMap } from './data.ts'
@@ -19,21 +19,38 @@ function Words(text: string) {
 }
 
 /** What you'd paste, with the password covered on screen until asked for. Copying always gives the real thing. */
-function CodeBlock({ text, label, secret, shown }: { text: string; label: string; secret: string; shown: boolean }) {
+function CodeBlock({ text, label, secret, shown, shaped }: { text: string; label: string; secret: string; shown: boolean; shaped?: boolean }) {
+  // The button says so itself. A message would land on the words around it, and they're the ones saying what you're trusting.
+  const [copied, setCopied] = useState(false)
+  const timer = useRef(0)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const shownText = shown ? text : text.split(secret).join(`${secret.slice(0, 8)}${'•'.repeat(8)}`)
   return (
-    <div className="code-block">
-      <code>{Words(shown ? text : text.split(secret).join(`${secret.slice(0, 8)}${'•'.repeat(8)}`))}</code>
-      <button className="btn btn-paper code-copy" aria-label={`Copy ${label}`} onClick={() => void copy(text, `${label} copied.`)}>
-        <Icon name="copy" size={13} /> Copy
+    <div className={`code-block ${shaped ? 'is-shaped' : ''}`}>
+      <code>{shaped ? shownText : Words(shownText)}</code>
+      <button
+        className="btn btn-paper code-copy"
+        aria-label={`Copy ${label}`}
+        onClick={async () => {
+          if (await copy(text, null)) {
+            setCopied(true)
+            clearTimeout(timer.current)
+            timer.current = window.setTimeout(() => setCopied(false), 1800)
+          }
+        }}
+      >
+        <Icon name={copied ? 'check' : 'copy'} size={13} /> {copied ? 'Copied' : 'Copy'}
       </button>
     </div>
   )
 }
 
 function Steps({ children, note }: { children: React.ReactNode; note: React.ReactNode }) {
+  // One step isn't a list.
+  const single = Array.isArray(children) ? children.filter(Boolean).length === 1 : true
   return (
     <>
-      <ol className="steps">{children}</ol>
+      <ol className={`steps ${single ? 'is-single' : ''}`}>{children}</ol>
       <p className="hint step-note">{note}</p>
     </>
   )
@@ -41,7 +58,13 @@ function Steps({ children, note }: { children: React.ReactNode; note: React.Reac
 
 const isLocalAddress = (address: string) => /\/\/([^/]*\.)?localhost(:\d+)?$|\/\/127\.0\.0\.1/.test(address)
 
+/** How to say it's readable, given what this reader can read so far. */
+const canNowRead = (pw: Password) => (pw.gates.length ? 'It can now read the map.' : 'It can read whatever you open for it.')
+
+const HOST_NEVER = 'Connected this way it decrypts on that computer, and the host never sees the password, as long as nothing else uses this password through the host. For that, give it its own reader. It needs Node.js 22 or newer.'
+
 function Connect({ pw, address, name, shown }: { pw: Password; address: string; name: string; shown: boolean }) {
+  const onThisComputer = isLocalAddress(address)
   const [tab, setTab] = useState<Tab>('code')
   const [viaHost, setViaHost] = useState(false)
   const slug = name.replace(/[^a-z0-9-]/gi, '-').toLowerCase()
@@ -52,7 +75,7 @@ function Connect({ pw, address, name, shown }: { pw: Password; address: string; 
     ? JSON.stringify({ mcpServers: { [slug]: { url: `${address}/mcp`, headers: { Authorization: `Bearer ${pw.key}` } } } }, null, 2)
     : JSON.stringify({ mcpServers: { [slug]: { command: 'npx', args: ['-y', 'vadere', 'mcp', address], env: { VADERE_KEY: pw.key } } } }, null, 2)
   const prompt = pw.remote
-    ? `Our company's map is at ${address}/k/${pw.key}/llms.txt\nRead it before doing any company work. It has the rules you must follow and says where everything lives.`
+    ? `Our company's map is at ${address}/k/${pw.key}/llms.txt\nRead it before doing any company work. It has any rules you must follow and says where everything lives.`
     : `Our company's map is at ${address}. Read it with: npx vadere pull ${address} --key ${pw.key}\nThen read COMPANY_MAP.md before doing any company work.`
   const link = `${address}/#key=${pw.key}`
   const cloudOff = (
@@ -83,7 +106,7 @@ function Connect({ pw, address, name, shown }: { pw: Password; address: string; 
         <Steps
           note={
             <>
-              {viaHost && pw.remote ? 'The host decrypts it for each request, so you’re trusting the host with this password.' : 'Connected this way it decrypts on that computer, and the host never sees the password. It needs Node.js 22 or newer.'}
+              {viaHost && pw.remote ? "The host decrypts it for each request, so you're trusting the host with this password." : HOST_NEVER}
               {pw.remote && (
                 <>
                   {' '}
@@ -93,49 +116,53 @@ function Connect({ pw, address, name, shown }: { pw: Password; address: string; 
             </>
           }
         >
-          <li>On the computer where you use Claude Code, open a terminal.</li>
+          <li>{onThisComputer ? 'On this computer, open a terminal.' : 'On the computer where you use Claude Code, open a terminal.'}</li>
           <li>
             Paste this, then press Return.
             <CodeBlock text={viaHost && pw.remote ? remote : local} label="Command" secret={pw.key} shown={shown} />
           </li>
-          <li>Start Claude Code again. It can now read the map.</li>
+          <li>Start Claude Code again. {canNowRead(pw)}</li>
         </Steps>
       )}
       {tab === 'web' &&
-        (pw.remote ? (
-          <Steps note="The password is part of this URL, so treat the whole thing as the password. The host decrypts it for each request, so you’re trusting the host with it.">
+        (onThisComputer ? (
+          <p className="hint tab-note">Claude can't connect yet. Its connectors run in the cloud, and this address only exists on this computer. This works once your host is on a server with a public address and you go live from there.</p>
+        ) : pw.remote ? (
+          <Steps note="The password is part of this URL, so treat the whole thing as the password. The host decrypts it for each request, so you're trusting the host with it.">
             <li>In Claude, on the web or in the app, open Settings, then Connectors.</li>
             <li>
               Choose Add custom connector, and paste this as its URL.
               <CodeBlock text={urlMcp} label="Connector URL" secret={pw.key} shown={shown} />
             </li>
-            <li>Give it any name and save it. Claude can now read the map.</li>
+            <li>Give it any name and save it. {pw.gates.length ? 'Claude can now read the map.' : 'Claude can read whatever you open for it.'}</li>
           </Steps>
         ) : (
           cloudOff
         ))}
       {tab === 'cursor' && (
-        <Steps note={pw.remote ? 'The host decrypts it for each request, so you’re trusting the host with this password.' : 'Connected this way it decrypts on that computer, and the host never sees the password. It needs Node.js 22 or newer.'}>
-          <li>In your project, open the file <code className="inline">.cursor/mcp.json</code>, or make it.</li>
+        <Steps note={pw.remote ? "The host decrypts it for each request, so you're trusting the host with this password." : HOST_NEVER}>
+          <li>In your project, open the file <code className="inline">.cursor/mcp.json</code>, or make it. The password goes in this file, so keep it out of git.</li>
           <li>
             Paste this in. If the file already lists servers, add this one to them.
-            <CodeBlock text={cursor} label="Settings" secret={pw.key} shown={shown} />
+            <CodeBlock text={cursor} label="Settings" secret={pw.key} shown={shown} shaped />
           </li>
-          <li>Restart Cursor. It can now read the map.</li>
+          <li>Restart Cursor. {canNowRead(pw)}</li>
         </Steps>
       )}
       {tab === 'any' && (
-        <Steps note={pw.remote ? 'The tool has to be able to open web links. The password is in this text, so only give it to tools you trust. The host decrypts it for each request, so you’re trusting the host with it.' : 'The tool has to be able to run commands on your computer. The password is in this text, so only give it to tools you trust.'}>
+        <Steps
+          note={`${onThisComputer ? "This only works for a tool running on this computer, because this address only exists here. A tool in the cloud can't reach it until your host is on a server with a public address. " : pw.remote ? 'The tool has to be able to open web links. ' : ''}${pw.remote ? "The password is in this text, so only give it to tools you trust. The host decrypts it for each request, so you're trusting the host with it." : `${onThisComputer ? '' : 'The tool has to be able to run commands on your computer. '}The password is in this text, so only give it to tools you trust.`}`}
+        >
           <li>
-            Paste this into the tool’s instructions, or at the start of a chat.
+            Paste this into the tool's instructions, or at the start of a chat.
             <CodeBlock text={prompt} label="Text" secret={pw.key} shown={shown} />
           </li>
         </Steps>
       )}
       {tab === 'person' && (
-        <Steps note="The password is part of the link, so send it privately. Browsers don’t send the part after the # to the host, but the page itself comes from the host, so you’re trusting it.">
+        <Steps note={onThisComputer ? "The password is part of the link. Once they can reach it, send it privately. Browsers don't send the part after the # to the host, but the page itself comes from the host, so you're trusting it." : "The password is part of the link, so send it privately. Browsers don't send the part after the # to the host, but the page itself comes from the host, so you're trusting it."}>
           <li>
-            Send them this link. It opens the map in their browser.
+            {onThisComputer ? "Someone on another computer can't open this yet, because this address only exists here. It works once your host is on a server with a public address. For now, this link shows you what they'd see." : 'Send them this link. It opens the map in their browser.'}
             <CodeBlock text={link} label="Link" secret={pw.key} shown={shown} />
           </li>
         </Steps>
@@ -150,13 +177,19 @@ function PasswordDetail({ pw }: { pw: Password }) {
   const [shown, setShown] = useState(false)
   const [confirming, setConfirming] = useState<null | 'remove' | 'replace'>(null)
   const [more, setMore] = useState(false)
-  const narrow = useNarrow()
+  // Wherever the card has folded away, its switches aren't beside this panel, so they come with it.
+  const folded = useNarrow(980)
   const agentView = useStore((s) => s.agentView)
+  const confirm = useRef<HTMLDivElement>(null)
   useEffect(() => {
     setShown(false)
     setConfirming(null)
     setMore(false)
   }, [pw.id])
+  // You pressed something at the foot of a long panel, and the answer needs its buttons on screen.
+  useEffect(() => {
+    if (confirming) confirm.current?.scrollIntoView({ block: 'nearest' })
+  }, [confirming])
 
   const areas = areasOnMap(vault)
   const opened = areas.filter((g) => pw.gates.includes(g.id)).map((g) => g.name)
@@ -167,11 +200,14 @@ function PasswordDetail({ pw }: { pw: Password }) {
   const address = vault.site ? siteAddress(vault.site.name) : ''
   const p = pending(vault)
   const others = p.changes > 1 ? `, including your ${p.changes - 1} other changes` : ''
+  // The switch moves here at once, and the live copy only moves on Update, so until then the words have to say which one they mean.
+  const wasRemote = live ? vault.published?.passwordInfo?.[pw.id]?.remote : undefined
+  const hostStill = wasRemote === true && !pw.remote
+  const hostNotYet = wasRemote === false && pw.remote
 
   return (
     <div>
-      {narrow ? (
-        // On a phone this panel covers most of the map, so the choice comes with it.
+      {folded ? (
         <div className="lens-chips" style={{ marginTop: 0 }}>
           <span className="lens-note">Can read</span>
           {areas.map((g) => (
@@ -181,17 +217,17 @@ function PasswordDetail({ pw }: { pw: Password }) {
       ) : (
         <p className="hint" style={{ margin: '0 0 12px' }}>
           {opened.length ? `Can read ${listWords(opened)}. ` : "Can't read anything yet. "}
-          Click an area on the map to change that.
+          {agentView ? 'Use the switches on the left to change that.' : 'Click an area on the map to change that.'}
         </p>
       )}
       <button className="btn btn-paper" style={{ width: '100%' }} aria-pressed={agentView} onClick={() => setState({ agentView: !agentView })}>
         {agentView ? 'Hide what they read' : 'See what they read'}
       </button>
 
-      {stillOpen.length > 0 && (
+      {(stillOpen.length > 0 || hostStill) && (
         <div className="exposure" role="alert">
-          {pw.name} can still read {listWords(stillNames)} until you update.
-          <br />
+          {stillOpen.length > 0 && <>{pw.name} can still read {listWords(stillNames)} until you update.<br /></>}
+          {hostStill && <>{pw.name} can still read through the host until you update.<br /></>}
           <button className="btn btn-ink" aria-busy={publishing} disabled={publishing} onClick={() => void publishAndSay()}>
             {publishing ? 'Updating' : 'Update now'}
           </button>
@@ -201,7 +237,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
       <div className="section-title">How will they read it?</div>
       {live ? (
         <>
-          {isLocalAddress(address) && <p className="hint" style={{ margin: '0 0 8px' }}>This address only works on this computer, so nobody else can use it yet, and neither can AI tools in the cloud. To share it, run your host on a server.</p>}
+          {isLocalAddress(address) && <p className="hint" style={{ margin: '0 0 8px' }}>This address only exists on this computer, so only AI tools on this computer can use it for now.</p>}
           <Connect pw={pw} address={address} name={vault.site?.name ?? vault.company.name} shown={shown} />
 
           {/* The steps carry the password. This is for doing something else with it, so it waits to be asked for. */}
@@ -220,7 +256,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
           </div>
           <p className="hint" style={{ margin: '6px 0 0' }}>Vadere makes the password, because the encrypted map is public and a chosen password could be guessed.</p>
           {confirming === 'replace' ? (
-            <div className="callout" style={{ marginTop: 10 }}>
+            <div className="callout" style={{ marginTop: 10 }} ref={confirm}>
               The old password stops working on the live map straight away{others}, so whatever uses it has to be connected again. Anything it already read or saved, it keeps.
               <div className="actions">
                 <button className="btn btn-ink" aria-busy={publishing} disabled={publishing} onClick={() => void replacePassword(pw.id)}>Make a new password</button>
@@ -237,7 +273,19 @@ function PasswordDetail({ pw }: { pw: Password }) {
       ) : (
         <>
           <p className="hint" style={{ margin: 0 }}>Once this map is live, their password and the steps to connect them will be here.</p>
-          <button className="btn btn-ink" style={{ marginTop: 10 }} aria-busy={publishing} disabled={publishing || (!!vault.sample && onHostedServer())} onClick={() => void publishAndSay()}>Go live</button>
+          {/* A phone's Go live is under this panel. Anywhere else it's in plain sight at the top, and two would only compete. */}
+          <button
+            className={`btn btn-ink panel-go-live ${vault.sample && onHostedServer() ? 'is-held' : ''}`}
+            style={{ marginTop: 10 }}
+            aria-busy={publishing}
+            disabled={publishing}
+            onClick={() => {
+              if (vault.sample && onHostedServer()) toast("The sample can't go live here, because it's a made-up company.", { label: 'Start your own map', run: () => void newMap() })
+              else void publishAndSay()
+            }}
+          >
+            Go live
+          </button>
         </>
       )}
 
@@ -246,8 +294,10 @@ function PasswordDetail({ pw }: { pw: Password }) {
           Let AI tools in the cloud read this
           <span className="hint" style={{ display: 'block' }}>
             {pw.remote
-              ? 'On: tools that run online, like Claude on the web, can read it. To answer them the host decrypts it in memory for each request, so you’re trusting the host with this password.'
-              : 'Off: it only decrypts on the reader’s own computer, so the host never needs this password.'}
+              ? `On: tools that run online, like Claude on the web, can read it. To answer them the host decrypts it in memory for each request, so you're trusting the host with this password.${hostNotYet ? ' This starts when you update.' : ''}`
+              : hostStill
+                ? "Off once you update. Until then the live copy still lets the host decrypt with this password, so you're still trusting the host with it. If it was ever used through the host, make a new password too."
+                : `Off: it only decrypts on the reader's own computer, so the host doesn't need this password.${live ? ' If it was ever used through the host, make a new password too.' : ''}`}
           </span>
         </span>
         <span className="switch" aria-checked={pw.remote} style={{ marginTop: 1 }} />
@@ -257,7 +307,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
       {confirming !== 'remove' ? (
         <button className="btn btn-quiet btn-flush" onClick={() => setConfirming('remove')}>Remove this reader</button>
       ) : (
-        <div className="callout">
+        <div className="callout" ref={confirm}>
           {live ? (
             <>
               This updates the live map straight away{others}. Anything {pw.name} already read or saved, they keep.
@@ -288,6 +338,8 @@ export function SharePanel() {
     if (fresh) name.current?.select()
   }, [fresh, pw?.id])
   const focusRef = usePanelFocus<HTMLElement>(lens)
+  // "You're live, connect them" has done its job once their panel is open.
+  useEffect(() => clearStatusToasts(), [])
   if (!vault || !pw) return null
 
   return (
@@ -318,7 +370,7 @@ export function AgentView() {
   return (
     <section className="agent-view panel" aria-label={`What ${pw.name} sees`}>
       <div className="side-head">
-        <span className="grow">What {pw.name} reads</span>
+        <span className="grow">What {pw.name} reads<span className="agent-note">This is the text AI tools get</span></span>
         <button className="icon-btn" aria-label="Copy" onClick={() => void copy(text, 'Copied.')}>
           <Icon name="copy" size={14} />
         </button>

@@ -77,7 +77,7 @@ export function Cartouche() {
 
         <p className="cart-note">
           {/* A phone's button has room for one currency, so the others are said here. */}
-          {others.length > 0 && <span className="cart-also">Plus {others.join(' + ')}. </span>}
+          {others.length > 0 && <span className="cart-also">Plus {others.join(' + ')} in other currencies. </span>}
           {s.fromInvoices}% from invoices.{' '}
           {notes.length > 0 && (
             <button aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>

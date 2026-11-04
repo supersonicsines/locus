@@ -44,3 +44,16 @@ test('prose that opens with a bracket is still prose', () => {
   const { pieces } = shredLocally([{ name: 'notes.md', text: '[Read the guide](https://example.com) before you start the work.' }], makeId)
   assert.notEqual(pieces[0].summary, 'Data from notes.md.')
 })
+
+test('a summary keeps what the document said, and only loses what was Markdown', () => {
+  const { pieces } = shredLocally([{ name: 'brand-guide.md', text: '## Colours\n\n- **Primary** is #113355, and *twenty-eight* tints are allowed.\n\n---\n\nMore text.\n' }], () => 'id' + Math.random())
+  const summary = pieces.find((p) => p.title === 'Colours')!.summary
+  assert.ok(summary.includes('#113355'), summary)
+  assert.ok(summary.includes('twenty-eight'), summary)
+  assert.ok(!/[*]/.test(summary), summary)
+})
+
+test('a title that comes from a file name starts with a capital', () => {
+  const { pieces } = shredLocally([{ name: 'support-hours.txt', text: 'We answer between nine and five on working days, in the customer time zone.\n' }], () => 'id' + Math.random())
+  assert.equal(pieces[0].title, 'Support hours')
+})

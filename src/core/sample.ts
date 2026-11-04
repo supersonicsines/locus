@@ -191,7 +191,7 @@ const FINDINGS: Finding[] = [
   {
     id: 'find-dpa',
     kind: 'gap',
-    message: 'Twilio and Anthropic handle customer data, but the pile has no data processing agreement for either.',
+    message: 'Twilio and Anthropic handle customer data, but your documents have no data processing agreement for either.',
     pieces: ['twilio', 'anthropic', 'subprocessors'],
   },
 ]

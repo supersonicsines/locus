@@ -24,7 +24,7 @@ export type Sheet =
   | { kind: 'signin' }
   | { kind: 'donate' }
   | { kind: 'owner-key' }
-  | { kind: 'shred'; files: File[]; error?: string }
+  | { kind: 'shred'; files: File[]; error?: string; fromSample?: boolean }
   | { kind: 'add-service' }
   | { kind: 'confirm-delete' }
   | { kind: 'rename' }
@@ -35,6 +35,10 @@ export interface Toast {
   id: number
   message: string
   action?: { label: string; run: () => void }
+  /** About how things stand right now, so it goes once they've changed. */
+  status?: boolean
+  /** Says what the next update will do, so it goes once that's happened. */
+  untilUpdate?: boolean
 }
 
 export interface ShredProgress {
@@ -48,7 +52,7 @@ export interface ShredProgress {
 export interface State {
   mode: 'loading' | 'studio' | 'viewer' | 'locked'
   vault: Vault | null
-  vaultList: { id: string; name: string; sample?: boolean }[]
+  vaultList: { id: string; name: string; sample?: boolean; items?: number }[]
   view: View | null
   siteName: string | null
   server: ServerInfo | null

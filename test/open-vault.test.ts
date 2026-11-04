@@ -46,13 +46,23 @@ test('opening another map takes the last one\'s Undo off the screen', async () =
   assert.ok(getState().toasts.some((t) => t.action), 'nothing to take away, so this tests nothing')
   const live = handMade({ published: { at: 1, sha: 'x' } as unknown as Vault['published'] })
   await openVault(live)
-  assert.ok(!getState().toasts.some((t) => t.action))
+  assert.ok(!getState().toasts.some((t) => t.action?.label === 'Undo'))
 })
 
-test('a live map is not redrawn, and nothing is said', async () => {
+test('a live map in disarray is not redrawn, and only offered a tidy', async () => {
   const v = handMade({ published: { at: 1, sha: 'x' } as unknown as Vault['published'] })
-  const count = getState().toasts.length
   await openVault(v)
   assert.deepEqual(spots(getState().vault!), spots(v))
-  assert.equal(getState().toasts.length, count)
+  assert.equal(getState().toasts.at(-1)?.action?.label, 'Tidy up')
+  getState().toasts.at(-1)!.action!.run()
+  assert.notDeepEqual(spots(getState().vault!), spots(v), 'and pressing it tidies')
+})
+
+test('a live map in good order is not touched, and nothing is said', async () => {
+  // Drawn by the layout itself, so nothing is astray.
+  await openVault(handMade())
+  const tidy = { ...getState().vault!, id: `map-${Math.random()}`, published: { at: 1, sha: 'x' } as unknown as Vault['published'] }
+  await openVault(tidy)
+  assert.deepEqual(spots(getState().vault!), spots(tidy))
+  assert.equal(getState().toasts.length, 0)
 })

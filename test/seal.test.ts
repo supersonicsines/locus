@@ -104,7 +104,7 @@ test('a link across two gates needs both gates', async () => {
   assert.equal(Object.keys(bundle.bridges).length, 1)
 })
 
-test('proposals never reach a reader', async () => {
+test('a proposal reaches a reader only as reference: never among the rules, and never with its server address', async () => {
   const { vault, design } = vaultFixture()
   const view = await openBundle(await sealVault(vault, 1), design.key)
   const txt = llmsTxt(view, { kind: 'mcp' })
@@ -115,6 +115,10 @@ test('proposals never reach a reader', async () => {
   assert.ok(!always.includes('VendorX'), 'proposed rule is not in the rules')
   assert.equal(view.pieces.find((p) => p.id === 'plant')?.always, undefined)
   assert.equal(view.pieces.find((p) => p.id === 'evil')?.mcp, undefined)
+  // Deliberate, and the screen has to say so: until it's rejected, a proposal's words are still on the map, as reference. See docs/PRD.md.
+  const reference = txt.slice(txt.indexOf('## The map'))
+  assert.ok(reference.includes('VendorX'), 'its words are still there, as reference')
+  assert.ok(txt.indexOf('Only "Always follow" was approved') < txt.indexOf('## The map'), 'under a notice that says they are reference')
 })
 
 test('tampering is refused', async () => {

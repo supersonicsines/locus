@@ -1,6 +1,6 @@
 // A single view of what's on the map, whether you're the owner or a reader.
 
-import { pending } from '../../core/status.ts'
+import { pending, rejectedId } from '../../core/status.ts'
 import type { Company, Cost, Gate, Link, Piece, Vault } from '../../core/types.ts'
 import type { State } from '../store.ts'
 
@@ -30,12 +30,20 @@ export function contentOf(s: Pick<State, 'vault' | 'view'>): MapContent | null {
 export const NO_GATES: Gate[] = []
 export const NO_PIECES: Piece[] = []
 
+/**
+ * A rule reaches a reader with its `always` only if the owner approved it, so one without it is reference text, and a reader mustn't see it filed under Rules with a rule's shield.
+ * The document's words are still there. This is what they're called. The agent text makes the same split.
+ */
+export function asReaderSees(p: Piece): Piece {
+  return p.kind === 'rule' && p.always !== 'approved' ? { ...p, kind: 'fact' } : p
+}
+
 function build(s: Pick<State, 'vault' | 'view'>): MapContent | null {
   if (s.view) {
     return {
       company: s.view.company,
       gates: s.view.gates,
-      pieces: s.view.pieces,
+      pieces: s.view.pieces.map(asReaderSees),
       links: s.view.links,
       costs: s.view.costs,
       currency: s.view.currency,
@@ -171,6 +179,58 @@ export function putAreaBack(v: Vault, before: Vault, gate: string): Vault {
     costs: inOldOrder(v.costs, before.costs, (c) => c.piece, (c) => ids.has(c.piece)),
     passwords: v.passwords.map((p) => (before.passwords.find((b) => b.id === p.id)?.gates.includes(gate) ? { ...p, gates: [...p.gates, gate] } : p)),
   }
+}
+
+/** One item and everything hanging off it, off the map. */
+export function withoutPiece(v: Vault, id: string): Vault {
+  return {
+    ...v,
+    pieces: v.pieces.filter((p) => p.id !== id),
+    links: v.links.filter((l) => l.from !== id && l.to !== id),
+    costs: v.costs.filter((c) => c.piece !== id),
+    findings: v.findings.map((f) => (f.pieces.includes(id) ? { ...f, pieces: f.pieces.filter((x) => x !== id) } : f)),
+  }
+}
+
+/** Undo for that. Only what the delete took comes back, and anything done since stays done. */
+export function putPieceBack(v: Vault, before: Vault, id: string): Vault {
+  const here = new Set([...v.pieces.map((p) => p.id), id])
+  return {
+    ...v,
+    pieces: inOldOrder(v.pieces, before.pieces, (p) => p.id, (p) => p.id === id),
+    links: inOldOrder(v.links, before.links, (l) => `${l.from}|${l.to}|${l.kind}`, (l) => (l.from === id || l.to === id) && here.has(l.from) && here.has(l.to)),
+    costs: inOldOrder(v.costs, before.costs, (c) => c.piece, (c) => c.piece === id),
+    findings: v.findings.map((f) => (before.findings.find((b) => b.id === f.id)?.pieces.includes(id) && !f.pieces.includes(id) ? { ...f, pieces: [...f.pieces, id] } : f)),
+  }
+}
+
+/**
+ * A service with a real price is one the company pays for, whatever a document says about connecting to it, so rejecting the address doesn't take its bill off the map.
+ * Everything else a document proposed exists on the map because the document said so.
+ */
+export function rejectKeepsItem(v: Pick<Vault, 'costs'>, p: Piece): boolean {
+  return p.kind === 'service' && !p.always && v.costs.some((c) => c.piece === p.id && c.amount !== null)
+}
+
+/** What Reject does: off the map, so it stops reaching readers at the next update, and remembered, so reading the same document again doesn't bring it back. */
+export function rejectProposal(v: Vault, id: string): Vault {
+  const p = v.pieces.find((x) => x.id === id)
+  if (!p) return v
+  const settled = [...(v.settled ?? []), rejectedId(p)]
+  if (rejectKeepsItem(v, p)) {
+    const { mcp: _address, ...rest } = p
+    return { ...v, settled, pieces: v.pieces.map((x) => (x.id === id ? rest : x)) }
+  }
+  return { ...withoutPiece(v, id), settled }
+}
+
+/** Undo for that. It isn't a rejection any more, so the same words can ask again. */
+export function undoRejectProposal(v: Vault, before: Vault, id: string): Vault {
+  const was = before.pieces.find((x) => x.id === id)
+  if (!was) return v
+  const settled = (v.settled ?? []).filter((s) => s !== rejectedId(was))
+  if (v.pieces.some((x) => x.id === id)) return { ...v, settled, pieces: v.pieces.map((x) => (x.id === id && was.mcp ? { ...x, mcp: was.mcp } : x)) }
+  return { ...putPieceBack(v, before, id), settled }
 }
 
 /** Where a need is, in the words the map uses. */

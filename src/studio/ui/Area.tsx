@@ -1,7 +1,7 @@
 // An area, opened from the map: what it's called, who can read it, and what's in it.
 
 import { PIECE_KINDS } from '../../core/types.ts'
-import { addPiece, deleteArea, publishAndSay, renameGate, toggleGateOnPassword } from '../actions.ts'
+import { addPiece, createPassword, deleteArea, publishAndSay, renameGate, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
 import { Icon, NeedMark, PieceMark, plural, ReaderMark, useEscape, usePanelFocus } from './bits.tsx'
 import { contentOf, exposedAreas, pricesReadableIn, readersByArea } from './data.ts'
@@ -70,7 +70,12 @@ export function AreaPanel() {
                 </button>
               )
             })}
-            {!readers.length && <p className="hint" style={{ margin: 0 }}>No readers yet. Add one on the left.</p>}
+            {!readers.length && (
+              <p className="hint" style={{ margin: 0 }}>
+                No readers yet.{' '}
+                <button className="text-btn" onClick={() => { createPassword(); setState({ panel: 'share', area: null }) }}>Add a reader</button>
+              </p>
+            )}
           </>
         )}
 

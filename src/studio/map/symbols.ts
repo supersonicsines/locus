@@ -10,7 +10,7 @@ export const KIND_LABELS: Record<PieceKind, string> = {
   clause: 'Clause',
   spec: 'Spec',
   token: 'Design token',
-  service: 'Service',
+  service: 'Tool',
   contract: 'Contract',
   person: 'Person',
   doc: 'Document',

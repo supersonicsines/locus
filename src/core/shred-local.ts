@@ -88,8 +88,22 @@ function guessKind(fileName: string, title: string, text: string): PieceKind {
   return 'fact'
 }
 
+/** Takes off what's only Markdown: markers at the start of a line, rules, table pipes and emphasis. A "#113355" or a "twenty-eight" is what the document said, and a summary has to keep it. */
+function plainText(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*[-=*_|:\s]{3,}\s*$/.test(line))
+    .map((line) => line.replace(/^\s*(#{1,6}\s+|[-*+]\s+|>\s*|\d+[.)]\s+)+/, ''))
+    .join(' ')
+    .replace(/\*\*|__|`/g, '')
+    .replace(/(^|[\s(])[*_](?=\S)|(?<=\S)[*_](?=$|[\s),.;:!?])/g, '$1')
+    .replace(/\s*\|\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function firstSentence(text: string): string {
-  const flat = text.replace(/[#*_`>|-]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const flat = plainText(text)
   const m = flat.match(/^.{20,180}?[.!?](\s|$)/)
   return (m ? m[0] : flat.slice(0, 140)).trim()
 }
@@ -123,7 +137,9 @@ interface Section {
 
 /** Splits on Markdown headings, then on shouted or numbered lines, then on paragraphs. */
 function split(name: string, text: string): Section[] {
-  const base = name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
+  const words = name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim()
+  // A file's name is the only title it has, so it reads like the others on the map.
+  const base = words.charAt(0).toUpperCase() + words.slice(1)
   const lines = text.split(/\r?\n/)
   const isHeading = (l: string) =>
     /^#{1,4}\s+\S/.test(l) ||

@@ -306,7 +306,7 @@ export async function shredWithClaude(files: Extracted[], apiKey: string, model:
   }
 
   // Cartographer: sees the whole pile at once.
-  events.progress('Sorting it into areas', done, readable.length + 1)
+  events.progress('Sorting them into areas', done, readable.length + 1)
   const index = pieces.map((p) => ({ id: p.id, kind: p.kind, title: p.title, summary: p.summary, file: p.source?.file }))
   const map = await ask(
     client,
