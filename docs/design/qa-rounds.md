@@ -998,3 +998,89 @@ Walking whole for the first time showed why 800 had never run: see the folded ca
 - "Tools" on the map and "A service you use" in Add name one thing twice.
 - Closer in, a light line from a hovered item can still cross words on its way to something far off.
 - Focus falls to the page after going live, and after Esc on something opened from search, because what opened them has gone.
+
+## After Round 7: fixing what the walk sweep found
+
+Four readers opened every walk shot on fdaa3ae, one screen size each, and wrote 171 entries. Merged, that's 87 (`<QA>/rounds/fix/LIST.md`, which says what became of each). Every row was reproduced in its shot or the code first.
+
+**What the page does now. Later work starts from this.**
+
+| You do | The page does |
+| --- | --- |
+| Look at a proposed rule | Says that until you approve it, AI tools that can read that area see the words as reference and aren't told to follow them. That's what happens, and it's what `docs/PRD.md` and `seal.ts` have always done |
+| Press Reject | The item comes off the map, with Undo, and a toast says what that did. On a live map the amber bar says it's still readable until Update. A service with a real price stays and loses only the address |
+| Read the same document again | What you rejected stays off, and the toast says so. New words ask again, the same rule an approval has |
+| Read a map as a person | A rule nobody approved is filed with the facts and laid out with them, and its panel says it isn't an approved rule |
+| Switch a reader's cloud reading off | "Off once you update", a box with Update now, and under the lens the bar goes amber with the same sentence that it'll say once the lens is closed |
+| Ask how to connect a reader | The map holds 41% or so with its names, and past that runs on under the panel. It used to fall to 35% and lose every name |
+| Press Copy in a connect tab | The button says Copied. No toast |
+| Open a sheet | Whatever toast was up goes |
+
+**Decisions and why.**
+- **Unapproved rules still reach readers, as reference.** Whether to hide them is the operator's call, and the words are true under what ships. `seal.ts` is untouched. Hiding them means changing the publish path, not this page.
+- **A rejection is remembered in `settled`, as a hash of the words.** Without that a re-read brings the rule straight back. It's not a change to publish, it's sealed in the owner's copy, and it reaches no reader. A read with Claude lands items before it knows which are proposals, so the words decide, not the flag.
+- **A service with a real price keeps its place when its address is rejected.** The brief said Reject takes the item off the map. A vendor PDF naming a server for Stripe shouldn't delete Stripe and its invoice with an 8-second Undo. Anything else comes off.
+- **One toast at a time.** A way out such as Undo stays beside a plain message. `status` toasts ("Updated", "You're live") go as soon as the map changes. Toasts stacked before because nothing replaced anything.
+- **The toast's width was a bug.** `left: 50%` and a transform limits shrink-to-fit to half the window, which is why a phone's toasts ran to six lines.
+- **A panel is as tall as what it holds, at every width.** That's the half-empty panel gone, and it gives back the map under it. The zoom control still sits left of where a tall panel would reach.
+- **A county's name cut by something floating over it isn't drawn until it's clear.** `neering` beside the bar read as broken. The cost: Brand's name is gone while a panel holds the map under the card at 1280x720 (`j-area-Finance-panel`).
+- **A seal or pin that has no room beside a name goes to the end of the line below, or is left off.** The name stays whole. The vermilion words or the amber land still say it, and it no longer floats out at sea.
+- **Under 980 the switches come with a reader's panel.** The card is folded there, so "click an area" could send you to land under the panel. The folded heading says `2 readers` or `Add a reader`.
+- **Below 40%, what you open or make comes close enough to have a name.** Round 7's rule, now for clicks and new notes as well as search.
+- **`Tool` everywhere.** The map said Tools, the panel and Add said Service. Internals keep their names.
+- **Overturned:** "a live map says nothing on opening", which `test/open-vault.test.ts` pinned. A live map in disarray now offers Tidy up, once. It still isn't touched, and one in good order still says nothing. The test is rewritten to say so.
+
+**Not real, or not as reported.**
+- Pointing at a dot explains nothing: the walk pointed at coordinates from another layout. It now sweeps for marks, and the tip is there.
+- A need about Sentry on a rule about writing: the mock pins its one finding on the first id.
+- The huge file's note fading with its toast: it stays in the needs list. "1 missing" hid that, and now says `1 to look at`.
+- Bare `?` under a lens: not reproduced on 800 `e06`.
+- The focus ring on Add a reader in `k02`: the walk pressed Tab twelve times.
+- `From the document, word for word.` and the $0.37 are the mock's. The estimate was still too low, because it left out the prompt on each call and the map step, so that's raised. It hasn't met a real bill.
+
+**Mistakes in my own work, caught on the screen.** Hiding cut names left four counties nameless at 800, because nothing redrew when a panel closed (`w3/800/e06`). The map now watches the page. `min-height: 44px` on every button pushed the phone's Go live out of its pill. On the reader's page, filing a rule with the facts left "Twenty-eight days" stranded under no heading until the layout used the same kinds.
+
+**The walk.** New part `reject`. `e02`, `g03b` and `g04` find their state on a phone, `g04` holds the host's answer so Updating can be seen, `k01b` sweeps for marks at any size, `h23b` presses the held Go live, `g05b` shows the lens with a closed area. At 800 the walk uses the panel's switches.
+
+**The walks, whole, on the final build.** Every part at each width, by `r7-all.sh`, on this commit's code. No page errors, and no request left the machine except the mocked one to Anthropic.
+
+| Width | Shots | Parts | Failed |
+| --- | --- | --- | --- |
+| 390x844, touch | 160 | 14 | 0 |
+| 800x700 | 167 | 15 | 0 |
+| 1280x720 | 167 | 15 | 0 |
+| 1440x900 | 167 | 15 | 0 |
+
+**Verified on the final build.** `flow4` 36 of 36, `flow5` 11 of 11, `cross` 11 of 11 in Firefox and WebKit with nothing leaving the machine, `touch2`, `stress`, `r5-more` all 10, `r6-ghost` 52 taps with no tap doing two things. 140 tests pass, 12 more than Round 7, and types are clean. `seal.ts`, the server and the CSP are untouched. `agent.ts` and the MCP `instructions` changed wording only, and no text from the map goes in `instructions`. The walk's own check on Reject: a reader gets a proposal as reference, still gets it after Reject on a live map, and doesn't after Update. Read in dark: `g11`, `g03b`, `d12`.
+
+**Frame rate.** A file landing on 300 items looked twice as slow in the whole run (183 and 873 ms at 1x and 4x, against 110 and 418). Run side by side three times with Round 7's build and nothing else going, it isn't: 115 to 126 ms and 418 to 514 ms here, 122 to 138 ms and 463 to 736 ms there. So that was noise, and the long list of what floats over the map is cached, because reading it on every frame did cost something on an earlier build. Pointing at fit is 54 to 55fps against 57 to 59 in Round 7's run. That isn't side by side, and JS time is no worse.
+
+**What I read and what I didn't.** `<QA>/rounds/fix/READ-LOG.md` has a line for each.
+- Full size on this build: 4 of 661 walk shots, and 1 fixed-set shot.
+- Full size one build back, which differs by a gap and a toast's wrapping: 23 walk, 1 fixed set, 3 dark. Two builds back: 12 walk. On a build before that: 8 fixed set.
+- Thumbnails, 255 to 302 px each: 329 on the build before, 293 on the one before that. Those show layout and states, and words only in dialogs and crops. They don't count as reading small print.
+- 75 walk shots weren't opened in any form, each within 0.05% of its Round 7 shot.
+- That's short of opening every fixed shot at full size on the final build. Screens I changed got the full-size look on one or two widths, not all four.
+
+**Not verified.**
+- The connect tabs on a public address. The walk only has local ones, so the wording for a real server hasn't been seen on screen since this change, and the steps there are as they were.
+- A real Claude bill against the new estimate, or Reject and re-read with real Claude. The mock's re-read isn't walked; a test covers the merge.
+- Rejecting the address of a priced service, on screen. Tests only.
+- A real phone: keyboard, taps at 44, real Safari. `focusVisible` isn't in Safari, so the ring may still show there.
+- No real person has seen this.
+
+**Worst thing left.** The map at 41% beside a reader's panel still has its east under the panel, and it still rescales on opening, if much less. Next: one very large file is a torn square with a label in it (`h09`).
+
+**Also left.**
+- An area's kinds row can flip between `+2 kinds` and `Tools, Facts` with no change to the area. I read the code that picks the form and didn't chase it.
+- Five areas on a phone make an L with half the screen empty.
+- Long item names can still cross a coast. Only the caption got a short form.
+- Discs still touch at 800. Rings or Discs is the operator's.
+- No Stop on a read with Claude. Closing the tab is still the only way out of a paid read.
+- A tap on a mark on a phone still needs to land on it: marks are 15 to 19 px apart in Engineering. Buttons went to 44. The map didn't.
+- A county's name under a lens on a phone can still be `Engine…`, where the tall sheet squeezes the map and a neighbour is in the way.
+- With a panel open at 1280x720, Brand has no name while the card is over it.
+- A need pin's head still sits right beside the heading above it.
+- A read's finish toast can lie over a reader's text on a phone for its few seconds.
+- The list says `5 to look at` and the map may show 8 dots, because one need can mark several items.
+- The hosted footer still touches a coast at 1280.
