@@ -1,13 +1,13 @@
 // Top left: the company, and who can read its map. Pick a reader and the map shows what they see.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Password } from '../../core/types.ts'
 import { askFit, copy, createPassword, loadSample, newMap, setTheme, siteAddress, switchVault, tidyMap, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
 import { Icon, plural, ReaderMark, useEscape } from './bits.tsx'
 import { areasOnMap, contentOf, NO_GATES, NO_PIECES, readersByArea } from './data.ts'
 
-function CompanyMenu({ close }: { close: () => void }) {
+function CompanyMenu({ close, done }: { close: () => void; done: () => void }) {
   const vault = useStore((s) => s.vault)
   const list = useStore((s) => s.vaultList)
   const theme = useStore((s) => s.theme)
@@ -15,8 +15,10 @@ function CompanyMenu({ close }: { close: () => void }) {
   const view = useStore((s) => s.view)
   useEscape(close)
 
+  // Choosing something finishes with the card too, or a phone is left looking at it with what you chose behind it.
   const act = (fn: () => void) => () => {
     close()
+    done()
     fn()
   }
 
@@ -86,7 +88,7 @@ function CompanyMenu({ close }: { close: () => void }) {
   )
 }
 
-function ReaderRow({ pw, index, live }: { pw: Password; index: number; live: boolean }) {
+function ReaderRow({ pw, index, live, picked }: { pw: Password; index: number; live: boolean; picked: () => void }) {
   const vault = useStore((s) => s.vault)
   const gates = vault ? areasOnMap(vault) : NO_GATES
   const lens = useStore((s) => s.lens)
@@ -96,7 +98,10 @@ function ReaderRow({ pw, index, live }: { pw: Password; index: number; live: boo
 
   const pick = () => {
     if (on) setState({ lens: null, panel: panel === 'share' ? null : panel, agentView: false })
-    else setState({ lens: pw.id, selected: null, area: null, panel: panel === 'share' ? 'share' : null, agentView: false })
+    else {
+      setState({ lens: pw.id, selected: null, area: null, panel: panel === 'share' ? 'share' : null, agentView: false })
+      picked()
+    }
   }
 
   return (
@@ -134,7 +139,7 @@ function ReaderRow({ pw, index, live }: { pw: Password; index: number; live: boo
   )
 }
 
-function Readers() {
+function Readers({ picked }: { picked: () => void }) {
   const vault = useStore((s) => s.vault)!
   const live = !!vault.published && !!vault.site
   const address = vault.site ? siteAddress(vault.site.name) : ''
@@ -148,14 +153,14 @@ function Readers() {
       ) : (
         <>
           <p className="left-about">
-            {vault.sample ? "A made-up company's map of what its AI tools and people need to know. Pick a name to see what they can read." : 'What your AI tools and people need to know, on one map. You choose who can read which parts.'}
+            {vault.sample ? "A made-up company's map for its AI tools and people. Pick a name to see what they can read." : 'What your AI tools and people need to know, on one map. You choose who can read which parts.'}
           </p>
-          {vault.sample && <button className="btn btn-paper start-own" onClick={() => void newMap()}>Start your own map</button>}
+          {vault.sample && <button className="text-btn start-own" onClick={() => { picked(); void newMap() }}>Start your own map</button>}
         </>
       )}
       <div className="left-title">{live ? 'Who can read it' : 'Who can read it once live'}</div>
       <div className="reader-list">
-        {vault.passwords.map((p, i) => <ReaderRow key={p.id} pw={p} index={i} live={live} />)}
+        {vault.passwords.map((p, i) => <ReaderRow key={p.id} pw={p} index={i} live={live} picked={picked} />)}
         {!readersByArea(vault).size && !vault.passwords.length && <p className="reader-none">No one yet, so everything here is private.</p>}
       </div>
       <div className="left-foot">
@@ -164,6 +169,7 @@ function Readers() {
           onClick={() => {
             createPassword()
             setState({ panel: 'share', area: null })
+            picked()
           }}
         >
           <Icon name="plus" size={13} /> Add a reader
@@ -203,9 +209,13 @@ export function Left() {
   const company = useStore((s) => contentOf(s)?.company)
   const sample = useStore((s) => !!s.vault?.sample)
   const readOnly = useStore((s) => !!s.view)
-  const isLive = useStore((s) => !!s.vault?.published && !!s.vault.site)
   const [menu, setMenu] = useState(false)
   const [openOnPhone, setOpenOnPhone] = useState(false)
+  // A narrow window can't hold the card and a panel with any map between them, and the panel is what was just asked for.
+  const panel = useStore((s) => s.panel)
+  useEffect(() => {
+    if (panel === 'share' && window.innerWidth <= 980) setOpenOnPhone(false)
+  }, [panel])
 
   return (
     <div className={`left panel ${openOnPhone ? 'is-open' : ''}`}>
@@ -216,21 +226,21 @@ export function Left() {
           aria-haspopup="menu"
           aria-expanded={menu}
           onClick={() => {
-            if (window.innerWidth <= 720 && !openOnPhone) setOpenOnPhone(true)
+            if (window.innerWidth <= 980 && !openOnPhone) setOpenOnPhone(true)
             else setMenu(!menu)
           }}
         >
           <span className="company-name">{company?.name}</span>
-          {!readOnly && <i className={`live-dot phone-only ${isLive ? '' : 'is-off'}`} role="img" aria-label={isLive ? 'Live' : 'Not live'} />}
           {sample && <span className="tag">Sample</span>}
           <Icon name="chevron" size={14} />
         </button>
-        <button className="icon-btn" aria-label="Search the map" title="Search the map (⌘K)" onClick={() => setState({ cmdk: true })}>
+        <button className="icon-btn" aria-label="Search the map" title="Search the map (⌘K)" onClick={() => { setOpenOnPhone(false); setState({ cmdk: true }) }}>
           <Icon name="search" size={15} />
         </button>
       </div>
-      {menu && <CompanyMenu close={() => setMenu(false)} />}
-      {readOnly ? <ReaderAreas /> : <Readers />}
+      {menu && <CompanyMenu close={() => setMenu(false)} done={() => setOpenOnPhone(false)} />}
+      {/* On a phone, picking someone puts the card away: the map is what you came to see, and the sheet below it holds the rest. */}
+      {readOnly ? <ReaderAreas /> : <Readers picked={() => window.innerWidth <= 720 && setOpenOnPhone(false)} />}
     </div>
   )
 }

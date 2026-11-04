@@ -141,6 +141,24 @@ export function drawPin(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
 }
 
 /** The unread dot from every inbox: there's something here, when you have a minute. */
+/** A pin's head with no pin: the same mark as in the list of what needs you, for where there's no room for the rest. */
+export function drawPinHead(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, glyph: string, edge: string, mark: '!' | '?', font: string) {
+  ctx.save()
+  ctx.lineWidth = 3
+  ctx.strokeStyle = edge
+  ctx.fillStyle = fill
+  ctx.beginPath()
+  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.fill()
+  ctx.fillStyle = glyph
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = `600 ${(r * 1.5).toFixed(1)}px ${font}`
+  ctx.fillText(mark, x, y + r * 0.06)
+  ctx.restore()
+}
+
 export function drawNeedDot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, ink: string, ground: string) {
   ctx.save()
   ctx.fillStyle = ground

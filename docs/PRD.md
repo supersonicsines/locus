@@ -90,7 +90,7 @@ Technical terms the audience already knows (MCP, API) are fine in the interface.
 
 **The address (`yourco.domain`)**
 
-- For people: an unlock page and a read-only map, decrypted in the browser. Works on a phone. The Studio is designed for a laptop and must not break on a phone.
+- For people: an unlock page and a read-only map, decrypted in the browser. Works on a phone. The Studio is designed for a laptop. On a phone it's for checking on the map and answering it: see who can read what and what it costs, deal with what needs you, change what a reader can read, connect them, add to the map and go live. Arranging things by hand stays on a laptop, because a finger on the map moves the map.
 - Every address is also available at `/s/<name>/`, for Safari on `*.localhost` and self-hosters without wildcard DNS.
 - For agents with a local process: CLI and local MCP that decrypt on their own machine.
 - For agents without one: a remote endpoint and remote MCP that decrypt in memory per request.

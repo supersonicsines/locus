@@ -8,6 +8,7 @@
   --raised: #fcfdfd;
   --ink: #15191e;
   --ink-rgb: 21, 25, 30;
+  --focus: rgba(21, 25, 30, 0.62);
   --soft: rgba(21, 25, 30, 0.72);
   --faint: rgba(21, 25, 30, 0.6);
   --hair: rgba(21, 25, 30, 0.14);
@@ -37,6 +38,7 @@
   --raised: #161c24;
   --ink: #e8e6df;
   --ink-rgb: 232, 230, 223;
+  --focus: rgba(232, 230, 223, 0.66);
   --soft: rgba(232, 230, 223, 0.74);
   --faint: rgba(232, 230, 223, 0.6);
   --hair: rgba(232, 230, 223, 0.13);
@@ -87,14 +89,59 @@ button {
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  /* A press that drags off a button shouldn't select its words, and a long press on a phone shouldn't either. */
+  user-select: none;
+  -webkit-touch-callout: none;
 }
+
+/* One family, on every control: rest, hover is a wash or a darker edge, press is a little more of that and a small give, on is a one-pixel ink edge or an ink fill, focus is one ring. */
 
 a {
   color: inherit;
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* Anything with no corners of its own gets a small one, so a ring is never a hard box. */
+:where(button, a):focus-visible {
+  border-radius: 4px;
+}
+
+/* A row's ring stands inside it, because a list clips anything outside. */
+.reader-row:focus-visible,
+.menu-item:focus-visible,
+.catalog-item:focus-visible,
+.cmdk-item:focus-visible,
+.link-item:focus-visible,
+.gate-row:focus-visible,
+.company-btn:focus-visible,
+.left-about:focus-visible,
+.tab:focus-visible,
+.segmented button:focus-visible,
+.cart-notes button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Ink on ink can't be seen, so this ring stands outside. */
+.segmented button[aria-pressed='true']:focus-visible {
+  outline-offset: 1px;
+}
+
+/* The card's own corner, not a box across it. */
+.company-btn:focus-visible {
+  border-radius: var(--panel-radius) 6px 6px 6px;
+}
+
+/* A switch's row is the button, and its ring belongs on the switch. */
+[role='switch']:focus-visible:not(.lens-chip) {
+  outline: none;
+}
+
+[role='switch']:focus-visible .switch {
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -136,8 +183,35 @@ a {
 }
 
 .btn:disabled {
-  opacity: 0.45;
   cursor: default;
+}
+
+/* Not yet is an instruction, not a dead button, so its words stay easy to read. */
+.btn-ink:disabled {
+  background: var(--wash-strong);
+  border-color: transparent;
+  color: var(--soft);
+}
+
+.btn-paper:disabled {
+  opacity: 0.5;
+}
+
+.btn-quiet:disabled {
+  opacity: 0.5;
+}
+
+/* Busy keeps its colour, because it's what you just pressed. */
+.btn-ink[aria-busy='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.btn-flush {
+  margin-left: -12px;
 }
 
 .btn-paper {
@@ -157,15 +231,35 @@ a {
 
 @media (hover: hover) and (pointer: fine) {
   .btn-paper:hover:not(:disabled) {
-    background: var(--paper);
+    background: color-mix(in srgb, var(--ink) 3.5%, var(--raised));
     border-color: var(--hair-strong);
   }
   .btn-ink:hover:not(:disabled) {
     opacity: 0.88;
   }
   .btn-quiet:hover:not(:disabled) {
+    background: var(--wash);
     color: var(--ink);
   }
+}
+
+.btn-paper:active:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 6.5%, var(--raised));
+  border-color: var(--hair-strong);
+}
+
+.btn-ink:active:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-quiet:active:not(:disabled) {
+  background: var(--wash-strong);
+  color: var(--ink);
+}
+
+/* On: a menu that's open, the same as anything else that's on, and still on with the pointer over it. */
+.btn-paper[aria-expanded='true']:not(:disabled) {
+  border-color: var(--ink);
 }
 
 .icon-btn {
@@ -186,6 +280,11 @@ a {
   }
 }
 
+.icon-btn:active {
+  background: var(--wash-strong);
+  color: var(--ink);
+}
+
 .field {
   width: 100%;
   height: 34px;
@@ -199,6 +298,12 @@ a {
 
 .field:focus {
   border-color: var(--ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .field:hover:not(:focus) {
+    border-color: var(--hair-strong);
+  }
 }
 
 .field::placeholder {
@@ -243,6 +348,31 @@ a {
 
 .switch[aria-checked='true']::after {
   transform: translateX(12px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [role='switch']:hover .switch:not([aria-checked='true']) {
+    background: rgba(var(--ink-rgb), 0.42);
+  }
+  [role='switch']:hover .switch[aria-checked='true'] {
+    opacity: 0.86;
+  }
+}
+
+[role='switch']:active .switch::after {
+  width: 16px;
+}
+
+[role='switch']:active .switch[aria-checked='true']::after {
+  transform: translateX(10px);
+}
+
+.reader-area[role='switch']:active .switch::after {
+  width: 14px;
+}
+
+.reader-area[role='switch']:active .switch[aria-checked='true']::after {
+  transform: translateX(8px);
 }
 
 /* Left: the company, and who can read its map. */
@@ -295,6 +425,10 @@ a {
   .company-btn:hover {
     background: var(--wash);
   }
+}
+
+.company-btn:active {
+  background: var(--wash-strong);
 }
 
 .company-name {
@@ -355,6 +489,12 @@ a {
   color: var(--soft);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .left-about.is-live:hover svg {
+    color: var(--ink);
+  }
+}
+
 .left-title {
   padding: 12px 12px 4px;
   font-size: 12.5px;
@@ -392,6 +532,10 @@ a {
   .reader:not(.is-on) .reader-row:hover {
     background: var(--wash);
   }
+}
+
+.reader:not(.is-on) .reader-row:active {
+  background: var(--wash-strong);
 }
 
 .reader-name {
@@ -476,11 +620,6 @@ a {
   color: var(--soft);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .reader-add:hover:not(:disabled) {
-    background: var(--wash);
-  }
-}
 
 /* What someone reading with a password sees instead. */
 
@@ -678,7 +817,7 @@ a {
 
 @media (hover: hover) and (pointer: fine) {
   .status-done:hover {
-    background: var(--hair-strong);
+    background: rgba(var(--ink-rgb), 0.12);
   }
   .status-open:hover b {
     text-decoration: underline;
@@ -720,11 +859,11 @@ a {
 
 .dollar-toggle[aria-pressed='true'] {
   border-color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--ink), var(--shadow);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .dollar-toggle:hover {
+    background: color-mix(in srgb, var(--ink) 3.5%, var(--raised));
     border-color: var(--hair-strong);
   }
   .dollar-toggle[aria-pressed='true']:hover {
@@ -824,11 +963,6 @@ a {
   box-shadow: inset 0 0 0 2px var(--live);
 }
 
-/* A phone has no room for the state at top right, so the dot moves in beside the company's name. */
-.phone-only {
-  display: none;
-}
-
 .is-not-live .live-word {
   color: var(--soft);
 }
@@ -906,7 +1040,22 @@ a {
   text-decoration: underline;
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
+  text-decoration-color: var(--hair-strong);
   font-size: inherit;
+  transition: text-decoration-color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .text-btn:hover,
+  .cart-note button:hover,
+  .source-note a:hover,
+  .menu-note a:hover {
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 1.5px;
+  }
+  .title-input:hover:not(:focus) {
+    border-bottom-color: var(--hair-strong);
+  }
 }
 
 .side-foot .btn-quiet {
@@ -1012,6 +1161,33 @@ a {
   color: var(--faint);
 }
 
+/* You can write in these. Nothing else on the page says so, so the pointer does. */
+.piece-title,
+.piece-summary,
+button.piece-body {
+  border-radius: 4px;
+  transition: background-color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  textarea.piece-title:hover,
+  textarea.piece-summary:hover,
+  button.piece-body:hover {
+    background: var(--wash);
+    box-shadow: 0 0 0 4px var(--wash);
+  }
+  textarea.piece-title:focus,
+  textarea.piece-summary:focus {
+    background: none;
+  }
+}
+
+/* Where the caret is, the same line as a reader's name when you're writing in it. */
+textarea.piece-title:focus,
+textarea.piece-summary:focus {
+  box-shadow: 0 1px 0 var(--ink);
+}
+
 .side:focus {
   outline: none;
 }
@@ -1020,6 +1196,8 @@ button.piece-body {
   display: block;
   width: 100%;
   text-align: left;
+  /* It's writing that happens to open an editor, and someone may want to copy it. */
+  user-select: text;
 }
 
 /* What's the matter with an item, when you point at it. */
@@ -1031,6 +1209,13 @@ button.piece-body {
   font-size: 12px;
   line-height: 17px;
   pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+@starting-style {
+  .map-tip {
+    opacity: 0;
+  }
 }
 
 .map-tip b {
@@ -1124,14 +1309,16 @@ button.piece-body {
   margin-left: -6px;
   border-radius: 5px;
   text-align: left;
-  font-family: var(--serif);
-  font-size: 13.5px;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .link-item:hover {
     background: var(--wash);
   }
+}
+
+.link-item:active {
+  background: var(--wash-strong);
 }
 
 .link-item .note {
@@ -1245,6 +1432,12 @@ button.piece-body {
   transition: color 100ms ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover {
+    color: var(--ink);
+  }
+}
+
 .tab[aria-selected='true'] {
   background: var(--raised);
   color: var(--ink);
@@ -1266,6 +1459,39 @@ button.piece-body {
   line-height: 17px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* A command breaks between its words, not inside them. */
+.code-block .tok {
+  white-space: nowrap;
+}
+
+.more-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--hair);
+  color: var(--soft);
+  font-size: 12px;
+  text-align: left;
+  transition: color 100ms ease;
+}
+
+.more-toggle svg {
+  transition: transform 160ms var(--ease-out);
+}
+
+.more-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .more-toggle:hover {
+    color: var(--ink);
+  }
 }
 
 .code-copy {
@@ -1321,8 +1547,10 @@ code.inline {
 }
 
 .start-own {
-  margin: 10px 12px 2px;
+  margin: 6px 12px 0;
   align-self: flex-start;
+  font-size: 12.5px;
+  line-height: 18px;
 }
 
 .shred-note {
@@ -1336,6 +1564,13 @@ code.inline {
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  transition: opacity 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .live-changes:hover {
+    opacity: 0.72;
+  }
 }
 
 .changes {
@@ -1348,6 +1583,15 @@ code.inline {
   white-space: normal;
   font-size: 12.5px;
   line-height: 18px;
+  transform-origin: top right;
+  transition: opacity 120ms ease, transform 160ms var(--ease-out);
+}
+
+@starting-style {
+  .changes {
+    opacity: 0;
+    transform: scale(0.97);
+  }
 }
 
 .changes p {
@@ -1440,6 +1684,24 @@ code.inline {
   overflow-y: auto;
   padding: 6px;
   box-shadow: var(--shadow-high);
+  transition: opacity 120ms ease, transform 160ms var(--ease-out);
+}
+
+@starting-style {
+  .needs-panel {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+/* What a dot on the map means, said once, where a finger can read it too. */
+.need-group {
+  margin: 6px 0 0;
+  padding: 8px 10px 2px;
+  border-top: 1px solid var(--hair);
+  color: var(--soft);
+  font-size: 11.5px;
+  line-height: 15px;
 }
 
 .need {
@@ -1548,12 +1810,8 @@ code.inline {
   font-size: 12px;
 }
 
-.need-actions .btn-quiet {
-  padding-left: 0;
-}
-
-.need-actions .btn-paper + .btn-quiet {
-  padding-left: 8px;
+.need-actions .btn-quiet:first-child {
+  margin-left: -8px;
 }
 
 .needs-empty {
@@ -1587,6 +1845,10 @@ code.inline {
   height: 26px;
 }
 
+.zoom .pct:active {
+  background: var(--wash-strong);
+}
+
 .zoom .pct {
   min-width: 42px;
   text-align: center;
@@ -1609,18 +1871,15 @@ code.inline {
 .cartouche {
   flex: none;
   width: 100%;
-  padding: 3px;
   background: var(--raised);
-  border: 1px solid var(--hair-strong);
-  border-radius: 3px;
+  border: 1px solid var(--hair);
+  border-radius: var(--panel-radius);
   box-shadow: var(--shadow);
   position: relative;
 }
 
 .cartouche-inner {
-  border: 1px solid var(--hair);
-  border-radius: 1px;
-  padding: 11px 11px 9px;
+  padding: 12px 12px 10px;
 }
 
 .cart-total {
@@ -1663,6 +1922,17 @@ code.inline {
 .segmented button[aria-pressed='true'] {
   background: var(--ink);
   color: var(--on-ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .segmented button:not([aria-pressed='true']):hover {
+    background: var(--wash);
+    color: var(--ink);
+  }
+}
+
+.segmented button:not([aria-pressed='true']):active {
+  background: var(--wash-strong);
 }
 
 .scale-bar {
@@ -1729,6 +1999,12 @@ code.inline {
   color: var(--ink);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .cart-notes button:hover {
+    background: var(--wash);
+  }
+}
+
 .cart-note button {
   color: var(--ink);
   text-decoration: underline;
@@ -1758,8 +2034,10 @@ code.inline {
   display: none;
 }
 
-.cartouche:hover .town-legend {
-  display: block;
+@media (hover: hover) and (pointer: fine) {
+  .cartouche:hover .town-legend {
+    display: block;
+  }
 }
 
 .town-legend-row {
@@ -1813,6 +2091,10 @@ code.inline {
   .menu-item:hover {
     background: var(--wash);
   }
+}
+
+.menu-item:active {
+  background: var(--wash-strong);
 }
 
 .menu-item .meta {
@@ -1954,6 +2236,12 @@ code.inline {
   background: var(--wash-strong);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .cmdk-item:not([aria-selected='true']):hover {
+    background: var(--wash);
+  }
+}
+
 .cmdk-item .title {
   flex: 1;
   min-width: 0;
@@ -2011,10 +2299,9 @@ code.inline {
   width: min(460px, 100%);
   max-height: 100%;
   overflow-y: auto;
-  padding: 3px;
   background: var(--raised);
-  border: 1px solid var(--hair-strong);
-  border-radius: 4px;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
   box-shadow: var(--shadow-high);
   pointer-events: auto;
   transition: opacity 180ms ease, transform 240ms var(--ease-out);
@@ -2028,9 +2315,12 @@ code.inline {
 }
 
 .sheet-inner {
-  border: 1px solid var(--hair);
-  border-radius: 2px;
   padding: 22px 22px 18px;
+}
+
+/* A sheet has the floor. What's behind it stays behind it, or an empty map's big words poke out at its sides. */
+body:has(.sheet) .empty > * {
+  visibility: hidden;
 }
 
 .sheet h2 {
@@ -2166,9 +2456,17 @@ code.inline {
   transform: scale(0.99);
 }
 
-.choice[aria-pressed='true'] {
+@media (hover: hover) and (pointer: fine) {
+  .choice:hover {
+    border-color: var(--hair-strong);
+    background: var(--wash);
+  }
+}
+
+.choice[aria-pressed='true'],
+.choice[aria-pressed='true']:hover {
   border-color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--ink);
+  background: none;
 }
 
 .choice b {
@@ -2204,6 +2502,10 @@ code.inline {
   .catalog-item:hover {
     background: var(--wash);
   }
+}
+
+.catalog-item:active {
+  background: var(--wash-strong);
 }
 
 .catalog-item .grow {
@@ -2308,6 +2610,15 @@ code.inline {
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
   text-decoration-color: var(--hair-strong);
+  transition: color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .empty-foot button:hover,
+  .empty-foot a:hover {
+    color: var(--ink);
+    text-decoration-color: currentColor;
+  }
 }
 
 .empty.blank h1 {
@@ -2332,16 +2643,13 @@ code.inline {
 
 .lock-card {
   width: min(400px, 100%);
-  padding: 3px;
   background: var(--raised);
-  border: 1px solid var(--hair-strong);
-  border-radius: 4px;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
   box-shadow: var(--shadow-high);
 }
 
 .lock-inner {
-  border: 1px solid var(--hair);
-  border-radius: 2px;
   padding: 26px 24px 20px;
   text-align: center;
 }
@@ -2481,6 +2789,8 @@ code.inline {
 }
 
 .toast button {
+  flex: none;
+  white-space: nowrap;
   font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -2519,6 +2829,27 @@ code.inline {
     right: var(--gutter);
     z-index: 13;
   }
+  /* The card folds away to its heading, so the map has the width. Clicking the heading opens it. */
+  .left {
+    max-height: 46px;
+    overflow: hidden;
+  }
+  .left .left-head {
+    min-height: 46px;
+  }
+  .left.is-open {
+    max-height: calc(100dvh - 24px);
+    overflow: visible;
+    z-index: 14;
+  }
+  .phone-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+  }
+  body:has(.left.is-open) .status {
+    visibility: hidden;
+  }
 }
 
 @media (max-width: 1100px) {
@@ -2547,6 +2878,25 @@ code.inline {
     top: 96px;
     z-index: 12;
   }
+  /* Under the line, not across it. */
+  .side {
+    top: 100px;
+  }
+}
+
+@media (max-width: 980px) {
+  /* Under the folded card, not across its edge. */
+  .status {
+    top: 62px;
+    left: var(--gutter);
+    max-width: calc(100vw - var(--gutter) * 2);
+  }
+  .needs-panel {
+    top: 104px;
+  }
+  .side {
+    top: 106px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -2557,25 +2907,67 @@ code.inline {
   .left {
     align-self: flex-start;
     width: calc(100vw - 160px);
-    max-height: 46px;
-    overflow: hidden;
-  }
-  .left .left-head {
-    min-height: 46px;
   }
   .left.is-open {
-    max-height: calc(100dvh - 24px);
-    overflow: visible;
-    z-index: 14;
+    width: calc(100vw - var(--gutter) * 2);
+    max-height: calc(100dvh - 90px);
   }
-  /* The open card covers most of this bar, and a fragment of a sentence reads as a bug. */
-  body:has(.left.is-open) .status {
-    visibility: hidden;
+  /* A phone is for checking on the map and answering it. What you do there sits under your thumb: add on the left, going live on the right. */
+  .left-col {
+    bottom: calc(66px + env(safe-area-inset-bottom));
   }
-  .phone-backdrop {
+  .add-menu {
     position: fixed;
-    inset: 0;
-    z-index: -1;
+    left: var(--gutter);
+    bottom: calc(var(--gutter) + env(safe-area-inset-bottom));
+    z-index: 11;
+  }
+  .add-menu .menu {
+    top: auto;
+    bottom: 48px;
+    left: 0;
+    right: auto;
+    transform-origin: bottom left;
+  }
+  .live-state {
+    position: fixed;
+    right: var(--gutter);
+    bottom: calc(var(--gutter) + env(safe-area-inset-bottom));
+    z-index: 11;
+    height: 42px;
+  }
+  .top-right > .add-menu > .btn {
+    height: 42px;
+  }
+  .live-state .go-live {
+    height: 34px;
+  }
+  .changes {
+    top: auto;
+    bottom: calc(100% + 8px);
+    transform-origin: bottom right;
+  }
+  .shred-strip,
+  .toasts {
+    bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+  /* A panel holds the bottom of the screen, and what you were reading mustn't go under a message. */
+  body:has(.side) .toasts {
+    top: var(--gutter);
+    bottom: auto;
+  }
+  /* While a reader is picked, the sheet holds everything, and the map above it is what they can see. */
+  .reader-more,
+  .status.is-lens {
+    display: none;
+  }
+  body:has(.lens-sheet) .add-menu,
+  body:has(.lens-sheet) .live-state {
+    display: none;
+  }
+  .needs-panel {
+    top: 112px;
+    max-height: calc(100dvh - 124px);
   }
   .status .optional-phone,
   .status .optional {
@@ -2621,34 +3013,152 @@ code.inline {
     right: var(--gutter);
     bottom: var(--gutter);
     width: auto;
-    height: 72dvh;
+    height: 64dvh;
     z-index: 20;
   }
   .agent-view {
     top: 12dvh;
     z-index: 22;
   }
-  .top-right .live-state,
-  .top-right .add-menu,
   .cost-others {
     display: none;
   }
-  .phone-only {
-    display: inline-block;
-  }
-  /* Open, the card says it in words, and the company's name needs the room. */
-  .left.is-open .phone-only {
-    display: none;
-  }
-  /* The dot takes the chevron's room while the card is closed, since tapping anywhere on it opens it. */
-  .left:not(.is-open) .company-btn > svg {
-    display: none;
+  /* A little tighter, so it clears the company's card and the name there isn't cut. */
+  .dollar-toggle {
+    padding-left: 9px;
+    padding-right: 9px;
   }
   .empty-word {
     left: 18px;
   }
-  .zoom {
+  /* Pinch does the zooming. All a phone needs is the way back, and only once there's somewhere to come back from. */
+  .bottom-right {
+    right: var(--gutter) !important;
+    bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+  .zoom .icon-btn {
     display: none;
+  }
+  .zoom.is-fit {
+    display: none;
+  }
+  /* A number says nothing about what pressing it does. Here it's only the way back. */
+  .zoom .pct {
+    padding: 0 10px;
+    font-size: 0;
+  }
+  .zoom .pct::after {
+    content: 'Whole map';
+    font-size: 12.5px;
+  }
+}
+
+/* The sheet that holds a picked reader, on a phone. */
+.lens-sheet {
+  position: fixed;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: calc(var(--gutter) + env(safe-area-inset-bottom));
+  z-index: 16;
+  padding: 10px 12px 12px;
+  box-shadow: var(--shadow-high);
+}
+
+.lens-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.lens-head .grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lens-note {
+  color: var(--soft);
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.lens-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.lens-chip {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--hair-strong);
+  border-radius: 18px;
+  transition: background-color 120ms ease, color 120ms ease, transform 140ms var(--ease-out);
+}
+
+.lens-chip:active {
+  transform: scale(0.97);
+}
+
+.lens-chip[aria-checked='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.lens-sheet > .btn {
+  width: 100%;
+  height: 40px;
+}
+
+/* A finger needs more room than a pointer, and an input under 16px makes a phone zoom the page. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 40px;
+  }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .reader-row,
+  .menu-item,
+  .catalog-item,
+  .link-item {
+    min-height: 44px;
+  }
+  .reader-area {
+    height: 44px;
+  }
+  .tab {
+    height: 36px;
+  }
+  .segmented button {
+    height: 32px;
+    padding: 0 10px;
+  }
+  .need-actions .btn,
+  .callout .btn {
+    height: 36px;
+    min-height: 36px;
+  }
+  /* A finger's button needs its own line, or it lands on the words beside it. */
+  .need.is-look .need-actions {
+    position: static;
+    margin-top: 4px;
+  }
+  .status-do,
+  .status-done {
+    height: 34px;
+  }
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

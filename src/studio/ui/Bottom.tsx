@@ -108,6 +108,8 @@ export function Cartouche() {
 
 export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
   const zoom = useStore((s) => s.zoom)
+  const fitZoom = useStore((s) => s.fitZoom)
+  const moved = useStore((s) => s.mapMoved)
   const panel = useStore((s) => s.panel)
   const hasContent = useStore((s) => (contentOf(s)?.pieces.length ?? 0) > 0)
   const selected = useStore((s) => s.selected)
@@ -118,11 +120,11 @@ export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
 
   return (
     <div className="bottom-right" style={hidden ? { right: 396 } : undefined}>
-      <div className="zoom panel">
+      <div className={`zoom panel ${!moved && Math.abs(zoom - fitZoom) < 0.01 ? 'is-fit' : ''}`}>
         <button className="icon-btn" aria-label="Zoom out" onClick={() => map.current?.zoomBy(1 / 1.3)}>
           <Icon name="minus" size={14} />
         </button>
-        <button className="pct" title="Fit the whole map" onClick={() => map.current?.fit()}>
+        <button className="pct" title="Fit the whole map" aria-label="Fit the whole map" onClick={() => map.current?.fit()}>
           {Math.round(zoom * 100)}%
         </button>
         <button className="icon-btn" aria-label="Zoom in" onClick={() => map.current?.zoomBy(1.3)}>

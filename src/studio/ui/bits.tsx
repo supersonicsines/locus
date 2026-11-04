@@ -1,6 +1,6 @@
 // Small shared pieces: icons, safe Markdown, the symbol glyph, text that grows.
 
-import { useEffect, useLayoutEffect, useRef, type MouseEvent as ReactMouseEvent, type ReactNode, type TextareaHTMLAttributes } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { linkParts } from '../../core/links.ts'
 import type { Need, NeedLevel } from '../../core/status.ts'
 import type { PieceKind } from '../../core/types.ts'
@@ -249,6 +249,18 @@ export function usePanelFocus<T extends HTMLElement = HTMLElement>(key: unknown)
 }
 
 /** Closes on Escape. */
+/** Whether this is a phone-sized window, kept up to date as it changes. */
+export function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(() => matchMedia('(max-width: 720px)').matches)
+  useEffect(() => {
+    const q = matchMedia('(max-width: 720px)')
+    const on = () => setNarrow(q.matches)
+    q.addEventListener('change', on)
+    return () => q.removeEventListener('change', on)
+  }, [])
+  return narrow
+}
+
 export function useEscape(run: () => void, active = true) {
   useEffect(() => {
     if (!active) return

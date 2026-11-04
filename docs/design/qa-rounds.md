@@ -784,3 +784,104 @@ Dropping costs more. I'd put that on closing narrow water, which adds passes ove
 - With no AI, a shouted heading stays a shouted title: SUPPLIER AGREEMENT, HIRING PLAN. Honest about being rougher, and not pretty.
 - ⌘K knows few words. "Password" finds nothing, and neither does "connect".
 - Inside a county, place still only means what kind of thing. Round 4's worst thing still stands.
+
+## Round 6: how it feels, and whether it fits
+
+**How the page answers now. Later rounds work from this.** Every control is one family: hover is a wash or a darker edge, press is a little more of that with a small give, on is a one-pixel ink edge or an ink fill, focus is one soft ring.
+
+| You do | The page does |
+| --- | --- |
+| Point at an item or its name | A soft wash behind both, and its links draw in lightly. A tip follows after a quarter of a second if something's the matter. The rest of the map stays as it was |
+| Point at land | The county warms a little and its edge darkens, and it stays warm under what stands on it |
+| Press an item | The wash deepens. The hand only closes once it's really moving |
+| Click an item or its name | The rest of the map quiets. Only a click does that now |
+| Add a file to an untouched map | Marks, names, land and camera move on one clock of 560 ms. What's new comes in last and keeps a wash for about three seconds |
+| Reach the end of a read | The same, with no wash, because most of the map is new and it wouldn't point at anything |
+| Ask for reduced motion | The same picture as a cut |
+
+**What a phone is for.** Checking on the map and answering it: who can read what, what it costs, what needs you and dealing with it, changing what a reader can read, connecting them, adding to the map and going live. Arranging by hand isn't: a finger on the map moves the map. Add sits under the left thumb and going live under the right. A picked reader gets a short sheet with the map above it. Prices are each area's subtotal and not discs, because discs on a phone were a heap. All of this is Chrome's device emulation with touch events. No real phone has run it.
+
+**A window under 980 wide.** The card folds to its heading and the map takes the width. Under 1100 a panel floats over the land, because squeezing the map into what's left made names collide.
+
+**What I saw, worst first.** The list is in `<QA>/rounds/r6/DISSECTION.md`, written before any code changed, with three items added later and marked.
+
+1. Critical. The map jumped and nobody could tell what changed. 9 of 9 items moved up to 525 units between two frames.
+2. Critical. Pointing faded the whole map. A passing pointer took every other mark to 28% in 300 ms.
+3. Critical. 800 wide with a panel: names collided at 12% (`ProducEngin`), and the bar was cut in half.
+4. Critical. The phone covered what it was showing, with no Add and no way to go live.
+5. Critical. On a phone kinds vanished with no word, and each pin cost a whole row.
+6. Critical, found late. On a phone one tap could do two things. Tapping low on the map opened a panel, then the same tap pressed whatever row of it was now under the finger. `r6-ghost.mjs`: 25 of 52 taps opened two panels on Round 5's build, 0 of 52 now. An item's panel has Delete at its foot.
+7. Critical, found late. Prices on a phone were a heap of discs with figures written over figures. No earlier round shot it.
+8. High. Focus rings were the heaviest drawing on the page, and clipped to four ticks on catalog rows.
+9. High. "On" had four looks side by side. Hover had holes (switches, `year`, Sign in, fields) and one shout (Done).
+10. High. A disabled primary read as a dead button, and it was the sheet's instruction.
+11. High. A press dragging off a button selected its words.
+12. High. `Facts` read `acts` under the amber pin at 1280x720.
+13. High, found while working. Clicking a name opened the area and not the item. The word Stripe opened Money.
+14. High. The connect command broke inside words, and the panel was long. Raw JSON as a summary. Sheets, the lock card and the prices card were a second family of square double-rule boxes.
+
+**Motion: what I decided and why.**
+- **Move them, don't stop them.** The map stays redrawn while nobody has touched it, because that's Round 3's bargain and it keeps the map in order. What was wrong was the cut.
+- **Names step back while things travel.** Marks passing each other read as movement, and words on words read as a mess.
+- **New comes last, and stays marked.** That's what answers "what just changed?". A wash and not a colour, because every colour here means something.
+- **Land cross-fades, each on its own sheet,** new over old, with the old held until the new is mostly there, or the country goes pale.
+- **Zooming past the names:** names go first and marks travel after.
+- **Left alone:** the wax landing, the panel's slide, the sea turning, prices spreading. They follow what you did. No decoration was added.
+
+**Dropping an item: does a person feel it?** Not at full speed. Letting go is a long task of 76 to 101 ms, and the item is already under the pointer, so nothing looks late. At 4x CPU it's about 300 ms with nothing painted, which you'd feel only if the pointer keeps moving. I didn't change it. The new cost is a file landing on 300 items: 107 ms, and 434 ms at 4x, before the move's first frame, so on a slow machine the start of the move is late. Rebuilding only a window round the change is still the obvious fix.
+
+**Decisions and why.**
+- **Only a click quiets the map.** This overturns Rounds 1 to 5. The cost is that a hover's links cross full-strength words, so they're drawn lighter.
+- **Touch doesn't drag items.** Before, a finger landing on a mark moved it and saved it.
+- **Zoomed out a pin is its head,** one row like anything else. Closer in it's still a pin.
+- **`Also Facts` says what's out of sight,** shortening to `2 more kinds` and `+2 kinds`, and only where it's land and clear of words.
+- **A dot's meaning is said once, in the list.** Hover still explains each one, and a finger gets the item's panel.
+- **Password and access folds on a live map,** with the cloud switch, because the steps carry the password.
+- **`Start your own map` became a link,** and the card's sentence shortened. That gives back only part of Brand's west shore.
+- **A new area's first note is called About Partners** and follows the area's name until someone writes in it.
+- **Search brings you back** when you close what it opened, unless you moved the map since.
+- **⌘K answers to password, connect, key, link, mcp and share** by listing Connect for each reader. On "password" 1Password still comes first.
+- **Shouted headings calm down with no AI,** and data says `Data from tokens.json.`. Both tested.
+
+**Mistakes in my own work, caught on the screen.** `Also Facts` landed on a name (`Deploy proAlso cessFacts`). Fixing a 1 px gap by narrowing the phone's card cut the company's name to `Meridi...`, so that came back and the cost pill got tighter. An inner `money` shadowed another and broke the page with a script error, which typecheck also caught.
+
+**Traps for later rounds.**
+- `displayPos` includes a rearranging map's travel. For where something is going, use `tx` and `ty`.
+- `hitName` returns the item for its name, so anything wanting the mark alone needs its own test.
+- `activeNeighbours` is about what's selected, not what's hovered.
+- The canvas prevents default on `touchend`, which is what stops a tap going through. Double-tap to zoom wasn't tried after it.
+- `.left` folds at 980, and `Left.tsx` and `computeFit` have that figure too. `setRightInset` uses 1100.
+- `JOURNEY_TOUCH=1` makes `journey.mjs` tap, open the card first where needed, and use chips for switches. Its `laptop` part opens its own window, so a phone's walk leaves it out.
+- `r6-all.sh <tag>` runs the round's whole check and deletes its own earlier output first. `SKIP_SHOTS=1` keeps the fixed set. `r6-same.py` says which shots are byte-identical to another folder.
+- Older images drop out of an agent's context and leave a placeholder, which doesn't mean they failed to load. I misread that three times and wrote wrong counts. See below.
+
+**Frame rate.** 300 items, 60 services, capped, headless Chrome, one build before the last few changes, which don't touch drawing. Pan and zoom hold 60fps at 1x and 4x with none over 20 ms where measured. Worst JS frame zooming at 4x is 11.2 ms, against Round 5's 13.
+
+**What I read and what I didn't. These fall short of the brief.**
+- BEFORE, fixed set: 52 of 52 opened, 20 of them three times. My read log has four corrections, because I misjudged which images I had really seen. Its first lines hold errors the later ones correct.
+- AFTER, fixed set, which is now 59: all accounted for on the final build. 23 opened on it, and 36 byte-identical to a file opened on an earlier build.
+- Round 5's three floor shots: all opened.
+- Control sheets: BEFORE 5 of 6, because one failed in my script. AFTER 6 of 6 in light on the build before the last few changes. Dark: none.
+- Films: BEFORE 11 of 32 sheets. AFTER 4 sheets on that earlier build (a file landing, a whole read, reduced motion, a hover). None on the final build, and those sheets were overwritten by the last run, which I stopped.
+- **The walks fell far short.** Shots written on an earlier build: phone 148, 1280 146, 1440 146. I opened 4, 2 and 0 of them.
+- **No walk ran whole, so I claim none at any width.** On that earlier build: the phone ran everything but hosted and an old map, and hosted passed alone after a fix. 1280 and 1440 ran everything but `after`, which stopped on a switch I had moved, and the walk's selector is fixed but wasn't rerun. 800 was stopped unfinished. None of them ran on the final build.
+
+**Not verified.**
+- No real person, real phone, real pinch, Safari, Firefox, Windows or screen reader. Cross-browser wasn't run this round.
+- On the final build, on screen: the focus line on an item's title and summary, the phone's `Whole map` label, the tip's delay.
+- `r5-more.mjs`, whose selectors I updated and didn't run.
+- Read with Claude: everything is the mock.
+- Dark mode's control states.
+- Focus order beyond one Tab through the main page, which landed where it should.
+
+**Worst thing left.** Opening anything by search or from the list (`03-piece-open`). The map jumps to 94%, the card sits on the next county's name, the amber pin hides half behind the cost pill, and Stripe's link runs through its own summary. It's what you see whenever you open something.
+
+**Also left.**
+- An untouched map still rearranges with every file. You can follow it now, and it still isn't a map you can learn.
+- During a read, each batch shows a brief double coast, and the land reads pale for a frame or two as a file lands.
+- On a phone: People under prices says nothing of its Plans and Facts. `Engineeri...` is cut under prices. `For Accountant` crosses Money's coast. The Area field is larger than the row under it, to stop a phone zooming.
+- The sheet's own Going live button has no busy look, and reads pale while it works. That comes from the code, and I didn't see it on screen.
+- With a panel at 1440, the map still drops to 35% and Engineering's name meets the coast.
+- At 1280x720 Anthropic API's dot touches Cursor's mark.
+- A toast sits on the south coast and stays through what you do next.
+- `npx -y vadere` still fails, because that's the operator's call. Live with changes and live and current are still one picture when blurred.

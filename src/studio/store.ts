@@ -75,6 +75,8 @@ export interface State {
   lockError: string
   zoom: number
   fitZoom: number
+  /** Whether someone has moved the map from where it fits itself. */
+  mapMoved: boolean
   /** Goes up when something has changed the map enough that it should be seen whole. */
   fitAsk: number
   claudeKey: string
@@ -118,6 +120,7 @@ let state: State = {
   lockError: '',
   zoom: 1,
   fitZoom: 1,
+  mapMoved: false,
   fitAsk: 0,
   claudeKey: '',
   claudeKeySaved: false,

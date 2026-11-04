@@ -4,20 +4,25 @@ import { useEffect, useRef, useState } from 'react'
 import { llmsTxt, viewFor } from '../../core/agent.ts'
 import { pending } from '../../core/status.ts'
 import type { Password } from '../../core/types.ts'
-import { changePassword, copy, publishAndSay, replacePassword, revokePassword, siteAddress } from '../actions.ts'
+import { changePassword, copy, publishAndSay, replacePassword, revokePassword, siteAddress, toggleGateOnPassword } from '../actions.ts'
 import { getState, setState, useStore } from '../store.ts'
-import { Icon, listWords, useEscape, usePanelFocus } from './bits.tsx'
+import { Icon, listWords, useEscape, useNarrow, usePanelFocus } from './bits.tsx'
 import { areasOnMap } from './data.ts'
 
 const onHostedServer = () => getState().server?.mode === 'hosted'
 
 type Tab = 'code' | 'web' | 'cursor' | 'any' | 'person'
 
+/** Breaks a command only between its words. Selecting it by hand still gives the real thing, because the spaces and letters are untouched. A word too long for the box can still break. */
+function Words(text: string) {
+  return text.split(/(\s+)/).map((word, i) => (word.length > 40 || !word.trim() ? word : <span className="tok" key={i}>{word}</span>))
+}
+
 /** What you'd paste, with the password covered on screen until asked for. Copying always gives the real thing. */
 function CodeBlock({ text, label, secret, shown }: { text: string; label: string; secret: string; shown: boolean }) {
   return (
     <div className="code-block">
-      <code>{shown ? text : text.split(secret).join(`${secret.slice(0, 8)}${'•'.repeat(8)}`)}</code>
+      <code>{Words(shown ? text : text.split(secret).join(`${secret.slice(0, 8)}${'•'.repeat(8)}`))}</code>
       <button className="btn btn-paper code-copy" aria-label={`Copy ${label}`} onClick={() => void copy(text, `${label} copied.`)}>
         <Icon name="copy" size={13} /> Copy
       </button>
@@ -144,10 +149,13 @@ function PasswordDetail({ pw }: { pw: Password }) {
   const publishing = useStore((s) => s.publishing)
   const [shown, setShown] = useState(false)
   const [confirming, setConfirming] = useState<null | 'remove' | 'replace'>(null)
+  const [more, setMore] = useState(false)
+  const narrow = useNarrow()
   const agentView = useStore((s) => s.agentView)
   useEffect(() => {
     setShown(false)
     setConfirming(null)
+    setMore(false)
   }, [pw.id])
 
   const areas = areasOnMap(vault)
@@ -162,10 +170,20 @@ function PasswordDetail({ pw }: { pw: Password }) {
 
   return (
     <div>
-      <p className="hint" style={{ margin: '0 0 12px' }}>
-        {opened.length ? `Can read ${listWords(opened)}. ` : "Can't read anything yet. "}
-        Click an area on the map to change that.
-      </p>
+      {narrow ? (
+        // On a phone this panel covers most of the map, so the choice comes with it.
+        <div className="lens-chips" style={{ marginTop: 0 }}>
+          <span className="lens-note">Can read</span>
+          {areas.map((g) => (
+            <button key={g.id} className="lens-chip" role="switch" aria-checked={pw.gates.includes(g.id)} onClick={() => toggleGateOnPassword(pw.id, g.id)}>{g.name}</button>
+          ))}
+        </div>
+      ) : (
+        <p className="hint" style={{ margin: '0 0 12px' }}>
+          {opened.length ? `Can read ${listWords(opened)}. ` : "Can't read anything yet. "}
+          Click an area on the map to change that.
+        </p>
+      )}
       <button className="btn btn-paper" style={{ width: '100%' }} aria-pressed={agentView} onClick={() => setState({ agentView: !agentView })}>
         {agentView ? 'Hide what they read' : 'See what they read'}
       </button>
@@ -186,7 +204,13 @@ function PasswordDetail({ pw }: { pw: Password }) {
           {isLocalAddress(address) && <p className="hint" style={{ margin: '0 0 8px' }}>This address only works on this computer, so nobody else can use it yet, and neither can AI tools in the cloud. To share it, run your host on a server.</p>}
           <Connect pw={pw} address={address} name={vault.site?.name ?? vault.company.name} shown={shown} />
 
-          <div className="section-title">Password</div>
+          {/* The steps carry the password. This is for doing something else with it, so it waits to be asked for. */}
+          <button className="more-toggle" aria-expanded={more} onClick={() => setMore(!more)}>
+            <span>Password and access</span>
+            <Icon name="chevron" size={13} />
+          </button>
+          {more && (
+          <div style={{ marginTop: 8 }}>
           <div className="key-box">
             <code>{shown ? pw.key : `${pw.key.slice(0, 8)}${'•'.repeat(14)}`}</code>
             <button className="btn btn-quiet" style={{ height: 26, padding: '0 6px' }} onClick={() => setShown(!shown)}>{shown ? 'Hide' : 'Show'}</button>
@@ -206,6 +230,8 @@ function PasswordDetail({ pw }: { pw: Password }) {
           ) : (
             <button className="text-btn" style={{ marginTop: 8 }} onClick={() => setConfirming('replace')}>Make a new password</button>
           )}
+          </div>
+          )}
 
         </>
       ) : (
@@ -215,7 +241,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
         </>
       )}
 
-      <button className="row-between" style={{ width: '100%', margin: '14px 0 0', textAlign: 'left' }} role="switch" aria-checked={pw.remote} onClick={() => changePassword(pw.id, { remote: !pw.remote })}>
+      {(!live || more) && <button className="row-between" style={{ width: '100%', margin: '14px 0 0', textAlign: 'left' }} role="switch" aria-checked={pw.remote} onClick={() => changePassword(pw.id, { remote: !pw.remote })}>
         <span>
           Let AI tools in the cloud read this
           <span className="hint" style={{ display: 'block' }}>
@@ -225,11 +251,11 @@ function PasswordDetail({ pw }: { pw: Password }) {
           </span>
         </span>
         <span className="switch" aria-checked={pw.remote} style={{ marginTop: 1 }} />
-      </button>
+      </button>}
 
       <div className="section-title" />
       {confirming !== 'remove' ? (
-        <button className="btn btn-quiet" style={{ paddingLeft: 0 }} onClick={() => setConfirming('remove')}>Remove this reader</button>
+        <button className="btn btn-quiet btn-flush" onClick={() => setConfirming('remove')}>Remove this reader</button>
       ) : (
         <div className="callout">
           {live ? (

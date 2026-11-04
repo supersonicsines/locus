@@ -1,6 +1,6 @@
 // Top centre: the one thing worth saying right now, as loud as it deserves. Top right: what it costs, adding to the map, and whether it's live.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { formatMoney, summarize } from '../../core/money.ts'
 import { levelOf, needs, pending, priceNotes, sortNeeds, whatChanged, type Need, type NeedKind } from '../../core/status.ts'
 import { addArea, addPiece, publishAndSay } from '../actions.ts'
@@ -104,7 +104,7 @@ export function StatusLine() {
           {rest > 0 && <span className="status-more">and {rest} more</span>}
           <Icon name="chevron" size={13} />
         </button>
-        {worst.kind === 'exposure' && <button className="status-do go-live" disabled={publishing} onClick={() => void publishAndSay()}>{publishing ? 'Updating' : 'Update'}</button>}
+        {worst.kind === 'exposure' && <button className="status-do go-live" aria-busy={publishing} disabled={publishing} onClick={() => void publishAndSay()}>{publishing ? 'Updating' : 'Update'}</button>}
       </div>
     )
   }
@@ -162,12 +162,14 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
       <div style={{ position: 'fixed', inset: 0 }} onClick={() => setState({ panel: null, highlight: null })} />
       <div className="needs-panel panel" role="dialog" aria-label="Things that need you">
         {!list.length && <div className="needs-empty">Nothing needs you.</div>}
-        {list.map((n) => {
+        {list.map((n, i) => {
           const where = placeOf(vault, n.pieces, n.gates)
           const service = serviceOf(n)
+          const firstQuiet = levelOf(n.kind) === 'look' && (i === 0 || levelOf(list[i - 1].kind) !== 'look')
           return (
+            <Fragment key={n.id}>
+            {firstQuiet && <p className="need-group">Worth a look when you have a minute. A dot on the map marks each of these.</p>}
             <div
-              key={n.id}
               className={`need is-${levelOf(n.kind)} ${n.pieces.length || gateOf(n) ? 'clickable' : ''}`}
               onMouseEnter={() => n.pieces.length && setState({ highlight: new Set(n.pieces) })}
               onMouseLeave={() => setState({ highlight: null })}
@@ -184,6 +186,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
                 <NeedActions need={n} />
               </div>
             </div>
+            </Fragment>
           )
         })}
       </div>
@@ -304,6 +307,7 @@ export function TopRight() {
           {!clean && !barHasUpdate && (
             <button
               className="btn btn-ink go-live"
+              aria-busy={publishing}
               disabled={publishing || isSampleHosted || shredding}
               title={shredding ? 'Wait for the files to finish.' : isSampleHosted ? "The sample can't go live here. Start your own map." : isLive ? `${plural(p?.changes ?? 0, 'change')} not live yet.` : 'Puts an encrypted copy online for your readers. Nothing can be read without a password.'}
               onClick={() => void publishAndSay()}

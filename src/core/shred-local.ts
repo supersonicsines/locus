@@ -94,6 +94,28 @@ function firstSentence(text: string): string {
   return (m ? m[0] : flat.slice(0, 140)).trim()
 }
 
+function isData(name: string, text: string): boolean {
+  if (/\.(json|tokens)$/i.test(name)) return true
+  if (!/^\s*[{[]/.test(text)) return false
+  try {
+    JSON.parse(text)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Words that stay as they are when a shouted heading calms down. */
+const KEEP_CAPS = new Set(['AI', 'API', 'APIS', 'CEO', 'CFO', 'CTO', 'COO', 'HR', 'IT', 'UK', 'US', 'EU', 'VAT', 'GDPR', 'DPA', 'SLA', 'NDA', 'MCP', 'SSO', 'FAQ', 'PDF', 'QA', 'KYC', 'B2B', 'B2C'])
+
+/** A heading typed in capitals is emphasis, not a name. On a map full of them it reads as shouting. */
+function calm(title: string): string {
+  if (title !== title.toUpperCase() || !/[A-Z]{3}/.test(title)) return title
+  const words = title.toLowerCase().split(/(\s+)/).map((w) => (KEEP_CAPS.has(w.toUpperCase()) ? w.toUpperCase() : w))
+  const out = words.join('')
+  return out.charAt(0).toUpperCase() + out.slice(1)
+}
+
 interface Section {
   title: string
   text: string
@@ -113,7 +135,7 @@ function split(name: string, text: string): Section[] {
   for (const line of lines) {
     if (isHeading(line.trim())) {
       if (current?.text.trim()) out.push(current)
-      current = { title: line.trim().replace(/^#+\s*/, ''), text: '' }
+      current = { title: calm(line.trim().replace(/^#+\s*/, '')), text: '' }
     } else {
       if (!current) current = { title: base, text: '' }
       current.text += line + '\n'
@@ -217,7 +239,8 @@ export function shredLocally(files: SourceFile[], makeId: () => string): ShredRe
       pieces.push({
         id: makeId(),
         title: section.title.slice(0, 90),
-        summary: firstSentence(body) || section.title,
+        // Data doesn't have a first sentence, and its first few characters aren't one.
+        summary: isData(file.name, body) ? `Data from ${file.name}.` : firstSentence(body) || section.title,
         body,
         kind,
         gate,

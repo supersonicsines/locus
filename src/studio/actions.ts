@@ -237,14 +237,24 @@ export function addGate(name: string): string {
 }
 
 /** An area with nothing in it has no land on the map, so a new one starts with a first note. */
+/** An area needs something on it to have any land. Until someone writes in it, this note says what it's for, and follows the area's name. */
+const firstNote = (area: string) => `About ${area}`
+
 export function addArea() {
   const id = addGate('New area')
-  addPiece({ gate: id })
+  addPiece({ gate: id, title: firstNote('New area') })
   setState({ selected: null, area: id, panel: 'area' })
 }
 
 export function renameGate(id: string, name: string) {
-  updateVault((v) => ({ ...v, gates: v.gates.map((g) => (g.id === id ? { ...g, name } : g)) }))
+  updateVault((v) => {
+    const old = v.gates.find((g) => g.id === id)?.name
+    return {
+      ...v,
+      gates: v.gates.map((g) => (g.id === id ? { ...g, name } : g)),
+      pieces: v.pieces.map((p) => (p.gate === id && old !== undefined && p.title === firstNote(old) && !p.summary && !p.body ? { ...p, title: firstNote(name) } : p)),
+    }
+  })
 }
 
 /** An area and everything on it. The wrong one is a click away from being put back. */

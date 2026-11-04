@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { llmsFull, viewFor } from '../../core/agent.ts'
 import { search } from '../../core/search.ts'
-import type { PieceKind } from '../../core/types.ts'
+import type { Password, PieceKind } from '../../core/types.ts'
 import { addArea, addPiece, createPassword, downloadText, newMap, publishAndSay, setTheme, tidyMap, toast } from '../actions.ts'
 import { getState, setState, useStore } from '../store.ts'
 import { PieceMark, useEscape } from './bits.tsx'
@@ -17,8 +17,12 @@ interface Item {
   note?: string
   meta?: string
   kind?: PieceKind
+  /** Other words it answers to. */
+  words?: string
   run: () => void
 }
+
+const NO_PASSWORDS: Password[] = []
 
 export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
   const content = useStore((s) => contentOf(s))
@@ -27,6 +31,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
   const theme = useStore((s) => s.theme)
   const server = useStore((s) => s.server)
   const published = useStore((s) => !!s.vault?.published)
+  const passwords = useStore((s) => s.vault?.passwords ?? NO_PASSWORDS)
   const [q, setQ] = useState('')
   const [index, setIndex] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
@@ -46,6 +51,8 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
         { id: 'add-service', group: 'Actions', title: 'Add a service', run: () => setState({ sheet: { kind: 'add-service' } }) },
         { id: 'add-area', group: 'Actions', title: 'Add an area', run: () => addArea() },
         { id: 'needs', group: 'Actions', title: 'Things that need you', run: () => setState({ panel: 'needs' }) },
+        // People look for how to hand this over by what it's made of, so these answer to those words too.
+        ...passwords.map((p) => ({ id: `connect-${p.id}`, group: 'Actions', title: `Connect ${p.name}`, words: 'password key link share mcp connector token', run: () => setState({ lens: p.id, panel: 'share', selected: null, area: null }) })),
         { id: 'tidy', group: 'Actions', title: 'Tidy up the map', run: () => { tidyMap(); map.current?.fit() } },
         {
           id: 'export',
@@ -65,7 +72,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
     }
     a.push({ id: 'theme', group: 'Actions', title: theme === 'dark' ? 'Light mode' : 'Dark mode', run: () => setTheme(theme === 'dark' ? 'light' : 'dark') })
     return a
-  }, [content?.costs, dollars, readOnly, theme, server, published, map])
+  }, [content?.costs, dollars, readOnly, theme, server, published, passwords, map])
 
   const items: Item[] = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -92,7 +99,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
       .filter((g) => g.name.toLowerCase().includes(needle))
       .map((g) => ({ id: `area-${g.id}`, group: 'Areas', title: g.name, meta: `${pieces.filter((p) => p.gate === g.id).length}`, run: () => setState({ area: g.id, panel: 'area', selected: null }) }))
     // If you've typed the start of an action's name, you meant the action.
-    const matching = actions.filter((a) => a.title.toLowerCase().includes(needle))
+    const matching = actions.filter((a) => a.title.toLowerCase().includes(needle) || a.words?.includes(needle))
     const exact = matching.filter((a) => a.title.toLowerCase().startsWith(needle))
     const rest = matching.filter((a) => !exact.includes(a))
     return [

@@ -8,10 +8,10 @@ import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
 import { readerColour } from './map/symbols.ts'
 import { getState, setState, storage, useStore } from './store.ts'
-import { useEscape } from './ui/bits.tsx'
+import { ReaderMark, useEscape, useNarrow } from './ui/bits.tsx'
 import { BottomRight, Cartouche } from './ui/Bottom.tsx'
 import { CommandK } from './ui/CommandK.tsx'
-import { contentOf, exposedAreas, pricesReadableIn, readersByArea } from './ui/data.ts'
+import { areasOnMap, contentOf, exposedAreas, pricesReadableIn, readersByArea } from './ui/data.ts'
 import { AreaPanel } from './ui/Area.tsx'
 import { Left } from './ui/Left.tsx'
 import { Peek } from './ui/Peek.tsx'
@@ -88,6 +88,7 @@ function MapTip({ tip }: { tip: { id: string; x: number; y: number } | null }) {
 function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const [tip, setTip] = useState<{ id: string; x: number; y: number } | null>(null)
+  const tipTimer = useRef(0)
 
   useLayoutEffect(() => {
     const canvas = ref.current!
@@ -103,11 +104,17 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
         else if (s.panel === 'area') setState({ area: null, panel: null })
       },
       gateHover: (gate) => setState({ hoverGate: gate }),
-      itemHover: (id, x, y) => setTip(id ? { id, x, y } : null),
+      // It waits for you to stop on something. A pointer on its way past shouldn't set off words.
+      itemHover: (id, x, y) => {
+        clearTimeout(tipTimer.current)
+        if (!id) setTip(null)
+        else tipTimer.current = window.setTimeout(() => setTip({ id, x, y }), 240)
+      },
       pieceMoved: (id, x, y, gate) => movePiece(id, x, y, gate),
       cameraChanged: (k, fitK) => {
         const s = getState()
-        if (s.zoom !== k || s.fitZoom !== fitK) setState({ zoom: k, fitZoom: fitK })
+        const moved = view.moved
+        if (s.zoom !== k || s.fitZoom !== fitK || s.mapMoved !== moved) setState({ zoom: k, fitZoom: fitK, mapMoved: moved })
       },
       covers: () => Array.from(document.querySelectorAll('.left-col > *'), (el) => el.getBoundingClientRect()),
     })
@@ -186,7 +193,8 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
 
   const panel = useStore((s) => s.panel)
   const rightOpen = panel === 'share'
-  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 720 ? 396 : 28), [rightOpen, map])
+  // In a narrow window the panel floats over the land, because shrinking the map into what's left only makes it unreadable.
+  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 1100 ? 396 : 28), [rightOpen, map])
 
   useEffect(() => map.current?.setSelected(selected), [selected, map])
   useEffect(() => map.current?.setHighlight(highlight), [highlight, map])
@@ -227,6 +235,41 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       <canvas ref={ref} className="map-canvas" tabIndex={-1} aria-hidden="true" />
       <MapTip tip={tip} />
     </>
+  )
+}
+
+/** A picked reader on a phone. It holds what the card holds on a laptop, and it's short, because the map above it is the point. */
+function PhoneLens({ map }: { map: React.RefObject<MapView | null> }) {
+  const narrow = useNarrow()
+  const vault = useStore((s) => s.vault)
+  const lens = useStore((s) => s.lens)
+  const panel = useStore((s) => s.panel)
+  const ref = useRef<HTMLElement>(null)
+  const pw = vault?.passwords.find((p) => p.id === lens) ?? null
+  const showing = narrow && !!pw && panel !== 'share'
+  // While their panel is up the map stays as it is, so closing it doesn't move anything.
+  const hasReader = !!pw
+  useLayoutEffect(() => {
+    if (!narrow || !hasReader) map.current?.setBottomInset(0)
+    else if (showing && ref.current) map.current?.setBottomInset(ref.current.getBoundingClientRect().height + 24)
+  }, [narrow, hasReader, showing, map])
+  if (!showing || !pw || !vault) return null
+  const live = !!vault.published && !!vault.site
+  return (
+    <section className="lens-sheet panel" aria-label={`What ${pw.name} can read`} ref={ref}>
+      <div className="lens-head">
+        <ReaderMark name={pw.name} index={vault.passwords.indexOf(pw)} size={24} />
+        <span className="grow">Seeing the map as <b style={{ fontWeight: 500 }}>{pw.name}</b></span>
+        <button className="status-done" onClick={() => setState({ lens: null, agentView: false })}>Done</button>
+      </div>
+      <div className="lens-chips">
+        <span className="lens-note">Can read</span>
+        {areasOnMap(vault).map((g) => (
+          <button key={g.id} className="lens-chip" role="switch" aria-checked={pw.gates.includes(g.id)} onClick={() => toggleGateOnPassword(pw.id, g.id)}>{g.name}</button>
+        ))}
+      </div>
+      <button className="btn btn-paper reader-setup" onClick={() => setState({ panel: 'share', agentView: false })}>{live ? 'Connect this reader' : 'How to connect them'}</button>
+    </section>
   )
 }
 
@@ -381,6 +424,7 @@ function Chrome({ map }: { map: React.RefObject<MapView | null> }) {
       <BottomRight map={map} />
       {panel === 'share' && vault && <SharePanel />}
       {panel === 'share' && <AgentView />}
+      {!view && <PhoneLens map={map} />}
       {panel === 'area' && <AreaPanel />}
       {selected && <Peek />}
     </>
