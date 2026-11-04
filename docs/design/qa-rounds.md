@@ -803,7 +803,7 @@ Dropping costs more. I'd put that on closing narrow water, which adds passes ove
 
 **A window under 980 wide.** The card folds to its heading and the map takes the width. Under 1100 a panel floats over the land, because squeezing the map into what's left made names collide.
 
-**What I saw, worst first.** The list is in `<QA>/rounds/r6/DISSECTION.md`, written before any code changed, with three items added later and marked.
+**What I saw, worst first.** The list is in `<QA>/rounds/r6/DISSECTION.md`, written before any code changed, with four items added later and marked.
 
 1. Critical. The map jumped and nobody could tell what changed. 9 of 9 items moved up to 525 units between two frames.
 2. Critical. Pointing faded the whole map. A passing pointer took every other mark to 28% in 300 ms.
