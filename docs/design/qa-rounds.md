@@ -1245,3 +1245,12 @@ Fresh readers opened every walk shot on d6ed64b at 1440 and on a phone: 49 entri
 - An area's panel doesn't slide the map for what's linked, only an item's does.
 - The Remove-fails states (`h14`), a phone's opened county under the heading, the menu over the card's pieces, and the Claude sheet's buttons at its edge: not touched.
 - Every Low in `LIST.md` marked Left.
+
+## Handover
+
+The programme stopped after the last round. Afterwards:
+
+- **The README's pictures were stale.** The last round changed the alert bar's words, but `docs/images/map.png` still showed the old, false `1 exposed secret in Engineering`. All three pictures were regenerated from `a924169` with `qa/readme.mjs` and checked at full size.
+- **The orchestrator checked the last round's security claim in the code.** `scrubSecrets` runs in `src/studio/shred/extract.ts` on text, Word and PDF text before anything is stored or sent, and a PDF with a secret in it never leaves as a PDF. So `It was taken out, so it isn't on the map and no reader gets it` is true for every secret the scan finds. Secrets in images aren't scanned, and they raise no alert either.
+- **Where things stand,** with the operator's open calls and what was never verified, is now in [../STATUS.md](../STATUS.md).
+- **The harness moved into the project folder,** in `qa/`, which stays out of git. Its main scripts find the repo relative to themselves.

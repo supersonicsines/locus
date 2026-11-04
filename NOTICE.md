@@ -43,4 +43,4 @@ The Studio bundles these, and a build copies each one's licence from its package
 | [fflate](https://github.com/101arrowz/fflate) | MIT | Reads Word files |
 | [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) | Apache 2.0 | Talks to Claude with your own key |
 | [OpenTelemetry API](https://github.com/open-telemetry/opentelemetry-js), [standardwebhooks](https://github.com/standard-webhooks/standard-webhooks), [@stablelib/base64](https://github.com/StableLib/stablelib), [fast-sha256](https://github.com/dchest/fast-sha256-js) | Apache 2.0, MIT, MIT, Unlicense | Come with the SDK |
-| [d3-contour](https://github.com/d3/d3-contour), with d3-array | ISC | Draws the coast |
+| [d3-contour](https://github.com/d3/d3-contour), with d3-array | ISC | Shapes the land |

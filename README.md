@@ -2,7 +2,7 @@
 
 **A map of your company that any agent can read.**
 
-Drop your company's pile onto a map: brand book, contracts, specs, invoices, exported tokens. AI breaks it into small items and links them, along with the services you run on. The map is divided into areas, and each reader gets a password that opens a chosen set of them. Give any agent one address and one password, and it knows the rules to follow, where everything lives and which MCP server to use for what.
+Drop your company's pile onto a map: brand book, contracts, specs, invoices, exported tokens. AI breaks it into small items and links them, along with the tools you run on. The map is divided into areas, and each reader gets a password that opens a chosen set of them. Give any agent one address and one password, and it knows the rules to follow, where everything lives and which MCP server to use for what.
 
 It's a harness you don't have to build, and it's encrypted so the host can't read it at rest.
 
@@ -30,13 +30,13 @@ Open http://localhost:4747 and choose **See an example**.
 
 ![Seeing the map as one reader](docs/images/seal.png)
 
-**See what it costs.** Click the total to spread the price of every service over the map, from your invoices, your own numbers, or a dated catalog of list prices that always shows as an estimate.
+**See what it costs.** Click the total to spread the price of every tool over the map, from your invoices, your own numbers, or a dated catalog of list prices that always shows as an estimate.
 
 ![Prices on the map](docs/images/towns.png)
 
 ## Connect an agent
 
-Pick a reader, then **Connect this reader**, and you get these, filled in for that password.
+Pick a reader, then **Connect this reader** (**How to connect them** before you go live), and you get these, filled in for that password. Vadere isn't on npm yet, so until it is, use `node dist/cli.mjs` from a clone wherever these say `npx -y vadere`.
 
 ```sh
 # Claude Code. Decrypts on your machine, so the host never sees the password.
@@ -109,7 +109,7 @@ npm run typecheck
 - `src/cli`: the `vadere` command.
 - `src/studio`: the map. A static React app, drawn on one canvas.
 
-Start with [docs/PRD.md](docs/PRD.md). [docs/PRD-QA.md](docs/PRD-QA.md) records what an adversarial read found, and [docs/design/dollar-overlay.md](docs/design/dollar-overlay.md) records how the `$` switch was designed.
+Start with [docs/STATUS.md](docs/STATUS.md) for where things stand and what's still to decide, then [docs/PRD.md](docs/PRD.md). [docs/PRD-QA.md](docs/PRD-QA.md) records what an adversarial read found, [docs/design/dollar-overlay.md](docs/design/dollar-overlay.md) how the `$` switch was designed, and [docs/design/qa-rounds.md](docs/design/qa-rounds.md) every round of visual QA.
 
 ## License
 

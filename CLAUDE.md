@@ -1,6 +1,6 @@
 # Vadere
 
-Read `docs/PRD.md` first, then `docs/SECURITY.md` before touching anything in `src/core/seal.ts` or how the host handles a password.
+Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `docs/SECURITY.md` before touching anything in `src/core/seal.ts` or how the host handles a password.
 
 ## Commits
 
@@ -17,9 +17,13 @@ Read `docs/PRD.md` first, then `docs/SECURITY.md` before touching anything in `s
 - **Logos come as one same-origin file, fetched whole, whatever the map holds.** Which services a company uses is sealed data, so there's never a per-logo request or a logo CDN. Names match exactly through a `Map` in `src/studio/logos/lookup.ts`, because a wrong logo is worse than a monogram. Logos never reach agent text, `/llms.txt`, MCP output or bundles.
 - **A reader trusts only what its own envelope vouches for.** If you add a field to a bundle, either seal it or put it in the manifest.
 - **Anything from a document stays on one line in agent text, and bodies stay quoted.** Nothing from the map goes in MCP `instructions` or tool descriptions.
+- **Don't settle the operator's open design calls.** They're listed in `docs/STATUS.md`. Until they're decided, keep both `$` options (Rings and Discs on screen, Soundings and Towns in the code) and the switch between them.
+- **The screen's words differ from the code's.** Area, item, reader, tool and recovery key on screen; gate, piece, password, service and owner key in the code. Change what the UI says freely, and don't rename internals for the sake of it.
 
 ## Working on it
 
 - `npm run build && npm start`, then open http://localhost:4747
 - `npm test`, `npm run typecheck`
 - What an agent reads lives in `src/core/agent.ts`, and every reader shares it, so the Studio preview can't drift.
+- Judge visual changes from screenshots, not from the DOM or the code. `docs/design/qa-rounds.md` records every round so far. The harness that takes them is in `qa/`, which isn't in git and may not exist on your machine; `qa/README.md` explains it where it does.
+- The README's pictures come from `qa/readme.mjs`. Regenerate them whenever the main screen's words or look change.

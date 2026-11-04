@@ -1,6 +1,6 @@
 # Vadere PRD
 
-Status: final for v1. QA findings applied (see [PRD-QA.md](PRD-QA.md)).
+Status: final for v1. QA findings applied (see [PRD-QA.md](PRD-QA.md)), then a visual polish programme (see [design/qa-rounds.md](design/qa-rounds.md)). Where things stand, and the design calls still open, are in [STATUS.md](STATUS.md).
 
 *Vadere* is Latin for "to go". A *vade mecum* ("go with me") is the handbook you carry everywhere. Vadere is that handbook for your agents.
 
@@ -64,7 +64,7 @@ Delivered by:
 
 Technical terms the audience already knows (MCP, API) are fine in the interface. Crypto terms stay in the security docs.
 
-**The interface uses plainer words than this table** (QA round 1, see [design/qa-rounds.md](design/qa-rounds.md)): an area is a gate, an item is a piece, a reader is a password's holder, and going live or updating is publishing. The code keeps the names above.
+**The interface uses plainer words than this table** (QA round 1, see [design/qa-rounds.md](design/qa-rounds.md)): an area is a gate, an item is a piece, a reader is a password's holder, a tool is a service, the recovery key is the owner key, going live or updating is publishing, and **Let AI tools in the cloud read this** is Remote access. The code keeps the names above.
 
 ## 7. Scope
 
