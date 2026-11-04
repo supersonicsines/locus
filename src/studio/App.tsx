@@ -139,8 +139,15 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       view.invalidate()
     })
     floating.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] })
+    // A panel slides in, so where it was read on opening isn't where it stops. Read again once it has.
+    const settled = () => {
+      floatingOver = null
+      view.invalidate()
+    }
+    document.addEventListener('transitionend', settled)
     return () => {
       floating.disconnect()
+      document.removeEventListener('transitionend', settled)
       window.removeEventListener('resize', size)
       view.destroy()
       map.current = null

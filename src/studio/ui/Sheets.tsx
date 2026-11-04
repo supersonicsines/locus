@@ -69,6 +69,9 @@ function PublishSheet() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [copiedKey, setCopiedKey] = useState(false)
+  const [downloaded, setDownloaded] = useState(false)
+  // The host turned the map away for its size. Pressing again can't change that, so the button says so, as it does for every other refusal.
+  const [tooBig, setTooBig] = useState(false)
 
   const full = !!server?.accounts && server.accounts.used >= server.accounts.max
 
@@ -101,9 +104,11 @@ function PublishSheet() {
     unreachable: "Couldn't reach the host to check that address.",
   }
 
-  const ready = availability === 'free' && saved && !!company.trim() && !publishing
+  const ready = availability === 'free' && saved && !!company.trim() && !publishing && !tooBig
   // The button says the one thing still in the way, in the order you'd come to them.
-  const missing = !company.trim()
+  const missing = tooBig
+    ? 'Too big to go live here'
+    : !company.trim()
     ? 'Name your company first'
     : availability === 'unreachable'
       ? "Can't reach the host"
@@ -139,6 +144,7 @@ function PublishSheet() {
       // Undo the claim locally so another name can be tried.
       updateVault((v) => ({ ...v, site: undefined }))
       setError(lastPublishFailure?.message ?? "Couldn't go live.")
+      setTooBig(lastPublishFailure?.code === 'too-large' || !!lastPublishFailure?.message.startsWith('This map is too big'))
       void refreshServer()
     }
   }
@@ -223,9 +229,10 @@ function PublishSheet() {
           onClick={() => {
             downloadText(`vadere-recovery-key-${name || 'map'}.txt`, `Vadere recovery key for ${name}\n${ownerKey}\n\nNobody can recover this for you.\n`)
             setSaved(true)
+            setDownloaded(true)
           }}
         >
-          Download it
+          {downloaded ? 'Downloaded' : 'Download it'}
         </button>
       </div>
 

@@ -267,7 +267,12 @@ export function Left() {
           <span className="company-stack">
             <span className="company-name">{company?.name}</span>
             {/* Folded, the heading is all there is of this card, so it says what's inside. */}
-            <span className="company-fold">{readOnly ? `You can read ${plural(areaCount, 'area')}` : readerCount ? plural(readerCount, 'reader') : 'Add a reader'}</span>
+            {/* With nobody to read it, this is the next step and not a status, so it looks like something to press. */}
+            {!readOnly && !readerCount ? (
+              <span className="company-fold is-ask"><Icon name="plus" size={11} /> Add a reader</span>
+            ) : (
+              <span className="company-fold">{readOnly ? `You can read ${plural(areaCount, 'area')}` : plural(readerCount, 'reader')}</span>
+            )}
           </span>
           {sample && <span className="tag">Sample</span>}
           <Icon name="chevron" size={14} />

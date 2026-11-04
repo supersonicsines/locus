@@ -452,6 +452,15 @@ a {
   line-height: 14px;
 }
 
+.company-fold.is-ask {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.company-fold.is-ask svg {
+  vertical-align: -1px;
+}
+
 .company-name {
   min-width: 0;
   font-family: var(--serif);
@@ -823,6 +832,13 @@ a {
 }
 
 /* Nothing to say: hardly any weight. It still needs a ground of its own, because a county's border running through it reads as struck out. */
+/* Its own centre on the row's, though it's smaller than the controls beside it. */
+@media (min-width: 981px) {
+  .status.is-clear {
+    margin-top: 3px;
+  }
+}
+
 .status.is-clear {
   display: flex;
   align-items: center;

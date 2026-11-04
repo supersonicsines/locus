@@ -564,6 +564,36 @@ export class MapView {
     return t ? t.holds.maxX * c.k + c.x : null
   }
 
+  /** The right-hand edge on screen of what the selected item is linked to, with its name. */
+  private linkedRight(): number | null {
+    if (!this.selected) return null
+    const c = this.camTarget ?? this.cam
+    let most: number | null = null
+    for (const l of this.data.links) {
+      const other = l.from === this.selected ? l.to : l.to === this.selected ? l.from : null
+      const m = other ? this.byId.get(other) : null
+      if (!m) continue
+      // With the line under its name, where it has one, since that's the wider of the two.
+      const sub = this.labels.find((l) => l.id === m.piece.id)?.sub
+      const words = Math.max(this.labelFor(m.piece.title, `${nameSize(c.k)}px ${this.sans}`).width, sub ? this.measure(sub, `10.5px ${this.sans}`) : 0)
+      const r = m.tx * c.k + c.x + tileSize(c.k) / 2 + 8 + words + 16
+      most = most === null ? r : Math.max(most, r)
+    }
+    return most
+  }
+
+  /** How much further left the map can go, once moved by `shift`, before what's on some county reaches the card. */
+  private roomLeft(c: { k: number; x: number; y: number }, shift: number, dy = 0): number {
+    const cards = this.cb.covers()
+    const room = Math.min(...this.territories.map((o) => {
+      const top = o.holds.minY * c.k + c.y + dy
+      const bottom = o.holds.maxY * c.k + c.y + dy
+      const edge = Math.max(16, ...cards.filter((r) => top < r.bottom && bottom > r.top).map((r) => r.right + 12))
+      return o.holds.minX * c.k + c.x - shift - edge
+    }))
+    return Math.max(0, room)
+  }
+
   /** The panel mustn't cover the very thing it's about, so the map slides over, only as far as that takes, and back after. */
   private keepSubjectClear() {
     if (this.w <= 720) {
@@ -584,9 +614,13 @@ export class MapView {
     }
     const right = this.subjectRight()
     if (right === null) return
-    const over = right - (this.w - 396)
-    if (over <= 0) return
     const base = this.camTarget ?? this.cam
+    const need = right - (this.w - 396)
+    // What it's linked to as well, so the panel's "Linked to" doesn't point at half a word. Only as far as the land on the left has room for.
+    const linked = this.linkedRight()
+    const want = linked === null ? need : Math.max(need, linked - (this.w - 396))
+    const over = want > need ? Math.max(need, Math.min(want, Math.max(need, 0) + this.roomLeft(base, Math.max(need, 0)))) : need
+    if (over <= 0) return
     this.slidOver += over
     const target = { ...base, x: base.x - over }
     if (this.reducedMotion) this.cam = target
@@ -865,14 +899,7 @@ export class MapView {
     if (t && dx < 0) {
       const over = t.holds.maxX * c.k + c.x + dx + 12 - safeRight
       const wide = (t.holds.maxX - t.holds.minX) * c.k + 12 < safeRight - 300
-      const cards = this.cb.covers()
-      const room = Math.min(...this.territories.map((o) => {
-        const oTop = o.holds.minY * c.k + c.y + dy
-        const oBottom = o.holds.maxY * c.k + c.y + dy
-        const edge = Math.max(16, ...cards.filter((r) => oTop < r.bottom && oBottom > r.top).map((r) => r.right + 12))
-        return o.holds.minX * c.k + c.x + dx - edge
-      }))
-      if (over > 0 && wide) dx -= Math.min(over, Math.max(0, room))
+      if (over > 0 && wide) dx -= Math.min(over, this.roomLeft(c, -dx, dy))
     }
     return { k: c.k, x: c.x + dx, y: c.y + dy }
   }
@@ -3320,9 +3347,11 @@ export class MapView {
       const leading = leadingAt(this.cam.k)
       const lines = l.lines ?? [n.piece.title]
       if (overlays.length) {
-        const wide = Math.max(...lines.map((line) => ctx.measureText(line).width))
+        const nameFont = ctx.font
+        const wide = Math.max(...lines.map((line) => ctx.measureText(line).width), l.sub ? this.measure(l.sub, subFont) : 0)
+        ctx.font = nameFont
         const from = l.align === 'left' ? x + l.x : l.align === 'right' ? x + l.x - wide : x + l.x - wide / 2
-        if (partlyUnder(from, y + l.y - 11, from + wide, y + l.y + (lines.length - 1) * leading + 3)) continue
+        if (partlyUnder(from, y + l.y - 11, from + wide, y + l.y + (lines.length - (l.sub ? 0 : 1)) * leading + 3)) continue
       }
       lines.forEach((line, i) => {
         const ly = y + l.y + i * leading
