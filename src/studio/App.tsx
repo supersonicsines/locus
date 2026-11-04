@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toCheck } from '../core/money.ts'
 import { levelOf, needs, pending, sortNeeds, type NeedKind, type NeedLevel } from '../core/status.ts'
-import { dismissToast, loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
+import { clearPlainToasts, dismissToast, loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
 import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
 import { readerColour } from './map/symbols.ts'
@@ -33,6 +33,7 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
     inkRGB: '21,25,30',
     paperRGB: '243,245,246',
     vermilion: '#d63c27',
+    vermilionInk: '#c4351f',
     vermilionRGB: '214,60,39',
     waxShadow: 'rgba(90,18,10,0.55)',
     waxHighlight: 'rgba(255,214,200,0.75)',
@@ -51,6 +52,7 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
     inkRGB: '232,230,223',
     paperRGB: '14,19,25',
     vermilion: '#ea5a44',
+    vermilionInk: '#ea5a44',
     vermilionRGB: '234,90,68',
     waxShadow: 'rgba(40,6,2,0.8)',
     waxHighlight: 'rgba(255,214,200,0.7)',
@@ -60,7 +62,7 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
 
 const NEED_WORDS: Record<NeedKind, string> = {
   exposure: 'Still readable',
-  secret: 'Exposed secret',
+  secret: 'Secret to change',
   proposal: 'Waiting for your approval',
   conflict: 'Contradiction',
   gap: 'Missing',
@@ -286,7 +288,8 @@ function PhoneLens({ map }: { map: React.RefObject<MapView | null> }) {
         </div>
       )}
       <div className="lens-chips">
-        <span className="lens-note">Can read</span>
+        {/* With nothing on, a row of names after "Can read" reads as a sentence that says the opposite. */}
+        <span className="lens-note">{pw.gates.length ? 'Can read' : 'Can read nothing yet. Press an area to let them read it.'}</span>
         {areasOnMap(vault).map((g) => (
           <button key={g.id} className="lens-chip" role="switch" aria-checked={pw.gates.includes(g.id)} onClick={() => toggleGateOnPassword(pw.id, g.id)}>{g.name}</button>
         ))}
@@ -304,7 +307,7 @@ function FirstRun() {
     <div className="empty">
       <div className="empty-word">Vadere</div>
       <h1>Teach your AI tools about your company.</h1>
-      <p><span>Add your documents: brand book, contracts, specs, invoices.</span> <span>They become one map, and you choose which parts each AI tool or person can read.</span></p>
+      <p><span>Add your documents: brand{'\u00a0'}book, contracts, specs, invoices.</span> <span>They become one map, and you choose which parts each AI tool or person can read.</span></p>
       <div className="empty-actions">
         <button className="btn btn-ink" onClick={() => input.current?.click()}>Choose files</button>
         <button className="btn btn-paper" onClick={() => void loadSample()}>See an example</button>
@@ -325,7 +328,7 @@ function FirstRun() {
         <button onClick={() => setState({ sheet: { kind: 'signin' } })}>Already have a map? Sign in</button>
         {accounts && (
           <span>
-            Free while there's room: {accounts.used} of {accounts.max} accounts taken.
+            {accounts.used >= accounts.max ? 'Every free account is taken. You can still build a map here.' : `Free while there's room: ${accounts.used} of ${accounts.max} accounts taken.`}
           </span>
         )}
         {(server?.mode === 'hosted' || server?.donateUrl) && <button onClick={() => setState({ sheet: { kind: 'donate' } })}>Donate</button>}
@@ -433,6 +436,11 @@ function Chrome({ map }: { map: React.RefObject<MapView | null> }) {
   const uiHidden = useStore((s) => s.uiHidden)
   const view = useStore((s) => s.view)
   const vault = useStore((s) => s.vault)
+  // Whatever opens, a message from before it would lie over its controls. A way out such as Undo stays.
+  const opened = useStore((s) => (s.agentView ? 'text' : s.selected ?? (s.panel === 'area' ? `area-${s.area}` : s.panel === 'share' ? `reader-${s.lens}` : null)))
+  useEffect(() => {
+    if (opened) clearPlainToasts(400)
+  }, [opened])
 
   if (uiHidden) return null
   return (

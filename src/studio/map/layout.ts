@@ -855,6 +855,53 @@ function dropSpits(field: Float32Array, near: Float32Array, n: number, m: number
 }
 
 /**
+ * Where a border runs close along a shore, the area beyond it can be left with a hair of land between its neighbour and the sea, ending in a point.
+ * Any of an area's land less than three cells thick, with nothing of its own on it, goes to the area next to it, so no area reaches along a shore as a thread.
+ * Its distances are set so both areas' edges are read from the same numbers, and their borders still meet.
+ */
+function giveAwayHairs(count: number, first: Int16Array, firstD: Float32Array, secondD: Float32Array, reads: Float32Array, fields: Float32Array[], n: number, m: number, size: number, nearLand: (i: number, j: number) => boolean) {
+  if (count < 2) return
+  const land = new Uint8Array(n * m)
+  for (let j = 0; j < m; j++) for (let i = 0; i < n; i++) land[j * n + i] = nearLand(i, j) ? 1 : 0
+  const fromEdge = new Float32Array(n * m)
+  const fromCore = new Float32Array(n * m)
+  const given = new Int16Array(n * m).fill(-1)
+  const give = (k: number, g: number, h: number) => {
+    const dg = reads[g * n * m + k]
+    first[k] = h
+    firstD[k] = dg - 0.5
+    secondD[k] = dg
+    given[k] = h
+  }
+  for (let g = 0; g < count; g++) {
+    for (let k = 0; k < n * m; k++) fromEdge[k] = first[k] === g && land[k] ? 1e6 : 0
+    chamfer(fromEdge, n, m)
+    for (let k = 0; k < n * m; k++) fromCore[k] = fromEdge[k] > 1 ? 0 : 1e6
+    chamfer(fromCore, n, m)
+    for (let k = 0; k < n * m; k++) {
+      if (first[k] !== g || !land[k] || fromCore[k] <= 1 || fields[g][k] * size <= LAND.hard) continue
+      let h = -1
+      let dh = Infinity
+      for (let o = 0; o < count; o++) {
+        if (o !== g && reads[o * n * m + k] < dh) {
+          dh = reads[o * n * m + k]
+          h = o
+        }
+      }
+      if (h < 0) continue
+      give(k, g, h)
+    }
+    // And the water's edge beside it, or the border would stop half a cell short of the shore and leave the hair's last half.
+    for (let k = 0; k < n * m; k++) {
+      if (first[k] !== g || land[k] || fields[g][k] * size <= LAND.hard) continue
+      const i = k % n
+      const by = [i > 0 ? k - 1 : -1, i < n - 1 ? k + 1 : -1, k - n, k + n].find((o) => o >= 0 && o < n * m && given[o] >= 0 && first[o] !== g)
+      if (by !== undefined) give(k, g, given[by])
+    }
+  }
+}
+
+/**
  * An inlet's noise can also dip below zero far inland, where it isn't an inlet at all. That's a lake, and these maps have none: the coast only draws the outside of the land,
  * so what's inside it has to count as land too, or a click there would find no area and a border would stop for no reason.
  */
@@ -1019,6 +1066,7 @@ export function landShape(gates: Gate[], items: { piece: Box['piece']; gate: str
   }
   const landAt = (x: number, y: number) => landField[clamp(Math.round((y - minY) / cell), 0, m - 1) * n + clamp(Math.round((x - minX) / cell), 0, n - 1)]
   const coarseAt = (x: number, y: number) => clamp(Math.round((y - minY) / size), 0, cm - 1) * cn + clamp(Math.round((x - minX) / size), 0, cn - 1)
+  giveAwayHairs(groups.length, first, firstD, secondD, reads, fields, cn, cm, size, (i, j) => landAt(i * size + minX, j * size + minY) > -size / 2)
   const borders: number[][][] = []
   const drawnCells = new Set<number>()
   const HASH = 6
@@ -1162,31 +1210,4 @@ export function buildLand(gates: Gate[], items: { piece: Box['piece']; gate: str
     borders: pathOf(shape.borders, false),
     territories: shape.provinces.map((p) => ({ ...p, outer: pathOf(p.rings, true), coast })),
   }
-}
-
-/**
- * The empty map: the same coast, coming in at the corners of the sheet, with open sea in the middle where the words are.
- * Drawn at the scale the map usually opens at, so it's the same hand, and worked out past the edge of the screen, so no line has to turn along the edge.
- */
-export function buildEmptyTerrain(width: number, height: number): { land: Path2D } {
-  const SCALE = 2
-  const W = width * SCALE
-  const H = height * SCALE
-  const over = 400
-  const cell = 12
-  const n = Math.ceil((W + over * 2) / cell)
-  const m = Math.ceil((H + over * 2) / cell)
-  // What the land is there to hold, off in the corners of the sheet. In steps and not one block, or it would come out with a square corner.
-  const off = over * 2
-  const lumps: [number, number, number, number][] = [
-    [-1, 0.7, 0.06, 2], [-1, 0.78, 0.14, 2], [-1, 0.88, 0.2, 2], [-1, 0.95, 0.27, 2],
-    [0.97, -1, 2, 0.42], [0.93, -1, 2, 0.34], [0.86, -1, 2, 0.22], [0.8, -1, 2, 0.1],
-    [0.95, 0.88, 2, 2], [0.86, 0.95, 2, 2],
-  ]
-  const across = (f: number) => (f < 0 ? -off : f > 1 ? W + off : f * W)
-  const down = (f: number) => (f < 0 ? -off : f > 1 ? H + off : f * H)
-  const rects: Rect[] = lumps.map(([a, b, c, d]) => ({ x: across(a), y: down(b), w: across(c) - across(a), h: down(d) - down(b) }))
-  const rings = traceCoast(coastField(rects, -over, -over, n, m, cell), -over, -over, n, m, cell, 120, 1.8).map((ring) => ring.map(([x, y]) => [x / SCALE, y / SCALE]))
-  const land = pathOf(rings, true)
-  return { land }
 }

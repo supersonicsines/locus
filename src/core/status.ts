@@ -224,7 +224,7 @@ export function needs(v: Vault, now = Date.now()): Need[] {
     out.push({
       id,
       kind: 'secret',
-      message: `A real secret (${named.join(', ')}) was in "${p.source?.file ?? p.title}". It's been taken off the map. Change it, because anyone with that file has it.`,
+      message: `A real secret (${named.join(', ')}) was in "${p.source?.file ?? p.title}". It was taken out, so it isn't on the map and no reader gets it. Change it anyway: anyone with that file has it.`,
       pieces: [p.id],
     })
   }

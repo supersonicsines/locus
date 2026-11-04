@@ -207,7 +207,8 @@ function PasswordDetail({ pw }: { pw: Password }) {
     <div>
       {/* The card folds away while this is open, so its switches come here. */}
       <div className="lens-chips" style={{ marginTop: 0 }}>
-        <span className="lens-note">Can read</span>
+        {/* With nothing on, a row of names after "Can read" reads as a sentence that says the opposite. */}
+        <span className="lens-note">{pw.gates.length ? 'Can read' : 'Can read nothing yet. Press an area to let them read it.'}</span>
         {areas.map((g) => (
           <button key={g.id} className="lens-chip" role="switch" aria-checked={pw.gates.includes(g.id)} onClick={() => toggleGateOnPassword(pw.id, g.id)}>{g.name}</button>
         ))}
@@ -294,6 +295,12 @@ function PasswordDetail({ pw }: { pw: Password }) {
         </span>
         <span className="switch" aria-checked={pw.remote} style={{ marginTop: 1 }} />
       </button>}
+      {/* It says to update, so the button is here too. The one above is a scroll away by now. */}
+      {(!live || more) && hostStill && (
+        <button className="btn btn-ink" style={{ marginTop: 10 }} aria-busy={publishing} disabled={publishing} onClick={() => void publishAndSay()}>
+          {publishing ? 'Updating' : 'Update now'}
+        </button>
+      )}
 
       <div className="section-title" />
       {confirming !== 'remove' ? (

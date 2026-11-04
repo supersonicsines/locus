@@ -19,7 +19,7 @@ let toastId = 1
 export function toast(message: string, action?: Toast['action'], { status = false, untilUpdate = false }: { status?: boolean; untilUpdate?: boolean } = {}) {
   const id = toastId++
   const keep = action ? [] : getState().toasts.filter((t) => t.action && !t.status).slice(-1)
-  setState({ toasts: [...keep, { id, message, action, status, untilUpdate }] })
+  setState({ toasts: [...keep, { id, message, action, status, untilUpdate, at: Date.now() }] })
   // Long enough to read. A sentence that says what went wrong is no use gone in three seconds.
   setTimeout(() => dismissToast(id), Math.max(action ? 8000 : 3600, message.length * 70))
 }
@@ -33,10 +33,12 @@ export function clearToasts() {
   if (getState().toasts.length) setState({ toasts: [] })
 }
 
-/** A list is opening that fills the page, so what was said before it would only lie across it. A way out stays. */
-export function clearPlainToasts() {
+/** A list or a panel is opening, so what was said before it would only lie across it. A way out stays, and so does anything said in the last moment, which is about what's opening. */
+export function clearPlainToasts(olderThan = 0) {
   const now = getState().toasts
-  if (now.some((t) => !t.action)) setState({ toasts: now.filter((t) => t.action) })
+  const cut = Date.now() - olderThan
+  const keep = now.filter((t) => t.action || (olderThan > 0 && (t.at ?? 0) > cut))
+  if (keep.length !== now.length) setState({ toasts: keep })
 }
 
 /** "Updated" or "You're live", once that's no longer how things stand. */

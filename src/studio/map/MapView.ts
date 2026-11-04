@@ -5,7 +5,7 @@
 
 import { figure, monthly, soundingRadius, summarize, townRadius, trustOf, type MoneyPeriod, type MoneySummary } from '../../core/money.ts'
 import type { Cost, Gate, Link, Piece } from '../../core/types.ts'
-import { buildEmptyTerrain, buildLand, DESIGN_K, DISTRICTS, HEADINGS_FROM, landBetween, mainGroup, wrapTitle, type DistrictDef, type Land, type Territory } from './layout.ts'
+import { buildLand, DESIGN_K, DISTRICTS, HEADINGS_FROM, landBetween, mainGroup, wrapTitle, type DistrictDef, type Land, type Territory } from './layout.ts'
 import type { NeedLevel } from '../../core/status.ts'
 import { drawAvatar, drawNeedDot, drawPin, drawPinHead, drawSymbol, makeWaxSeal } from './symbols.ts'
 import { TileCache } from './tiles.ts'
@@ -31,6 +31,8 @@ export interface Palette {
   inkRGB: string
   paperRGB: string
   vermilion: string
+  /** Vermilion for small words, a step darker so they hold 4.5:1 on a sealed area's pink. */
+  vermilionInk: string
   vermilionRGB: string
   waxShadow: string
   waxHighlight: string
@@ -240,7 +242,6 @@ export class MapView {
   private overview = false
   private overviewAt = -1
   private hoverDistrict: District | null = null
-  private terrain: ReturnType<typeof buildEmptyTerrain> | null = null
   private summary: MoneySummary | null = null
 
   private cam = { x: 0, y: 0, k: 1 }
@@ -361,7 +362,6 @@ export class MapView {
     this.sealedHatch = null
     this.exposedHatch = null
     if (changedSize) {
-      this.terrain = null
       if (this.nodes.length) {
         const { k } = this.computeFit()
         this.fitK = k
@@ -861,10 +861,18 @@ export class MapView {
     if (left + dx < safeLeft) dx = safeLeft - left
     // An item means more among its neighbours, so where it's going to move anyway, and the whole county fits, the county comes clear too.
     const t = this.territories.find((o) => o.gate === n.piece.gate)
+    // Only as far as the other counties have room for, though: clearing this one isn't worth putting another's name and marks under the card.
     if (t && dx < 0) {
       const over = t.holds.maxX * c.k + c.x + dx + 12 - safeRight
       const wide = (t.holds.maxX - t.holds.minX) * c.k + 12 < safeRight - 300
-      if (over > 0 && wide) dx -= over
+      const cards = this.cb.covers()
+      const room = Math.min(...this.territories.map((o) => {
+        const oTop = o.holds.minY * c.k + c.y + dy
+        const oBottom = o.holds.maxY * c.k + c.y + dy
+        const edge = Math.max(16, ...cards.filter((r) => oTop < r.bottom && oBottom > r.top).map((r) => r.right + 12))
+        return o.holds.minX * c.k + c.x + dx - edge
+      }))
+      if (over > 0 && wide) dx -= Math.min(over, Math.max(0, room))
     }
     return { k: c.k, x: c.x + dx, y: c.y + dy }
   }
@@ -2134,7 +2142,11 @@ export class MapView {
         // Said the way every other kind on the land is said, a name and how many, only without a row of its own.
         const said = unsaid.map((d) => `${d.def.name} ${d.members.length}`).join('  ')
         const shorter = unsaid.map((d) => d.def.name).join(', ')
-        const shortest = `+${unsaid.length} ${unsaid.length === 1 ? 'kind' : 'kinds'}`
+        // "Kinds" is a word nothing else on the page uses. How many more items there are, it can say.
+        const more = unsaid.reduce((sum, d) => sum + d.members.length, 0)
+        const short = more === 1 ? '1 more item' : `${more} more items`
+        // Never a bare "4 more", which beside "Rules 4" reads as four more rules.
+        const shortest = more === 1 ? '+1 item' : `+${more} items`
         const lowest = boxes.reduce((most, b) => (b.y + b.h > most.y + most.h ? b : most), boxes[0])
         // A line takes only its own width on its own row, and what hangs under it takes the rows below.
         const taken = boxes.flatMap((b) => [
@@ -2154,9 +2166,11 @@ export class MapView {
         // The names if they fit, and how many if only that does, so a kind is never gone with no word.
         const whole = spots.find((s) => free(s, said))
         const brief = whole ? null : spots.find((s) => free(s, shorter))
-        const tight = whole || brief ? null : spots.find((s) => free(s, shortest))
+        const counted = whole || brief ? null : spots.find((s) => free(s, short))
+        const tight = whole || brief || counted ? null : spots.find((s) => free(s, shortest))
         if (whole) this.unsaid.set(gate, { ...whole, text: said })
         else if (brief) this.unsaid.set(gate, { ...brief, text: shorter })
+        else if (counted) this.unsaid.set(gate, { ...counted, text: short })
         else if (tight) this.unsaid.set(gate, { ...tight, text: shortest })
         else this.unsaid.delete(gate)
       } else this.unsaid.delete(gate)
@@ -2537,8 +2551,10 @@ export class MapView {
     const room = this.landRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)
     // The land's grid is coarse this far out, so a phone's line gets some margin before it reaches a coast.
     if (this.measure(text, font) <= room - (this.w <= 720 ? 12 : 0)) return { ...out, text }
-    if (faces.length === 1) return { ...out, text: '' }
-    // Cut to nothing it would say nothing. Better it runs long.
+    // Past a border or a coast it reads as the next county's, so where there are marks they say who, alone.
+    // A warning to more than one keeps its words, short as they get, as it did before.
+    if (faces.length === 1 || (faces.length > 1 && !exposed)) return { ...out, text: '' }
+    // With no marks, cut to nothing it would say nothing. Better it runs long.
     return { ...out, text: this.fitLine(text, font, this.neighbourRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)) || text }
   }
 
@@ -2699,12 +2715,40 @@ export class MapView {
     return `rgb(${Math.round(lerp(a[0], b[0], t))},${Math.round(lerp(a[1], b[1], t))},${Math.round(lerp(a[2], b[2], t))})`
   }
 
+  /**
+   * Before there's a map: the sea and its graticule, and nothing on it yet. Land cut off by the window's corners read as torn paper, so there's none.
+   * The lines fade out where the words stand, so every word has the one ground. A phone gets the sea alone.
+   */
   private drawEmpty() {
     const ctx = this.ctx
     const p = this.palette!
-    if (!this.terrain) this.terrain = buildEmptyTerrain(this.w, this.h)
-    ctx.fillStyle = p.land
-    ctx.fill(this.terrain.land)
+    const step = 240
+    // A phone has room for one cell across, and its lines would only run through the name in the corner.
+    if (this.w < 640) return
+    ctx.lineWidth = 1
+    ctx.strokeStyle = `rgba(${p.inkRGB},${p.dark ? 0.06 : 0.05})`
+    ctx.beginPath()
+    for (let sx = ((this.w / 2 - step / 2) % step + step) % step; sx < this.w; sx += step) {
+      ctx.moveTo(Math.round(sx) + 0.5, 0)
+      ctx.lineTo(Math.round(sx) + 0.5, this.h)
+    }
+    for (let sy = ((this.h / 2 - step / 2) % step + step) % step; sy < this.h; sy += step) {
+      ctx.moveTo(0, Math.round(sy) + 0.5)
+      ctx.lineTo(this.w, Math.round(sy) + 0.5)
+    }
+    ctx.stroke()
+    const rx = Math.max(this.w * 0.62, 260)
+    const ry = this.h * 0.55
+    ctx.save()
+    ctx.translate(this.w / 2, this.h / 2)
+    ctx.scale(rx / ry, 1)
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, ry)
+    g.addColorStop(0, this.sea)
+    g.addColorStop(0.55, this.sea)
+    g.addColorStop(1, this.sea.startsWith('#') ? `${this.sea}00` : this.sea.replace('rgb(', 'rgba(').replace(')', ',0)'))
+    ctx.fillStyle = g
+    ctx.fillRect(-ry * 2, -ry * 2, ry * 4, ry * 4)
+    ctx.restore()
   }
 
   private drawGraticule() {
@@ -3196,12 +3240,51 @@ export class MapView {
 
   /** Item names and prices stand on land, so that's their halo. Area names stand on the sea and pass its colour in. */
   private haloText(text: string, x: number, y: number, halo = 3, ground = this.palette!.land) {
+    this.ctx.strokeStyle = ground
+    this.strokeHalo(text, x, y, halo)
+    this.ctx.fillText(text, x, y)
+  }
+
+  /**
+   * A halo the colour of the land, kept to the land. With no line round the coast, a halo that runs out over the sea paints a bump on the shore, so where a word reaches the sea the sea shows through.
+   * Most words stand well inland and are drawn as they are. Only the few near a shore pay for the clip.
+   */
+  private strokeHalo(text: string, x: number, y: number, width: number) {
     const ctx = this.ctx
     ctx.lineJoin = 'round'
-    ctx.lineWidth = halo
-    ctx.strokeStyle = ground
+    ctx.lineWidth = width
+    const land = this.land
+    if (!land || this.inland(text, x, y, width)) {
+      ctx.strokeText(text, x, y)
+      return
+    }
+    const m = ctx.getTransform()
+    const { k, x: cx, y: cy } = this.cam
+    ctx.save()
+    ctx.setTransform(m.a * k, 0, 0, m.d * k, m.e + m.a * cx, m.f + m.d * cy)
+    ctx.clip(land.coast)
+    ctx.setTransform(m)
     ctx.strokeText(text, x, y)
-    ctx.fillText(text, x, y)
+    ctx.restore()
+  }
+
+  /** Whether a word and its halo stand wholly on land, tried along its box's edges. */
+  private inland(text: string, x: number, y: number, pad: number): boolean {
+    const t = this.ctx.measureText(text)
+    const left = x - t.actualBoundingBoxLeft - pad
+    const right = x + t.actualBoundingBoxRight + pad
+    const top = y - t.actualBoundingBoxAscent - pad
+    const bottom = y + t.actualBoundingBoxDescent + pad
+    const on = (sx: number, sy: number) => {
+      const [wx, wy] = this.toWorld(sx, sy)
+      return this.territories.some((g) => g.onLand(wx, wy))
+    }
+    const steps = Math.max(2, Math.ceil((right - left) / 10))
+    for (let i = 0; i <= steps; i++) {
+      const sx = left + ((right - left) * i) / steps
+      if (!on(sx, top) || !on(sx, bottom)) return false
+    }
+    return on(left, (top + bottom) / 2) && on(right, (top + bottom) / 2)
   }
 
   private drawLabels() {
@@ -3213,6 +3296,10 @@ export class MapView {
     ctx.textBaseline = 'alphabetic'
     const names = this.labels
     const subFont = `10.5px ${this.sans}`
+    // A name half under a panel reads as a word that broke, as a county's name does, so it isn't drawn until it's clear. One wholly under is drawn and nobody sees it.
+    const overlays = this.cb.overlays()
+    const partlyUnder = (left: number, top: number, right: number, bottom: number) =>
+      overlays.some((o) => left < o.right && right > o.left && top < o.bottom && bottom > o.top && !(left >= o.left && right <= o.right && top >= o.top && bottom <= o.bottom))
     for (const l of names) {
       const n = this.byId.get(l.id)
       if (!n) continue
@@ -3232,15 +3319,18 @@ export class MapView {
       const ground = this.groundOf(n.piece.gate)
       const leading = leadingAt(this.cam.k)
       const lines = l.lines ?? [n.piece.title]
+      if (overlays.length) {
+        const wide = Math.max(...lines.map((line) => ctx.measureText(line).width))
+        const from = l.align === 'left' ? x + l.x : l.align === 'right' ? x + l.x - wide : x + l.x - wide / 2
+        if (partlyUnder(from, y + l.y - 11, from + wide, y + l.y + (lines.length - 1) * leading + 3)) continue
+      }
       lines.forEach((line, i) => {
         const ly = y + l.y + i * leading
         // A pinned name is the one kind allowed up against the coast, so it always keeps its ground and the coast can't strike it through.
         if (grounded || this.pinOf(n)) {
           ctx.globalAlpha = l.alpha * fade * shown
-          ctx.lineJoin = 'round'
-          ctx.lineWidth = 3
           ctx.strokeStyle = ground
-          ctx.strokeText(line, x + l.x, ly)
+          this.strokeHalo(line, x + l.x, ly, 3)
         }
         ctx.globalAlpha = a * fade
         // Tools and whatever needs you carry the map. Everything else is a step back, still well above what a small word needs.
@@ -3260,10 +3350,8 @@ export class MapView {
         ctx.font = subFont
         if (grounded) {
           ctx.globalAlpha = l.alpha * fade
-          ctx.lineJoin = 'round'
-          ctx.lineWidth = 3
           ctx.strokeStyle = ground
-          ctx.strokeText(l.sub, x + l.x, sy)
+          this.strokeHalo(l.sub, x + l.x, sy, 3)
         }
         ctx.globalAlpha = a * fade
         ctx.fillStyle = `rgba(${p.inkRGB},0.6)`
@@ -3303,7 +3391,8 @@ export class MapView {
         drawSymbol(ctx, d.def.icon, x + 6.5, y - 4, 13)
       }
       ctx.font = font
-      ctx.fillStyle = `rgba(${p.inkRGB},${nudge.warm ? 0.72 : lerp(0.5, hot ? 1 : 0.74, gathered)})`
+      // A step under the rows, and still 4.5:1 at the least on every ground, because these are what make a county scannable.
+      ctx.fillStyle = `rgba(${p.inkRGB},${nudge.warm ? 0.72 : lerp(0.62, hot ? 1 : 0.74, gathered)})`
       ctx.globalAlpha = shown
       if ('letterSpacing' in c) c.letterSpacing = '0.4px'
       ctx.fillText(d.def.name, x + icon + nudge.dx, y)
@@ -3311,7 +3400,7 @@ export class MapView {
       if ('letterSpacing' in c) c.letterSpacing = '0px'
       if (gathered > 0.01) {
         ctx.globalAlpha = shown * gathered
-        ctx.fillStyle = `rgba(${p.inkRGB},${hot ? 0.8 : 0.5})`
+        ctx.fillStyle = `rgba(${p.inkRGB},${hot ? 0.8 : 0.62})`
         const count = String(d.members.length)
         ctx.fillText(count, x + icon + width + 5, y)
         if (d.look) drawNeedDot(ctx, x + icon + width + 5 + ctx.measureText(count).width + 7, y - 4, 3.2, p.ink, this.groundOf(d.gate))
@@ -3319,7 +3408,7 @@ export class MapView {
     }
     if (gathered > 0.5 && this.overview) {
       ctx.font = this.districtFont()
-      ctx.fillStyle = `rgba(${p.inkRGB},0.56)`
+      ctx.fillStyle = `rgba(${p.inkRGB},0.62)`
       for (const [gate, u] of this.unsaid) {
         const a = money * landing * gathered * (1 - (this.seal.get(gate) ?? 0))
         if (a < 0.01) continue
@@ -3447,7 +3536,7 @@ export class MapView {
         ctx.globalAlpha = fade * arriving
         ctx.textAlign = 'left'
         ctx.font = `${note.exposed ? '500 ' : ''}11.5px ${this.sans}`
-        ctx.fillStyle = note.sealed ? p.vermilion : note.exposed ? p.ink : `rgba(${p.inkRGB},0.68)`
+        ctx.fillStyle = note.sealed ? p.vermilionInk : note.exposed ? p.ink : `rgba(${p.inkRGB},0.68)`
         this.haloText(note.text, x + faces, y + 17.5, 4, ground)
         ctx.globalAlpha = 1
       }

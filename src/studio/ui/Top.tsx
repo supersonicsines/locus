@@ -13,7 +13,8 @@ import { contentOf, placeOf } from './data.ts'
 /** How each kind of need reads in the one-line summary. */
 const SUMMARY: Record<NeedKind, (n: number) => string> = {
   exposure: (n) => `${n} still readable`,
-  secret: (n) => plural(n, 'exposed secret'),
+  // It was taken out before anything went on the map, so no reader has it. What's left is the key itself, out there in the file.
+  secret: (n) => (n === 1 ? 'Change 1 secret found in a file' : `Change ${n} secrets found in files`),
   proposal: (n) => `${n} to approve`,
   conflict: (n) => plural(n, 'contradiction'),
   gap: (n) => `${n} to look at`,
@@ -120,10 +121,8 @@ export function StatusLine() {
   const worst = list[0]
   if (levelOf(worst.kind) === 'now') {
     const same = list.filter((n) => n.kind === worst.kind)
-    const places = new Set(same.map((n) => placeOf(vault, n.pieces, n.gates)))
-    const where = places.size === 1 ? placeOf(vault, worst.pieces, worst.gates) : null
-    // An exposure names who and what, so it says itself. Anything else says how many, and where.
-    const headline = worst.kind === 'exposure' ? worst.message.replace(/\.$/, '') : `${SUMMARY[worst.kind](same.length)}${where ? ` in ${where}` : ''}`
+    // An exposure names who and what, so it says itself. A secret says what to do, and no area, because it isn't in one: it was taken out before it reached the map.
+    const headline = worst.kind === 'exposure' ? worst.message.replace(/\.$/, '') : SUMMARY[worst.kind](same.length)
     const rest = list.length - (worst.kind === 'exposure' ? 1 : same.length)
     const others = list.filter((n) => levelOf(n.kind) !== 'now')
     return (
@@ -158,7 +157,7 @@ export function StatusLine() {
 
 const KIND_NAMES: Record<NeedKind, string> = {
   exposure: 'Still readable',
-  secret: 'Exposed secret',
+  secret: 'Secret to change',
   proposal: 'Waiting for your approval',
   conflict: 'Contradiction',
   gap: 'Missing',
@@ -173,6 +172,10 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
   useEffect(() => clearPlainToasts(), [])
   if (!vault) return null
   const list = sortNeeds(needs(vault))
+  // An item wears its loudest mark, so a look on something that's also waiting for approval shows a question, not a dot. Only say dots mark these where one does.
+  const wears = new Map<string, string>()
+  for (const n of [...list].reverse()) for (const id of n.pieces) wears.set(id, levelOf(n.kind))
+  const dotted = list.some((n) => levelOf(n.kind) === 'look' && n.pieces.some((id) => wears.get(id) === 'look'))
 
   // An area that's since been deleted has nowhere to go.
   const gateOf = (n: Need) => n.gates?.find((g) => vault.gates.some((x) => x.id === g))
@@ -205,7 +208,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
           const firstQuiet = levelOf(n.kind) === 'look' && (i === 0 || levelOf(list[i - 1].kind) !== 'look')
           return (
             <Fragment key={n.id}>
-            {firstQuiet && <p className="need-group">Worth a look when you have a minute. Dots on the map mark these.</p>}
+            {firstQuiet && <p className="need-group">Worth a look when you have a minute.{dotted ? ' Dots on the map mark these.' : ''}</p>}
             <div
               className={`need is-${levelOf(n.kind)} ${n.pieces.length || gateOf(n) ? 'clickable' : ''}`}
               onMouseEnter={() => n.pieces.length && setState({ highlight: new Set(n.pieces) })}
@@ -216,7 +219,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
               <div className="need-text">
                 <span className="need-kind">
                   {service && <ServiceMark name={service} size={14} />}
-                  {KIND_NAMES[n.kind]}{where ? ` in ${where}` : ''}
+                  {KIND_NAMES[n.kind]}{where && n.kind !== 'secret' ? ` in ${where}` : ''}
                 </span>
                 {n.message}
                 {n.quote && <blockquote className="need-quote">{n.quote}</blockquote>}

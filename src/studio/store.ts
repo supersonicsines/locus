@@ -39,6 +39,8 @@ export interface Toast {
   status?: boolean
   /** Says what the next update will do, so it goes once that's happened. */
   untilUpdate?: boolean
+  /** When it was said, so something opening can tell what was said before it from what was said about it. */
+  at?: number
 }
 
 export interface ShredProgress {

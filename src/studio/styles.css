@@ -3055,6 +3055,16 @@ body:has(.side) .toasts {
   bottom: 56px;
 }
 
+/* What a reader reads fills the map's half, so while a message is up the text ends above it, and the message doesn't lie on the lines you came to check. */
+@media (min-width: 721px) {
+  body:has(.agent-view) .toasts {
+    bottom: var(--gutter);
+  }
+  body:has(.toast) .agent-view {
+    bottom: 64px;
+  }
+}
+
 /* First arrival: above the line with the way to sign in. */
 body:has(.empty-foot) .toasts {
   bottom: 56px;
@@ -3160,6 +3170,10 @@ body:has(.empty-foot) .toasts {
 @media (min-width: 1101px) and (max-width: 1360px) {
   .side:has(.lens-chips) {
     width: 332px;
+  }
+  /* What a reader reads stands beside that panel, so it narrows with it. */
+  .agent-view {
+    right: calc(332px + var(--gutter) * 2);
   }
 }
 
@@ -3329,6 +3343,11 @@ body:has(.left.is-folded) .agent-view {
   body:has(.zoom:not(.is-fit)) .toasts {
     bottom: calc(112px + env(safe-area-inset-bottom));
   }
+  /* Over the heading, which nobody needs while reading. Lower down it covered the text's close and copy. */
+  body:has(.agent-view) .toasts {
+    top: var(--gutter);
+    bottom: auto;
+  }
   body:has(.empty-foot) .toasts {
     bottom: calc(66px + env(safe-area-inset-bottom));
   }
@@ -3397,14 +3416,18 @@ body:has(.left.is-folded) .agent-view {
   .status-open svg {
     display: none;
   }
+  /* A sheet from the foot of the screen, edge to edge. With a gutter round it, slivers of the map showed down its sides, and the pill behind it showed at a corner. */
   .side {
     top: auto;
-    left: var(--gutter);
-    right: var(--gutter);
-    bottom: var(--gutter);
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: auto;
     max-height: 64dvh;
     z-index: 20;
+    border-width: 1px 0 0;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .agent-view {
     top: 12dvh;
@@ -3577,9 +3600,11 @@ body:has(.left.is-folded) .agent-view {
   .lens-chip {
     height: 44px;
   }
+  /* A finger's size, reaching into the toast's own padding so the toast stays the same height. */
   .toast button {
-    min-height: 32px;
-    padding: 0 4px;
+    min-height: 44px;
+    margin: -6px -6px -6px 0;
+    padding: 0 10px;
   }
   .code-block .code-copy {
     min-height: 36px;
