@@ -3405,10 +3405,15 @@ export class MapView {
     const c = ctx as CanvasRenderingContext2D & { letterSpacing?: string }
     ctx.textBaseline = 'alphabetic'
     ctx.textAlign = 'left'
+    // As with a county's name and an item's: half a heading by the card's edge reads as "ools", so it waits until it's clear.
+    const overlays = this.cb.overlays()
     for (const d of this.districts) {
       const shown = (d.named ? 1 - gathered * (d.hidden ? 1 : 0) : d.hidden ? 0 : gathered) * money * (1 - (this.seal.get(d.gate) ?? 0)) * dim
       if (shown < 0.01) continue
       const [x, y] = this.districtPos(d, 1 - gathered)
+      ctx.font = font
+      const across = (d.def.id === 'tools' ? 0 : LINE_ICON * gathered) + ctx.measureText(`${d.def.name} ${d.members.length}`).width + 6
+      if (overlays.some((o) => x < o.right && x + across > o.left && y - 12 < o.bottom && y + 3 > o.top && !(x >= o.left && x + across <= o.right && y - 12 >= o.top && y + 3 <= o.bottom))) continue
       const hot = this.hoverDistrict === d
       const icon = d.def.id === 'tools' ? 0 : LINE_ICON * gathered
       ctx.font = font
