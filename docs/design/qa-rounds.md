@@ -1084,3 +1084,93 @@ Four readers opened every walk shot on fdaa3ae, one screen size each, and wrote 
 - A read's finish toast can lie over a reader's text on a phone for its few seconds.
 - The list says `5 to look at` and the map may show 8 dots, because one need can mark several items.
 - The hosted footer still touches a coast at 1280.
+
+## Stageshow: a product designer's eye, and the coast at last
+
+The operator asked for a last pass using the `stageshow` skill. That skill builds faux product shots and isn't a QA tool, so I used it two ways. As the bar: I filmed its closest gold examples (`linear`, `panel-annotation`, `static-card`, `figma`) and held the page beside them. As an instrument: I staged one launch-page still of the main screen from the sample's real land, tokens, logos and seal, and counted every way the stage beat the page as a finding. The stage, the side-by-sides and the dissection are in `<QA>/rounds/stageshow/`. Nothing of the stage is in the repo.
+
+**What the stage showed.** I drew the sample's own coast with the skill's rule, "No redundant tonal borders. Try the fill alone", and on the first frame the same shape stopped being ugly. The real coast had six strokes on one edge: two soft ones, three water lines, an offset shadow and the ink line. Rounds 3 to 5 tried many ways of drawing that line, and none tried not drawing it. An inked line makes every bend in a coast a thing to look at. A fill doesn't.
+
+**What the page does now. Later work starts from this.**
+
+| You do | The page does |
+| --- | --- |
+| Look at the land | A plain fill on the sea, with nothing drawn round it. No water lines, no shadow line, no ink. County borders are the only lines on the land |
+| Look at a map that isn't live | The sea is a step deeper (`#e2e6ea`), so land holds without a line. Live it's a step bluer (`#cbdfef`), so the two still differ. Fields and keys kept the old paper colour as `--field` |
+| Look at the rows | Tools and pinned items are full ink. Rules, facts, plans and documents are 70% ink, with their icons an opaque step lighter. So tools lead, and what needs you leads them |
+| Look at what needs you | Amber stops where the urgent sentence stops. `2 to approve` and `5 to look at` wait beside it on the same ground as every other control. Under 1240, or with Update in the bar, it's all amber as before |
+| Look under a county's name | One form: `For Claude Code`, `For Claude Code and 1 other`, `For 2 readers`, and when live `Read by` the same way. A bare name is gone. With no room for that line, the mark says who, alone |
+| Ask how to connect a reader | The map holds its scale at every width. The card folds to its heading (`Meridian`, `3 readers`), the panel brings the switches, and the map slides over into that room. Press the heading to have the card back over it |
+| Make a new password on a live map | The toast says the old one can't read anything that goes live from now on, which is what `docs/SECURITY.md` says. An old bundle someone saved still opens |
+
+**Why the coast's shape changed too.** With no ink, the hand's fine wobble read as a torn edge, so nearly all of it went (`fine`). The finished line is smoothed further (`smooth`). Water narrower than twice 20 world units closes up (`narrowest`, was 13), so an inlet ends in a head and not a hair. Land thinner than twice 24 world units with nothing on it goes back to the sea (`thinnest`, new), so a shore has no spits. At 300 items the north still crinkled, so smoothing and both of those grow with the map, because a big map is seen from further off. It's the same field, so everything stands on land by construction, and all the land tests pass unchanged.
+
+**Decisions and why.**
+- **This overturns Round 3's water lines and Round 4's "the coast is the one firm line".** The evidence is `before/24-small-map` against `final-walk/shots/24-small-map`, and `before/18-live` against `final-walk/shots/18-live`.
+- **A sealed area's vermilion stays on its borders and comes off the coast.** The pink meets the sea on its own. Exposed amber and the open area's ink outline keep the whole edge, because those have to be picked out. The open area's outline got lighter, 1.25 at 72%. It's now the only ink a coast ever wears, and it was heavy for that.
+- **The card folds only for a reader's panel.** That panel holds what the card holds about them. An item's or an area's panel leaves the card alone, because folding on every click would move something on every click.
+- **On a laptop a reader's panel is 332 wide, down from 372,** between 1101 and 1360. At 1280x720 the height sets the scale, and the land's contents overran the wider panel by a word.
+- **`Read by 2 readers` is a little stiff.** It's the same form as everything beside it, and I took that over `2 can read this`.
+- **Money's mark alone on a phone is deliberate.** Where the line would reach a coast, the mark says who. That's a shorter way to say the same thing, not a second form of words.
+- **The graticule stays.** It's part of Atlas, and it's quieter on a deeper sea. I listed it and the screen didn't argue for removing it.
+
+**What the stage beats the page on that I left, and why.**
+- It has 12 rows of real words where the page has 76. A person needs the words. A stage may use bars, a product can't.
+- It drops the card's paragraph and `Start your own map`. On a launch page, copy sits round the picture. Here that's the only line that says what this is.
+- It shows four counties at 56%. The page fits all six at 51%, because who can read what is a whole-map question.
+- It says `2 more` where the bar says `2 to approve` and `5 to look at`. Round 7's ruling that the bar teaches the marks stands.
+- It's live, with a blue sea. The sample isn't, and saying so is truthful. `18-live` is the page's best look and you only get it once you've gone live.
+
+**The skill, plainly.** Applied: its failures (Too much, Wireframe, Boxed, Flat, Bland) and recurring faults as the checklist, `craft.md` and `framing.md` as the rules, its gold filmed, its token map from the code, its plan and rehearsal note, `film.mjs` on the stage. Didn't apply: motion and the loop, since this is one still. `compact` and the bento rules. Crop rules on the real page, because a tool shows what you have and can't bleed. The `--gate`: my stage fails it for `skeleton ladder` on purpose, because bars where the page has words are the gap being measured. The fresh-eye review it asks for, because the stage doesn't ship. Bars and restraint can't transfer directly to a product that must keep its words, so they became a tone step and not a removal.
+
+**Mistakes in my own work, caught on the screen.** The folded card snapped shut because `max-height` won over the animated height. Fields went heavy when the sea deepened, because they shared its colour (`after1/15-go-live`). The dark land was too close to its sea at first. Deleting the water lines' helper in one cut took `normalAt` with it, and the tests caught it. I committed twice: reading the walk's thumbnails after the first commit showed reader text under the folded heading and hairs on Legal and Brand, so the first commit's 59 full-size reads don't stand for the final one, and I read them again.
+
+**The walks, whole, on the final code commit `d6ed64b`.** By `r7-all.sh` on a frozen build. Every part at each width, no page errors, and no request left the machine except the mocked one to Anthropic. `<QA>/rounds/stageshow/final-walk/` has them all, and `BUILD.txt` has the hash.
+
+| Width | Shots | Parts | Failed |
+| --- | --- | --- | --- |
+| 390x844, touch | 160 | 14 | 0 |
+| 800x700 | 167 | 15 | 0 |
+| 1280x720 | 167 | 15 | 0 |
+| 1440x900 | 167 | 15 | 0 |
+
+**Verified on that commit.** `flow4` 36 of 36, `flow5` 11 of 11, `cross` 11 of 11 in Firefox and WebKit with nothing leaving the machine, `touch2`, `stress`, `r5-more` all 10, `r6-ghost` 52 taps with no tap doing two things. 140 tests pass and types are clean, with no test changed: the land tests hold on the smoother coast. `seal.ts`, the server, `agent.ts` and the CSP are untouched. The scale holds with a reader's panel open at eight widths from 800 to 1920 (`ss-setup-widths.mjs`), and pressing the folded heading, Esc, the panel's close and a chip all work (`ss-esc.mjs`). Words standing on the deeper sea are 6.24:1 at the least.
+
+**Frame rate.** 300 items, 60 services, capped, headless, JS time and frame spacing and not paint on a real GPU. A file landing on 300 items: a long task of 95 ms and 357 ms at 1x and 4x, against 115 to 126 and 418 to 514 in the fix round. There are no water lines to build. Pointing at fit is 52fps at 1x and 59 at 4x in this run, which is the same noise as before, and its worst JS frame is 0.5 ms and 2.4 ms. Pan and zoom hold 60.
+
+**What I read and what I didn't.** `<QA>/rounds/stageshow/READ-LOG.md` has a line for each.
+- Fixed set, full size, on the final code commit: 59 of 59. Those at 2x show at 2000 wide, which is still over the page's own pixels.
+- Walks, full size, on that commit: 80 of 661. That's 20 screens at all four widths: the screens where something other than the land changed, and the land's extremes (`a02 b03 e03 e04 e05 e06 e07 f06 f07 g01 g08 g09 g10 g11 g12 g13 h09 j01 j05 j11`).
+- The land changed on every map screen, so the other 581 walk shots changed too, and I didn't open them. Fresh readers will.
+- Control sheets: 2 of 12 (`sheet-3-reader`, light and dark). Films: 1 sheet. Not opened: `flow4`, `flow5`, `touch2`, `stress`, `r5-more`, `cross`. Those are judged by their checks and words.
+
+**Against the bar, bluntly.**
+
+| The bar | Verdict | Where to look |
+| --- | --- | --- |
+| Someone who's never heard of MCP can make sense of it | Partial | `02-main` says what it is. The first connect tab is still a terminal (`f07-setup-panel`), and that command fails until there's a package on npm |
+| Is it live and current? | Pass, once learned | `22b-states-blur`. Land stays white in every state now, so the sea and the black bar do the saying |
+| Who can read what? | Partial | `05-reader-picked` is a picture. At rest (`02-main`) it's one form now, still a line of small text per county |
+| Does anything need me, and what? | Pass from 1240 wide, partial under | `02-main`: the amber is the urgent thing alone. `21-state-decide`: no amber at all. `09-phone` still says `and 7 more` |
+| What does it cost? | Pass | A number to read, top right |
+| Beautiful and polished | Closer, still partial | Closest: `21-state-live-clear`, `18-live`, `11-dark`, `19b-reader-view`. Furthest: `h09-huge-file-on-the-map`, `07b-soundings` |
+| Nothing needs a legend | Partial | The bar teaches `?` and the dot from 1240 up. A lone mark under a county name on a phone or at 800 needs the card to say whose it is (`g01`), and that's new. Disc sizes still have a hover legend |
+
+**Not verified.**
+- No real person has seen this, and the operator hasn't seen a land with no line. Whether it's beautiful is their call.
+- A real phone and a real GPU. A map with a very long east-west shape, past what the walk builds.
+- The stage and the page side by side tell you about drawing. They say nothing of whether anyone can use it.
+- The skill's fresh-eye review of my stage, and any motion on the stage.
+
+**Worst thing left.** A very large single file is a torn white sheet (`h09`). With no ink the crinkle reads less like a stamp's edge and more like torn paper, and at 34% it holds one line of text. A big map of many counties (`23-big-map`) has a calm edge at the same size, so one rectangular county is the case left, and smoothing it hard enough would have moved the sample's coast.
+
+**Also left.**
+- At 1280 wide, with what a reader reads open, there's a 54 px gap between the text and the panel where 1440 has 14. I narrowed the panel and not `.agent-view`'s `right`. That's mine, one line, and I found it after the last walks had started.
+- A lone mark at 800 and on a phone: `L` beside Legal says nothing until you open the card. A bare name read as a label for the county, and this is the price of removing it.
+- A small map is still a blob, a quiet one, and nothing says it's land until there's a second county (`24-small-map`, `j01`).
+- `!` stands 3 px off `Facts` in Engineering (`25-area-3-2x`).
+- Two white notches where three borders meet, when every county is hatched at 90% (`j11`).
+- Money's peninsula is the most blob-like stretch left on the sample.
+- At 800, a name half under the panel can stay half shown (`f06`, `Produc`). The fix round's rule misses it, and it did on that build too.
+- On a phone a dark nick shows at the sheet's corner, from the pill behind it (`g12`). On the old build too.
+- The sea's two colours changed, and the operator approved "the sea turning blue" at the old values. `paper` and `liveSea` in `App.tsx` take it back.
