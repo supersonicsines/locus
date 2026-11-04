@@ -4,7 +4,7 @@
   --alert: #f5b400;
   --on-alert: #15191e;
   --live: #1f9d63;
-  --paper: #eef1f3;
+  --paper: #e2e6ea;
   --raised: #fcfdfd;
   --ink: #15191e;
   --ink-rgb: 21, 25, 30;
@@ -19,7 +19,7 @@
   --on-ink: #fbfcfc;
   --shadow: 0 1px 1px rgba(21, 25, 30, 0.04), 0 8px 24px -8px rgba(21, 25, 30, 0.12);
   --shadow-high: 0 2px 4px rgba(21, 25, 30, 0.05), 0 24px 60px -16px rgba(21, 25, 30, 0.22);
-  --scrim: rgba(238, 241, 243, 0.62);
+  --scrim: rgba(226, 230, 234, 0.62);
 
   --serif: Lustria, Georgia, 'Times New Roman', serif;
   /* The one place the interface sans is named. The map's canvas text reads this too. */
@@ -711,7 +711,7 @@ a {
 
 .status {
   min-height: 36px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   line-height: 20px;
   white-space: nowrap;
 }
@@ -781,11 +781,41 @@ a {
   .status:not(.is-now) .has-parts > .need-mark {
     display: none;
   }
-  .status.is-now .status-part {
-    color: rgba(21, 25, 30, 0.78);
-  }
   .status:not(.is-now) .status-part {
     color: var(--soft);
+  }
+  /* Amber means it needs you now and nothing else, so it stops where that sentence stops. What's left waits on the same ground as every other control. */
+  .status.is-now:not(:has(.status-do)):has(.has-parts) {
+    background: var(--raised);
+    border-color: var(--hair);
+    color: var(--ink);
+    padding: 0 10px 0 0;
+    box-shadow: var(--shadow);
+  }
+  .status.is-now:not(:has(.status-do)) .has-parts {
+    gap: 12px;
+    align-self: stretch;
+  }
+  .status.is-now:not(:has(.status-do)) .has-parts .status-head {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -1px 0 -1px -1px;
+    padding: 0 12px;
+    background: var(--alert);
+    color: var(--on-alert);
+    border-radius: var(--panel-radius) 0 0 var(--panel-radius);
+  }
+  .status.is-now:not(:has(.status-do)) .has-parts .status-parts {
+    margin-left: 0;
+  }
+  .status.is-now .status-part {
+    color: var(--soft);
+  }
+  .status.is-now .status-parts .need-mark {
+    background: var(--ink);
+    color: var(--on-ink);
   }
 }
 
@@ -818,6 +848,11 @@ a {
 .status.is-now .status-open {
   flex: 1;
   min-width: 0;
+}
+
+/* Only a heading where amber stops short of the whole bar. Everywhere else it isn't there. */
+.status-head {
+  display: contents;
 }
 
 /* However long the names, the words give way before the button does. */
@@ -3115,6 +3150,53 @@ body:has(.empty-foot) .toasts {
   }
 }
 
+.left.is-folding {
+  overflow: hidden;
+}
+
+@media (min-width: 1101px) and (max-width: 1360px) {
+  .side:has(.lens-chips) {
+    width: 332px;
+  }
+}
+
+/* A reader's panel holds what the card holds about them, so the card folds to its heading, at any width. As under 980, and for the same reasons. */
+.left.is-folded {
+  max-height: 46px;
+  overflow: hidden;
+}
+.left.is-folded .left-head {
+  min-height: 46px;
+}
+.left.is-folded:not(.is-open) .company-btn {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+.left.is-folded:not(.is-open) .company-fold {
+  display: block;
+}
+.left.is-folded:not(.is-open) .company-name {
+  line-height: 22px;
+}
+.left.is-folded:not(.is-open) > :not(.left-head) {
+  visibility: hidden;
+  /* What's in the card stays until the fold has closed over it. */
+  transition: visibility 0s linear 240ms;
+}
+.left.is-folded.is-open {
+  max-height: calc(100dvh - 24px);
+  overflow: visible;
+  z-index: 14;
+}
+.left.is-folded .phone-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+body:has(.left.is-folded) .agent-view {
+  left: var(--gutter);
+}
+
 @media (max-width: 1100px) {
   /* On a line of its own again, so there's room to say what a click does. */
   .status .optional {
@@ -3423,6 +3505,16 @@ body:has(.empty-foot) .toasts {
 .lens-sheet > .btn {
   width: 100%;
   height: 40px;
+}
+
+/* A mouse doesn't need a finger's room, and beside a panel's other controls a tall pill is the loudest thing in it. */
+@media (pointer: fine) {
+  .side .lens-chip {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 14px;
+    font-size: 12.5px;
+  }
 }
 
 /* A finger needs more room than a pointer, and an input under 16px makes a phone zoom the page. */

@@ -1,6 +1,6 @@
 // Top left: the company, and who can read its map. Pick a reader and the map shows what they see.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Password } from '../../core/types.ts'
 import { askFit, copy, createPassword, loadSample, newMap, setTheme, siteAddress, switchVault, tidyMap, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
@@ -205,6 +205,36 @@ function ReaderAreas() {
   )
 }
 
+/** The card folds as the panel opens and unfolds as it closes, with the same ease, so it's plain the one gave way to the other. */
+function useFoldMotion(folded: boolean) {
+  const box = useRef<HTMLDivElement>(null)
+  const last = useRef({ folded, height: 0 })
+  // What's inside can change the card's height with no word to this component, and the fold starts from wherever it really was.
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const watch = new ResizeObserver(() => {
+      if (!el.getAnimations().length) last.current.height = el.getBoundingClientRect().height
+    })
+    watch.observe(el)
+    return () => watch.disconnect()
+  }, [])
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const height = el.getBoundingClientRect().height
+    const { folded: before, height: from } = last.current
+    last.current = { folded, height }
+    if (before === folded || !from || from === height || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    el.classList.add('is-folding')
+    el.animate({ height: [`${from}px`, `${height}px`], maxHeight: [`${from}px`, `${height}px`] }, { duration: 240, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }).onfinish = () => {
+      // A class, so the map hears of it: names give way to what floats over them, and this has only now reached its height.
+      el.classList.remove('is-folding')
+    }
+  }, [folded])
+  return box
+}
+
 export function Left() {
   const company = useStore((s) => contentOf(s)?.company)
   const sample = useStore((s) => !!s.vault?.sample)
@@ -213,14 +243,16 @@ export function Left() {
   const areaCount = useStore((s) => s.view?.gates.length ?? 0)
   const [menu, setMenu] = useState(false)
   const [openOnPhone, setOpenOnPhone] = useState(false)
-  // A narrow window can't hold the card and a panel with any map between them, and the panel is what was just asked for.
+  // A reader's panel holds what the card holds about them, so one of them is enough: the card folds to its heading, and the map has the room. A narrow window folds it anyway.
   const panel = useStore((s) => s.panel)
+  const folded = panel === 'share'
+  const box = useFoldMotion(folded)
   useEffect(() => {
-    if (panel === 'share' && window.innerWidth <= 980) setOpenOnPhone(false)
-  }, [panel])
+    setOpenOnPhone(false)
+  }, [folded])
 
   return (
-    <div className={`left panel ${openOnPhone ? 'is-open' : ''}`}>
+    <div ref={box} className={`left panel ${openOnPhone ? 'is-open' : ''} ${folded ? 'is-folded' : ''}`}>
       {openOnPhone && <div className="phone-backdrop" onClick={() => setOpenOnPhone(false)} />}
       <div className="left-head">
         <button
@@ -228,7 +260,7 @@ export function Left() {
           aria-haspopup="menu"
           aria-expanded={menu}
           onClick={() => {
-            if (window.innerWidth <= 980 && !openOnPhone) setOpenOnPhone(true)
+            if ((window.innerWidth <= 980 || folded) && !openOnPhone) setOpenOnPhone(true)
             else setMenu(!menu)
           }}
         >
@@ -246,7 +278,7 @@ export function Left() {
       </div>
       {menu && <CompanyMenu close={() => setMenu(false)} done={() => setOpenOnPhone(false)} />}
       {/* On a phone, picking someone puts the card away: the map is what you came to see, and the sheet below it holds the rest. */}
-      {readOnly ? <ReaderAreas /> : <Readers picked={() => window.innerWidth <= 720 && setOpenOnPhone(false)} />}
+      {readOnly ? <ReaderAreas /> : <Readers picked={() => (window.innerWidth <= 720 || folded) && setOpenOnPhone(false)} />}
     </div>
   )
 }

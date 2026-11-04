@@ -5,7 +5,7 @@
 
 import { figure, monthly, soundingRadius, summarize, townRadius, trustOf, type MoneyPeriod, type MoneySummary } from '../../core/money.ts'
 import type { Cost, Gate, Link, Piece } from '../../core/types.ts'
-import { buildEmptyTerrain, buildLand, buildWaterlines, DESIGN_K, DISTRICTS, HEADINGS_FROM, landBetween, mainGroup, wrapTitle, type DistrictDef, type Land, type Territory } from './layout.ts'
+import { buildEmptyTerrain, buildLand, DESIGN_K, DISTRICTS, HEADINGS_FROM, landBetween, mainGroup, wrapTitle, type DistrictDef, type Land, type Territory } from './layout.ts'
 import type { NeedLevel } from '../../core/status.ts'
 import { drawAvatar, drawNeedDot, drawPin, drawPinHead, drawSymbol, makeWaxSeal } from './symbols.ts'
 import { TileCache } from './tiles.ts'
@@ -115,7 +115,6 @@ interface Rearranging {
   start: number
   land: Land | null
   territories: Territory[]
-  waterlines: Path2D[]
   camFrom: { x: number; y: number; k: number }
   names: Map<string, { x: number; y: number }>
 }
@@ -181,9 +180,6 @@ const FACE = 20
 const FACE_STEP = 24
 const FACE_GAP = 6
 
-/** How far out each water line stands from the shore, in world units. */
-const WATER_LINES = [10, 24, 44]
-
 /** How far above a kind's first row its name stands, in world units, so it moves with the land. */
 const HEADING_ABOVE = 15 / DESIGN_K
 /** Room for the little picture at the start of a kind's line, zoomed out. */
@@ -239,7 +235,6 @@ export class MapView {
   private unsaid = new Map<string, { x: number; y: number; text: string }>()
   private shownNames = new Map<string, string>()
   private familyLevels = new Map<string, number>()
-  private waterlines: Path2D[] = []
   /** 1 when every item stands on its own, 0 when they've gathered into lines. */
   private lodT = 1
   private overview = false
@@ -472,7 +467,7 @@ export class MapView {
     // Another map isn't a move, so it's a cut. Anything else that moves more than one thing moves together, on one clock, so the eye can follow it.
     const rearranged = !otherMap && movedCount > 1
     const redrawn = otherMap || (movedCount > 1 && movedCount >= prev.size * 0.3)
-    const oldLand = { land: this.land, territories: this.territories, waterlines: this.waterlines }
+    const oldLand = { land: this.land, territories: this.territories }
     const oldNames = new Map(this.territories.map((t) => [t.gate, this.nameInWorld(t)]))
     if (redrawn || rearranged) {
       for (const n of this.nodes) {
@@ -503,7 +498,6 @@ export class MapView {
     if (positionsChanged || !this.territories.length) {
       this.land = buildLand(data.gates, this.nodes.map((n) => ({ piece: n.piece, gate: n.piece.gate, x: n.tx, y: n.ty })))
       this.territories = this.land.territories
-      this.waterlines = this.territories.length ? buildWaterlines(this.land, WATER_LINES) : []
       this.townsReady = false
     }
     if (rearranged && !this.reducedMotion && this.w) {
@@ -746,7 +740,8 @@ export class MapView {
     const narrow = this.w <= 720
     // Up to here the card folds away to its heading, so the map has the width.
     const left = this.w <= 980 ? 16 : 300
-    const right = narrow ? 16 : this.rightInset + (this.rightInset > 28 ? 16 : 0)
+    // A panel never changes the scale. See the end of this.
+    const right = narrow ? 16 : 28
     // Below the top controls. Below 1100 the line at top centre drops under them, so there's more to clear.
     // Picked on a phone, a reader's sheet holds what the bar would say, so the map has that room too.
     const top = narrow ? (this.bottomInset ? 72 : 130) : this.w <= 1100 ? 116 : 70
@@ -778,19 +773,16 @@ export class MapView {
         maxY = landBottom
       }
     }
-    // A reader's panel takes a third of the width, and squeezing the whole map into what's left costs every name on it. So the map gives way only as far as its names can stand, and past that it runs on under the panel, the same as the land does anywhere else. Its west side stays clear, because that's where each area has its name.
-    if (!narrow && this.rightInset > 28) {
-      const whole = clamp(Math.min((this.w - left - 44) / (maxX - minX || 1), (this.h - top - bottom) / (maxY - minY || 1)), MIN_K, 0.9)
-      const named = Math.min(whole, DETAIL_K * 1.03)
-      if (k < named) {
-        return { k: named, x: left - minX * named, y: top + (this.h - top - bottom - (maxY - minY) * named) / 2 - minY * named }
-      }
+    const x = left + (this.w - left - right - (maxX - minX) * k) / 2 - minX * k
+    const y = top + (this.h - top - bottom - (maxY - minY) * k) / 2 - minY * k
+    // A reader's panel takes a third of the width, and squeezing the map into what's left costs its names. So the map keeps its scale, the card folds away, and the map slides over into the room that gives. Only as far as it takes for what's on the land to clear the panel, and it's the land's empty west that goes off the sheet if anything has to.
+    if (!narrow && this.rightInset > 28 && this.territories.length) {
+      const held = Math.min(...this.territories.map((t) => t.holds.minX)) * k + x
+      const reach = Math.max(...this.territories.map((t) => t.holds.maxX)) * k + x
+      const over = reach + 16 - (this.w - this.rightInset)
+      return { k, x: x - clamp(over, 0, Math.max(0, held - 16)), y }
     }
-    return {
-      k,
-      x: left + (this.w - left - right - (maxX - minX) * k) / 2 - minX * k,
-      y: top + (this.h - top - bottom - (maxY - minY) * k) / 2 - minY * k,
-    }
+    return { k, x, y }
   }
 
   fit(animated = true) {
@@ -1902,10 +1894,10 @@ export class MapView {
         let cover = t.tipX ? 0 : 0.6 + Math.abs(t.lean) * 0.5
         for (const o of rects) {
           // A kind's name is held with a little padding. What matters here is where its first letter starts, because at a laptop's zoom there's only just room.
-          const dx = Math.max(o.x + (o.heading ? 2 : 0) - hx, 0, hx - (o.x + o.w))
+          const dx = Math.max(o.x - hx, 0, hx - (o.x + o.w))
           const dy = Math.max(o.y - hy, 0, hy - (o.y + o.h))
           // And a kind's name gets a little air: a head touching its first letter reads as one blob.
-          if (Math.hypot(dx, dy) < r + (o.heading ? 3 : 0)) {
+          if (Math.hypot(dx, dy) < r + (o.heading ? 6 : 0)) {
             const own = markIds.get(`${o.x},${o.y}`) === n.piece.id
             // A name or a mark it stood on couldn't be read. A kind's name can better spare it.
             if (!own) cover += o.heading ? 2 : 3
@@ -2480,12 +2472,12 @@ export class MapView {
     // Until there's a copy online, nobody reads anything, so "Read by" would be wrong. It's who the area is for.
     const live = this.data.live
     const lead = live ? 'Read by' : 'For'
-    // One word for one fact across the whole map: where one area hasn't room for "Read by", none of them says it, and the mark and the name still say who.
-    if (names.length === 1) return { ...none, family: 'readers', faces: names, tries: [`${lead} ${names[0]}`, names[0]] }
+    // One form for one fact across the whole map. A bare name under a county's name reads as a label for the county, so it's never that: where the line has no room the mark says who, alone.
+    if (names.length === 1) return { ...none, family: 'readers', faces: names, tries: [`${lead} ${names[0]}`] }
     const shown = names.length === 2 ? `${names[0]} and ${names[1]}` : `${names[0]} and ${names.length - 1} others`
     const first = `${names[0]} and ${names.length - 1} ${names.length === 2 ? 'other' : 'others'}`
     // Names when there's room, a count when there isn't.
-    const count = live ? `${names.length} can read this` : `For ${names.length} readers`
+    const count = `${lead} ${names.length} readers`
     return { ...none, family: 'readers', faces: names, tries: [`${lead} ${shown}`, `${lead} ${first}`, count] }
   }
 
@@ -2543,10 +2535,9 @@ export class MapView {
     const [x, y] = this.gateLabelPos(t)
     const font = `11.5px ${this.sans}`
     const room = this.landRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)
-    // One reader's mark and name say who, so "For" can go before the line reaches a coast. The land's grid is coarse this far out, so it gets some margin.
-    if (faces.length === 1 && text !== faces[0] && this.w <= 720 && this.measure(text, font) > room - 12) return { ...out, text: faces[0] }
-    if (this.measure(text, font) <= room) return { ...out, text }
-    if (faces.length === 1 && this.measure(faces[0], font) <= room) return { ...out, text: faces[0] }
+    // The land's grid is coarse this far out, so a phone's line gets some margin before it reaches a coast.
+    if (this.measure(text, font) <= room - (this.w <= 720 ? 12 : 0)) return { ...out, text }
+    if (faces.length === 1) return { ...out, text: '' }
     // Cut to nothing it would say nothing. Better it runs long.
     return { ...out, text: this.fitLine(text, font, this.neighbourRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)) || text }
   }
@@ -2656,7 +2647,6 @@ export class MapView {
   private drawLand(k: number) {
     const old = this.rearranging
     if (!old) {
-      this.drawWaterlines(k)
       this.drawTerritories(k)
       return
     }
@@ -2669,23 +2659,20 @@ export class MapView {
       layer.width = this.canvas.width
       layer.height = this.canvas.height
     }
-    const paint = (alpha: number, land: Land | null, territories: Territory[], waterlines: Path2D[]) => {
+    const paint = (alpha: number, land: Land | null, territories: Territory[]) => {
       if (alpha <= 0.004 || !land) return
       const sheet = layer.getContext('2d')!
       sheet.setTransform(1, 0, 0, 1, 0, 0)
       sheet.clearRect(0, 0, layer.width, layer.height)
       sheet.setTransform(this.dpr * k, 0, 0, this.dpr * k, this.dpr * this.cam.x, this.dpr * this.cam.y)
-      const keep = { land: this.land, territories: this.territories, waterlines: this.waterlines }
+      const keep = { land: this.land, territories: this.territories }
       this.ctx = sheet
       this.land = land
       this.territories = territories
-      this.waterlines = waterlines
-      this.drawWaterlines(k)
       this.drawTerritories(k)
       this.ctx = main
       this.land = keep.land
       this.territories = keep.territories
-      this.waterlines = keep.waterlines
       main.save()
       main.setTransform(1, 0, 0, 1, 0, 0)
       main.globalAlpha = alpha
@@ -2693,8 +2680,8 @@ export class MapView {
       main.restore()
     }
     // New over old, and quickly: the new land is whole within a few frames, and the old goes straight after. Any slower and the land reads pale where only part of a sheet is showing, with two coasts for a moment.
-    paint(clamp((0.62 - e) * 2.7, 0, 1), old.land, old.territories, old.waterlines)
-    paint(clamp(e * 4, 0, 1), this.land, this.territories, this.waterlines)
+    paint(clamp((0.62 - e) * 2.7, 0, 1), old.land, old.territories)
+    paint(clamp(e * 4, 0, 1), this.land, this.territories)
   }
 
   /** How blue the sea is. All of it when readers have all of it. While they're behind it stays part way, and the tide comes in on Update. */
@@ -2716,17 +2703,8 @@ export class MapView {
     const ctx = this.ctx
     const p = this.palette!
     if (!this.terrain) this.terrain = buildEmptyTerrain(this.w, this.h)
-    ctx.lineWidth = 0.75
-    this.terrain.water.forEach((path, i) => {
-      ctx.strokeStyle = `rgba(${p.inkRGB},${[0.09, 0.06, 0.04][i]})`
-      ctx.stroke(path)
-    })
-    ctx.globalAlpha = 0.6
     ctx.fillStyle = p.land
     ctx.fill(this.terrain.land)
-    ctx.globalAlpha = 1
-    ctx.strokeStyle = `rgba(${p.inkRGB},0.2)`
-    ctx.stroke(this.terrain.land)
   }
 
   private drawGraticule() {
@@ -2751,38 +2729,19 @@ export class MapView {
     ctx.stroke()
   }
 
-  /** Fine lines in the sea, close to the shore, fading as they go out, as an engraver ran them around a coast. Once they'd run together they stop. */
-  private drawWaterlines(k: number) {
-    const ctx = this.ctx
-    const p = this.palette!
-    // A little tone at the shore, as an old sheet has, under the land. It costs one stroke and it can't pinch, because strokes only add up.
-    if (this.land) {
-      ctx.save()
-      ctx.lineJoin = 'round'
-      for (const [width, alpha] of [[26, 0.012], [10, 0.016]] as const) {
-        ctx.strokeStyle = `rgba(${p.inkRGB},${alpha})`
-        ctx.lineWidth = width / k
-        ctx.stroke(this.land.coast)
-      }
-      ctx.restore()
-    }
-    // They close up as the map shrinks, so they fade before they can turn into a double outline.
-    const fade = clamp((k - 0.17) / 0.26, 0, 1)
-    if (fade <= 0) return
-    ctx.lineWidth = 0.75 / k
-    this.waterlines.forEach((line, i) => {
-      ctx.strokeStyle = `rgba(${p.inkRGB},${(p.dark ? [0.18, 0.12, 0.07] : [0.13, 0.085, 0.05])[i] * fade})`
-      ctx.stroke(line)
-    })
-  }
-
-  /** An area's whole edge: the border inside the coast, and the coast inside the area. */
-  private strokeArea(t: Territory) {
+  /** The border of an area, inside the coast. Where it meets the sea, its fill is its edge. */
+  private strokeBorder(t: Territory) {
     const ctx = this.ctx
     ctx.save()
     ctx.clip(t.coast)
     ctx.stroke(t.outer)
     ctx.restore()
+  }
+
+  /** An area's whole edge: the border inside the coast, and the coast inside the area. Only for what has to be picked out from everything else. */
+  private strokeArea(t: Territory) {
+    const ctx = this.ctx
+    this.strokeBorder(t)
     ctx.save()
     ctx.clip(t.outer)
     ctx.stroke(t.coast)
@@ -2794,13 +2753,6 @@ export class MapView {
     const p = this.palette!
     if (!this.land) return
     const line = 0.75 / k
-    // An engraver's shaded coast: the same line again, a little down and to the right, under the land, so it only shows on the side away from the light.
-    ctx.save()
-    ctx.translate(0.9 / k, 1.1 / k)
-    ctx.strokeStyle = `rgba(${p.inkRGB},${p.dark ? 0.5 : 0.55})`
-    ctx.lineWidth = 1.1 / k
-    ctx.stroke(this.land.coast)
-    ctx.restore()
     // The country first, so no sea shows through where two areas meet.
     ctx.fillStyle = p.land
     ctx.fill(this.land.coast)
@@ -2837,7 +2789,7 @@ export class MapView {
     }
     ctx.restore()
 
-    // Borders are dashed and quiet, and the coast is the one firm line, as on any atlas sheet.
+    // The land is its fill against the sea, and nothing is drawn round it. An inked line makes every bend in a coast a thing to look at. Borders are dashed and quiet, and they're the only lines on the land.
     ctx.save()
     ctx.clip(this.land.coast)
     ctx.setLineDash([3.5 / k, 3 / k])
@@ -2845,9 +2797,6 @@ export class MapView {
     ctx.strokeStyle = `rgba(${p.inkRGB},${p.dark ? 0.42 : 0.36})`
     ctx.stroke(this.land.borders)
     ctx.restore()
-    ctx.strokeStyle = `rgba(${p.inkRGB},${p.dark ? 0.5 : 0.56})`
-    ctx.lineWidth = 0.75 / k
-    ctx.stroke(this.land.coast)
 
     // What's coloured wears its colour on its whole edge.
     for (const t of this.territories) {
@@ -2861,13 +2810,14 @@ export class MapView {
       } else if (closedToAll && s < 0.5) {
         ctx.strokeStyle = `rgba(${p.vermilionRGB},0.62)`
         ctx.lineWidth = line
-        this.strokeArea(t)
+        this.strokeBorder(t)
       }
       if (s > 0) {
         const notYet = this.pendingSeal.has(t.gate)
-        ctx.strokeStyle = notYet ? p.alert : `rgba(${p.vermilionRGB},${0.6 * s})`
+        ctx.strokeStyle = notYet ? p.alert : `rgba(${p.vermilionRGB},${0.45 * s})`
         ctx.lineWidth = (notYet ? 2 : 1) / k
-        this.strokeArea(t)
+        if (notYet) this.strokeArea(t)
+        else this.strokeBorder(t)
       }
     }
     for (const t of this.territories) {
@@ -2886,8 +2836,8 @@ export class MapView {
         this.strokeArea(t)
       }
       if (active) {
-        ctx.strokeStyle = `rgba(${p.inkRGB},0.9)`
-        ctx.lineWidth = 1.5 / k
+        ctx.strokeStyle = `rgba(${p.inkRGB},0.72)`
+        ctx.lineWidth = 1.25 / k
         this.strokeArea(t)
       }
     }
@@ -2997,6 +2947,9 @@ export class MapView {
     const towns = this.dollarStyle === 'towns' ? EASE(this.dollarT) : 0
     const tile = tileSize(this.cam.k)
     const icon = iconSize(this.cam.k)
+    const inkRGB = hexToRgb(p.ink)
+    const landRGB = hexToRgb(p.land)
+    const quiet = `rgb(${inkRGB.map((v, i) => Math.round(lerp(landRGB[i], v, p.dark ? 0.62 : 0.56))).join(',')})`
     this.drawWashes(now, tile, icon)
     // What needs you now glows through its land, so it survives shrinking the page.
     for (const n of this.nodes) {
@@ -3058,8 +3011,12 @@ export class MapView {
         ctx.arc(x, y, size * 0.66, 0, Math.PI * 2)
         ctx.fill()
       }
-      ctx.fillStyle = p.ink
+      // What isn't a tool steps back, so the logos and whatever needs you are what the eye lands on. Opaque, because a translucent line goes darker where it crosses itself.
+      const loud = !!this.pinOf(n) || n.piece.id === this.selected || n.piece.id === this.hovered || !!this.highlight?.has(n.piece.id)
+      ctx.fillStyle = loud ? p.ink : quiet
+      ctx.strokeStyle = loud ? p.ink : quiet
       drawSymbol(ctx, n.piece.kind, x, y, size)
+      ctx.strokeStyle = p.ink
 
       if (n.piece.id === this.selected) {
         ctx.lineWidth = 1.25
@@ -3286,7 +3243,9 @@ export class MapView {
           ctx.strokeText(line, x + l.x, ly)
         }
         ctx.globalAlpha = a * fade
-        ctx.fillStyle = l.id === focus ? p.ink : `rgba(${p.inkRGB},0.86)`
+        // Tools and whatever needs you carry the map. Everything else is a step back, still well above what a small word needs.
+        const loud = l.id === focus || n.piece.kind === 'service' || !!this.pinOf(n) || !!this.highlight?.has(n.piece.id)
+        ctx.fillStyle = loud ? p.ink : `rgba(${p.inkRGB},${p.dark ? 0.76 : 0.7})`
         ctx.fillText(line, x + l.x, ly)
       })
       // Worth a look: a dot at the end of the name, so it can only be about this item. Beside the mark, it read as the end of the name before it.
@@ -3481,7 +3440,7 @@ export class MapView {
       // Under the name: who can read it. Prices take this line while they're showing.
       const note = this.areaNote(t.gate)
       const priced = Math.max(this.dollarT, this.subtotalsT)
-      if (note.text && priced < 0.99 && !cutBy(x, y + 6, this.noteWidth(note), 17)) {
+      if ((note.text || note.faces.length) && priced < 0.99 && !cutBy(x, y + 6, this.noteWidth(note), 17)) {
         const fade = 1 - EASE(priced)
         const faces = this.facesWidth(note.faces.length)
         if (faces) this.drawFaces(note.faces, x, y + 13.5, fade * arriving * (this.data.live ? 1 : p.dark ? 0.88 : 0.82), now)

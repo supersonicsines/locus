@@ -130,8 +130,10 @@ export function StatusLine() {
       // Its own key, or React reuses the focused Done button as this Update button, and a second Enter on Done would publish.
       <div key="now" className="status panel is-now" role="alert">
         <button className={`status-open ${rest > 0 && rest === others.length ? 'has-parts' : ''}`} onClick={open} aria-expanded={expanded}>
-          <NeedMark level="now" />
-          <b title={headline}>{headline}</b>
+          <span className="status-head">
+            <NeedMark level="now" />
+            <b title={headline}>{headline}</b>
+          </span>
           {rest > 0 && <span className="status-more">and {rest} more</span>}
           {rest > 0 && rest === others.length && parts(others)}
           <Icon name="chevron" size={13} />

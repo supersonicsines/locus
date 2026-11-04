@@ -174,7 +174,7 @@ Each password has a switch, **Remote access**, that makes the host refuse the la
 
 ## 9. Design
 
-**Look: Atlas.** Cool white paper, ink-black text, engraved-chart hairlines. The company is one country with a coast and water lines, and each gate is a county of it, with dashed borders. Pieces stand in columns by kind, as small ink symbols or real logos, each with its name, so nothing needs a legend. Vermilion means sealed and nothing else: a closed gate carries a wax-seal mark. Full dark mode.
+**Look: Atlas.** Cool white paper, ink-black text, engraved-chart hairlines. The company is one country, its land a plain fill on the sea with nothing drawn round it, and each gate is a county of it, with dashed borders. Pieces stand in columns by kind, as small ink symbols or real logos, each with its name, so nothing needs a legend. Vermilion means sealed and nothing else: a closed gate carries a wax-seal mark. Full dark mode.
 
 **Type.** Lustria (single-weight serif) for the company name, territory names, piece titles and piece body. Geist (sans) for all interface text, numbers and controls. System monospace only for passwords, code and what an agent sees. Fonts ship with the app.
 

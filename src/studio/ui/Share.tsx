@@ -6,7 +6,7 @@ import { pending } from '../../core/status.ts'
 import type { Password } from '../../core/types.ts'
 import { changePassword, clearStatusToasts, copy, newMap, publishAndSay, replacePassword, revokePassword, siteAddress, toast, toggleGateOnPassword } from '../actions.ts'
 import { getState, setState, useStore } from '../store.ts'
-import { Icon, listWords, useEscape, useNarrow, usePanelFocus } from './bits.tsx'
+import { Icon, listWords, useEscape, usePanelFocus } from './bits.tsx'
 import { areasOnMap } from './data.ts'
 
 const onHostedServer = () => getState().server?.mode === 'hosted'
@@ -177,8 +177,6 @@ function PasswordDetail({ pw }: { pw: Password }) {
   const [shown, setShown] = useState(false)
   const [confirming, setConfirming] = useState<null | 'remove' | 'replace'>(null)
   const [more, setMore] = useState(false)
-  // Wherever the card has folded away, its switches aren't beside this panel, so they come with it.
-  const folded = useNarrow(980)
   const agentView = useStore((s) => s.agentView)
   const confirm = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -207,19 +205,13 @@ function PasswordDetail({ pw }: { pw: Password }) {
 
   return (
     <div>
-      {folded ? (
-        <div className="lens-chips" style={{ marginTop: 0 }}>
-          <span className="lens-note">Can read</span>
-          {areas.map((g) => (
-            <button key={g.id} className="lens-chip" role="switch" aria-checked={pw.gates.includes(g.id)} onClick={() => toggleGateOnPassword(pw.id, g.id)}>{g.name}</button>
-          ))}
-        </div>
-      ) : (
-        <p className="hint" style={{ margin: '0 0 12px' }}>
-          {opened.length ? `Can read ${listWords(opened)}. ` : "Can't read anything yet. "}
-          {agentView ? 'Use the switches on the left to change that.' : 'Click an area on the map to change that.'}
-        </p>
-      )}
+      {/* The card folds away while this is open, so its switches come here. */}
+      <div className="lens-chips" style={{ marginTop: 0 }}>
+        <span className="lens-note">Can read</span>
+        {areas.map((g) => (
+          <button key={g.id} className="lens-chip" role="switch" aria-checked={pw.gates.includes(g.id)} onClick={() => toggleGateOnPassword(pw.id, g.id)}>{g.name}</button>
+        ))}
+      </div>
       <button className="btn btn-paper" style={{ width: '100%' }} aria-pressed={agentView} onClick={() => setState({ agentView: !agentView })}>
         {agentView ? 'Hide what they read' : 'See what they read'}
       </button>

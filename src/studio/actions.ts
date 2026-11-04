@@ -371,7 +371,7 @@ export async function replacePassword(id: string) {
   setState({ lens: fresh.id })
   if (v.site && v.published) {
     const ok = await publish({ quiet: true })
-    if (ok) toast(`${pw.name} has a new password, and the old one has stopped working. Connect them again with the new one.`)
+    if (ok) toast(`${pw.name} has a new password, and the old one can't read anything that goes live from now on. Connect them again with the new one.`)
     else if (lastPublishFailure?.code !== 'stale') toast(`${whyNot()} So the old password still works. Press Update to try again.`)
   } else {
     toast(`${pw.name} has a new password.`)

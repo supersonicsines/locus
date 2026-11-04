@@ -685,22 +685,6 @@ function generalise(ring: number[][], sigma: number): number[][] {
   })
 }
 
-/** Grid contours as drawn lines, smoothed along their length. A line taken straight off a grid shows its corners up close. */
-function drawnLines(coords: number[][][][], cell: number, ox: number, oy: number, sigma: number): Path2D {
-  const path = new Path2D()
-  for (const polygon of coords) {
-    for (const ring of polygon) {
-      const placed = ring.map(([x, y]) => [x * cell + ox, y * cell + oy])
-      generalise(resample(placed, 4), sigma).forEach(([x, y], i) => {
-        if (i) path.lineTo(x, y)
-        else path.moveTo(x, y)
-      })
-      path.closePath()
-    }
-  }
-  return path
-}
-
 const normalAt = (ring: number[][], i: number, span: number) => {
   const n = ring.length
   const a = ring[(i + n - span) % n]
@@ -727,12 +711,14 @@ const LAND = {
   heads: [[360, 48, 5], [170, 28, 5]],
   /** Inlets: wavelength, how far in, how narrow. */
   lochs: [[340, 170, 7], [160, 110, 6.5], [74, 46, 4.5], [34, 14, 3]],
-  /** The hand: wavelength and size. */
-  fine: [[9, 1.5], [18, 2.8], [42, 5]],
+  /** How far the finished line is smoothed along its length, in steps of 3.5 world units. The land's edge is a fill against the sea, and small lumps in a fill read as a torn edge. */
+  smooth: 3.2,
+  /** The hand: wavelength and size. Only the slowest of what a pen would do, because nothing inks it now. */
+  fine: [[42, 3]],
   /** Water narrower than twice this between things on the land is filled in, until an inlet says otherwise. */
   closing: world(90),
   /** Water narrower than twice this is land: a firth ends in a head, not a hairline. */
-  narrowest: 13,
+  narrowest: 20,
   /** The shortest coast worth drawing. Anything less is a speck that reads as a stray mark, and nothing on the land is ever this small. */
   shortest: 340,
   /** The least margin around what's on the land, whatever else happens. */
@@ -801,7 +787,7 @@ function stamp(d: Float32Array, rects: Rect[], minX: number, minY: number, size:
  * Where the land is: above zero is land. A coast is one contour of this one field, so whatever is on the land is on the land by construction,
  * because at what's on it the hard margin alone keeps the field above zero, whatever the noise does. Nothing has to be checked afterwards.
  */
-function coastField(rects: Rect[], minX: number, minY: number, n: number, m: number, cell: number, size = 1): Float32Array {
+function coastField(rects: Rect[], minX: number, minY: number, n: number, m: number, cell: number, size = 1, far = 1): Float32Array {
   const t = LAND
   const near = new Float32Array(n * m).fill(1e6)
   stamp(near, rects, minX, minY, cell, n, m)
@@ -828,7 +814,7 @@ function coastField(rects: Rect[], minX: number, minY: number, n: number, m: num
     }
   }
   // In this order, because closing a narrow mouth can leave what's behind it as a lake.
-  closeNarrows(field, n, m, Math.max(1, Math.round(t.narrowest / cell)), cell)
+  closeNarrows(field, n, m, Math.max(1, Math.round((t.narrowest * far) / cell)), cell)
   fillLakes(field, n, m)
   return field
 }
@@ -901,7 +887,7 @@ function untangle(ring: number[][], reach: number): number[][] {
 }
 
 /** The field's zero contour as a drawn coast, with the small unevenness of a hand on the stretches that are busy. */
-function traceCoast(field: Float32Array, minX: number, minY: number, n: number, m: number, cell: number, shortest: number): number[][][] {
+function traceCoast(field: Float32Array, minX: number, minY: number, n: number, m: number, cell: number, shortest: number, far = 1): number[][][] {
   const t = LAND
   const fine = t.fine.map(([length, a], i) => ({ n: groundNoise(t.seed + 41 + i, length), a }))
   const busy = groundNoise(t.seed + 31, 520)
@@ -912,7 +898,7 @@ function traceCoast(field: Float32Array, minX: number, minY: number, n: number, 
     for (let i = 1; i < ring.length; i++) length += Math.hypot(ring[i][0] - ring[i - 1][0], ring[i][1] - ring[i - 1][1])
     // A speck draws the eye and says nothing.
     if (length < shortest) continue
-    const line = generalise(resample(ring, 3.5), 1.3)
+    const line = generalise(resample(ring, 3.5), t.smooth * far)
     const drawn = line.map((p, i) => {
       const [nx, ny] = normalAt(line, i, 3)
       const b = clamp(0.5 + busy(p[0], p[1]) * 1.2, 0.15, 1)
@@ -955,8 +941,10 @@ export function landShape(gates: Gate[], items: { piece: Box['piece']; gate: str
   const n = Math.ceil((right + pad - minX) / cell)
   const m = Math.ceil((bottom + pad - minY) / cell)
   // A few things don't need a country: the land's features are drawn smaller, so it stays about what's on it.
-  const landField = coastField(all, minX, minY, n, m, cell, clamp(longest / 1400, 0.45, 1))
-  const coast = traceCoast(landField, minX, minY, n, m, cell, t.shortest)
+  // A big map is seen from further off, so what's smoothed away and how narrow water may get both grow with it, or its coast crinkles as it shrinks on screen.
+  const far = Math.max(1, longest / 2150)
+  const landField = coastField(all, minX, minY, n, m, cell, clamp(longest / 1400, 0.45, 1), far)
+  const coast = traceCoast(landField, minX, minY, n, m, cell, t.shortest, far)
 
   // The areas, on a coarser grid, because a border has no fine detail. Their fields are read through a slow warp, so a border wanders as one does, and the warp dies away near what's on the land.
   const size = cell * 2
@@ -1144,64 +1132,24 @@ export interface Land {
   territories: Territory[]
   coast: Path2D
   borders: Path2D
-  /** Where the land is, for the water lines. */
-  bounds: { minX: number; maxX: number; minY: number; maxY: number }
 }
 
 /** The country as paths to draw. */
 export function buildLand(gates: Gate[], items: { piece: Box['piece']; gate: string; x: number; y: number }[]): Land {
   const shape = landShape(gates, items)
   const coast = pathOf(shape.coast, true)
-  const flat = shape.coast.flat()
   return {
     coast,
     borders: pathOf(shape.borders, false),
-    bounds: {
-      minX: Math.min(...flat.map((c) => c[0])),
-      maxX: Math.max(...flat.map((c) => c[0])),
-      minY: Math.min(...flat.map((c) => c[1])),
-      maxY: Math.max(...flat.map((c) => c[1])),
-    },
     territories: shape.provinces.map((p) => ({ ...p, outer: pathOf(p.rings, true), coast })),
   }
-}
-
-/**
- * Water lines: the fine lines an engraver ran around a coast, in the sea. They follow the shore closely and relax as they go out.
- * There's only one country, so there's nothing for them to neck against, and in an inlet they simply close up.
- */
-export function buildWaterlines(land: Pick<Land, 'coast' | 'bounds'>, spacing: number[]): Path2D[] {
-  const margin = spacing[spacing.length - 1] + 40
-  const minX = land.bounds.minX - margin
-  const minY = land.bounds.minY - margin
-  const maxX = land.bounds.maxX + margin
-  const maxY = land.bounds.maxY + margin
-  const cell = Math.max(5, Math.max(maxX - minX, maxY - minY) / 520)
-  const n = Math.ceil((maxX - minX) / cell)
-  const m = Math.ceil((maxY - minY) / cell)
-  const canvas = document.createElement('canvas')
-  canvas.width = n
-  canvas.height = m
-  const c = canvas.getContext('2d', { willReadFrequently: true })!
-  c.setTransform(1 / cell, 0, 0, 1 / cell, -minX / cell, -minY / cell)
-  c.fillStyle = '#000'
-  c.fill(land.coast)
-  const pixels = c.getImageData(0, 0, n, m).data
-  const dist = new Float32Array(n * m)
-  for (let i = 0; i < n * m; i++) dist[i] = pixels[i * 4 + 3] > 127 ? 0 : 1e6
-  chamfer(dist, n, m)
-  blur(dist, n, m, 1)
-  // Invert so contours() sees the shore as high ground.
-  const inverted = Array.from(dist, (d) => -d * cell)
-  const lines = contours().size([n, m]).smooth(true).thresholds(spacing.map((d) => -d))(inverted)
-  return lines.filter((l) => l.coordinates.length).map((l) => drawnLines(l.coordinates as number[][][][], cell, minX, minY, 3))
 }
 
 /**
  * The empty map: the same coast, coming in at the corners of the sheet, with open sea in the middle where the words are.
  * Drawn at the scale the map usually opens at, so it's the same hand, and worked out past the edge of the screen, so no line has to turn along the edge.
  */
-export function buildEmptyTerrain(width: number, height: number): { land: Path2D; water: Path2D[] } {
+export function buildEmptyTerrain(width: number, height: number): { land: Path2D } {
   const SCALE = 2
   const W = width * SCALE
   const H = height * SCALE
@@ -1219,7 +1167,7 @@ export function buildEmptyTerrain(width: number, height: number): { land: Path2D
   const across = (f: number) => (f < 0 ? -off : f > 1 ? W + off : f * W)
   const down = (f: number) => (f < 0 ? -off : f > 1 ? H + off : f * H)
   const rects: Rect[] = lumps.map(([a, b, c, d]) => ({ x: across(a), y: down(b), w: across(c) - across(a), h: down(d) - down(b) }))
-  const rings = traceCoast(coastField(rects, -over, -over, n, m, cell), -over, -over, n, m, cell, 120).map((ring) => ring.map(([x, y]) => [x / SCALE, y / SCALE]))
+  const rings = traceCoast(coastField(rects, -over, -over, n, m, cell), -over, -over, n, m, cell, 120, 1.8).map((ring) => ring.map(([x, y]) => [x / SCALE, y / SCALE]))
   const land = pathOf(rings, true)
-  return { land, water: buildWaterlines({ coast: land, bounds: { minX: -over / SCALE, maxX: width + over / SCALE, minY: -over / SCALE, maxY: height + over / SCALE } }, [5, 12, 22]) }
+  return { land }
 }

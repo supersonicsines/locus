@@ -21,8 +21,8 @@ import { NeedsPanel, StatusLine, stillOpenFor, TopRight } from './ui/Top.tsx'
 
 const PALETTES: Record<'light' | 'dark', Palette> = {
   light: {
-    paper: '#eef1f3',
-    liveSea: '#d6e4ef',
+    paper: '#e2e6ea',
+    liveSea: '#cbdfef',
     land: '#fcfdfd',
     sealedLand: '#fcf1ee',
     exposedLand: '#fdf3d4',
@@ -41,7 +41,7 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
   dark: {
     paper: '#0e1319',
     liveSea: '#0c1c2c',
-    land: '#171d25',
+    land: '#1a212a',
     sealedLand: '#2a1d1e',
     exposedLand: '#2e2815',
     alert: '#f5b400',
@@ -209,7 +209,8 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const panel = useStore((s) => s.panel)
   const rightOpen = panel === 'share'
   // In a narrow window the panel floats over the land, because shrinking the map into what's left only makes it unreadable.
-  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 1100 ? 396 : 28), [rightOpen, map])
+  // On a laptop a reader's panel is a little narrower, which is what it takes for everything on the land to clear it at the map's own scale.
+  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 1100 ? (window.innerWidth > 1360 ? 396 : 356) : 28), [rightOpen, map])
 
   useEffect(() => map.current?.setSelected(selected), [selected, map])
   useEffect(() => map.current?.setHighlight(highlight), [highlight, map])
