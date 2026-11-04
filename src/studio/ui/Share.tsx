@@ -192,7 +192,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
         <div className="exposure" role="alert">
           {pw.name} can still read {listWords(stillNames)} until you update.
           <br />
-          <button className="btn btn-ink" disabled={publishing} onClick={() => void publishAndSay()}>
+          <button className="btn btn-ink" aria-busy={publishing} disabled={publishing} onClick={() => void publishAndSay()}>
             {publishing ? 'Updating' : 'Update now'}
           </button>
         </div>
@@ -223,7 +223,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
             <div className="callout" style={{ marginTop: 10 }}>
               The old password stops working on the live map straight away{others}, so whatever uses it has to be connected again. Anything it already read or saved, it keeps.
               <div className="actions">
-                <button className="btn btn-ink" disabled={publishing} onClick={() => void replacePassword(pw.id)}>Make a new password</button>
+                <button className="btn btn-ink" aria-busy={publishing} disabled={publishing} onClick={() => void replacePassword(pw.id)}>Make a new password</button>
                 <button className="btn btn-quiet" onClick={() => setConfirming(null)}>Keep this one</button>
               </div>
             </div>
@@ -237,7 +237,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
       ) : (
         <>
           <p className="hint" style={{ margin: 0 }}>Once this map is live, their password and the steps to connect them will be here.</p>
-          <button className="btn btn-ink" style={{ marginTop: 10 }} disabled={publishing || (!!vault.sample && onHostedServer())} onClick={() => void publishAndSay()}>Go live</button>
+          <button className="btn btn-ink" style={{ marginTop: 10 }} aria-busy={publishing} disabled={publishing || (!!vault.sample && onHostedServer())} onClick={() => void publishAndSay()}>Go live</button>
         </>
       )}
 

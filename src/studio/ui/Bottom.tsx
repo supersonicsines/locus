@@ -20,7 +20,6 @@ export function Cartouche() {
   const notes = priceNotes(content.costs)
   const mult = period === 'year' ? 12 : 1
   const others = s.others.map((o) => formatMoney(o.amount * mult, o.currency))
-  const total = `${s.approximate ? '≈' : ''}${formatMoney(s.total * mult, s.currency)}`
 
   // Each gate's share, drawn like a chart's alternating scale bar.
   const segments = s.byGate.filter((g) => g.share > 0)
@@ -39,15 +38,19 @@ export function Cartouche() {
         </div>
       )}
       <div className="cartouche-inner">
-        <div className="cart-total">
-          {content.costs.every((c) => c.amount === null) ? 'No prices yet' : total}
-          {others.length > 0 && <span className="cart-others"> + {others.join(' + ')}</span>}
-        </div>
+        {/* The total is on the button that opened this, and it follows month and year. Twice on one screen, it's two things to compare. */}
         <div className="cart-per">
-          <span>on tools, every</span>
+          <span>Prices per</span>
           <div className="segmented" role="group" aria-label="Show per">
             <button aria-pressed={period === 'month'} onClick={() => setState({ period: 'month' })}>month</button>
             <button aria-pressed={period === 'year'} onClick={() => setState({ period: 'year' })}>year</button>
+          </div>
+        </div>
+        <div className="cart-style">
+          <span>Show as</span>
+          <div className="segmented" role="group" aria-label="Show prices as">
+            <button aria-pressed={style === 'soundings'} onClick={() => setState({ dollarStyle: 'soundings' })}>Rings</button>
+            <button aria-pressed={style === 'towns'} onClick={() => setState({ dollarStyle: 'towns' })}>Discs</button>
           </div>
         </div>
 
@@ -66,15 +69,19 @@ export function Cartouche() {
         <div className="scale-labels" aria-hidden="true">
           {segments.map((g) => (
             <div key={g.gate} className="scale-label" style={{ width: `${g.share * 100}%` }}>
-              {g.share > 0.3 ? g.name : ''}
+              {/* Whatever fits, so an even spread of areas doesn't leave a bar with no words. */}
+              {g.share * 100 > g.name.length * 2.6 ? g.name : ''}
             </div>
           ))}
         </div>
 
         <p className="cart-note">
+          {/* A phone's button has room for one currency, so the others are said here. */}
+          {others.length > 0 && <span className="cart-also">Plus {others.join(' + ')}. </span>}
           {s.fromInvoices}% from invoices.{' '}
           {notes.length > 0 && (
             <button aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
+              <i className="price-mark" aria-hidden="true" />
               {plural(notes.length, 'price note')}
             </button>
           )}
@@ -94,13 +101,6 @@ export function Cartouche() {
           </ul>
         )}
 
-        <div className="cart-style">
-          <span>Show as</span>
-          <div className="segmented" role="group" aria-label="Show prices as">
-            <button aria-pressed={style === 'soundings'} onClick={() => setState({ dollarStyle: 'soundings' })}>Rings</button>
-            <button aria-pressed={style === 'towns'} onClick={() => setState({ dollarStyle: 'towns' })}>Discs</button>
-          </div>
-        </div>
       </div>
     </div>
   )

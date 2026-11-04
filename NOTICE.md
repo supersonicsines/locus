@@ -1,6 +1,6 @@
 # Notices
 
-Vadere's own code is under the MIT licence, in `LICENSE`. Two things that ship with it are not.
+Vadere's own code is under the MIT licence, in `LICENSE`. Three things that ship with it are not.
 
 ## Service logos
 
@@ -31,3 +31,16 @@ Every file was changed: sanitised, optimised and re-framed so its mark is centre
 ## Fonts
 
 Geist and Lustria ship with the Studio under the SIL Open Font License 1.1. A build copies each font's licence, with its copyright notice, into `dist/studio/licenses/` (`OFL-Geist.txt` and `OFL-Lustria.txt`) from the `@fontsource` packages in `node_modules`, so every copy of the built app carries them. Geist is copyright The Geist Project Authors. Lustria's copyright notice and Reserved Font Name are in its licence file.
+
+## Libraries
+
+The Studio bundles these, and a build copies each one's licence from its package into `dist/studio/licenses/`, so every copy of the built app carries them. The host and CLI have no runtime dependencies.
+
+| Library | Licence | What it does here |
+| --- | --- | --- |
+| [React and React DOM](https://github.com/facebook/react), with scheduler | MIT | The Studio's interface |
+| [PDF.js](https://github.com/mozilla/pdf.js) (`pdfjs-dist`) | Apache 2.0 | Reads PDFs in the browser. Unchanged |
+| [fflate](https://github.com/101arrowz/fflate) | MIT | Reads Word files |
+| [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) | Apache 2.0 | Talks to Claude with your own key |
+| [OpenTelemetry API](https://github.com/open-telemetry/opentelemetry-js), [standardwebhooks](https://github.com/standard-webhooks/standard-webhooks), [@stablelib/base64](https://github.com/StableLib/stablelib), [fast-sha256](https://github.com/dchest/fast-sha256-js) | Apache 2.0, MIT, MIT, Unlicense | Come with the SDK |
+| [d3-contour](https://github.com/d3/d3-contour), with d3-array | ISC | Draws the coast |

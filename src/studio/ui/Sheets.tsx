@@ -13,15 +13,32 @@ import { getState, setState, storage, useStore } from '../store.ts'
 import { newId } from '../../core/seal.ts'
 import { normaliseName, type KnownService } from '../logos/lookup.ts'
 import { allServices, serviceFor, useLogosVersion } from '../logos/store.ts'
-import { Icon, plural, ServiceMark, useEscape } from './bits.tsx'
+import { Icon, plural, ServiceMark, useEscape, usePanelFocus } from './bits.tsx'
 
 function Sheet({ children, onClose, label }: { children: React.ReactNode; onClose?: () => void; label: string }) {
   useEscape(() => onClose?.(), !!onClose)
+  const ref = usePanelFocus<HTMLDivElement>(label)
+  // A sheet interrupts the page, so Tab stays in it, and focus goes back where it came from afterwards.
+  const keepFocus = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab' || !ref.current) return
+    const items = Array.from(ref.current.querySelectorAll<HTMLElement>('button, input, textarea, select, a[href], [tabindex="0"]')).filter((x) => !(x as HTMLButtonElement).disabled && x.offsetParent !== null)
+    if (!items.length) return e.preventDefault()
+    const first = items[0]
+    const last = items[items.length - 1]
+    const at = document.activeElement
+    if (e.shiftKey && (at === first || at === ref.current)) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && at === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
   return (
     <>
       <div className="scrim" onClick={onClose} />
       <div className="sheet-wrap">
-        <div className="sheet" role="dialog" aria-modal="true" aria-label={label}>
+        <div className="sheet" role="dialog" aria-modal="true" aria-label={label} ref={ref} tabIndex={-1} onKeyDown={keepFocus}>
           <div className="sheet-inner">{children}</div>
         </div>
       </div>
@@ -202,7 +219,7 @@ function PublishSheet() {
 
       <div className="actions">
         <button className="btn btn-quiet" disabled={publishing} onClick={close}>Not yet</button>
-        <button className="btn btn-ink" disabled={!ready} onClick={() => void go()} title={!saved ? 'Copy or download your recovery key first' : undefined}>
+        <button className="btn btn-ink" aria-busy={publishing} disabled={!ready} onClick={() => void go()} title={!saved ? 'Copy or download your recovery key first' : undefined}>
           {publishing ? 'Going live' : missing}
         </button>
       </div>
@@ -233,7 +250,7 @@ function SignInSheet() {
       {error && <p style={{ margin: '10px 0 0', color: 'var(--ink)' }} role="alert">{error}</p>}
       <div className="actions">
         <button className="btn btn-quiet" onClick={close}>Cancel</button>
-        <button className="btn btn-ink" disabled={busy || !name.trim() || !looksLikeKey(key.trim()) || !key.trim().startsWith('vdo_')} onClick={() => void go()}>
+        <button className="btn btn-ink" aria-busy={busy} disabled={busy || !name.trim() || !looksLikeKey(key.trim()) || !key.trim().startsWith('vdo_')} onClick={() => void go()}>
           {busy ? 'Signing in' : 'Sign in'}
         </button>
       </div>

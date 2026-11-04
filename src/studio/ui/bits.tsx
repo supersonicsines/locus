@@ -102,7 +102,7 @@ export function NeedActions({ need }: { need: Need }) {
   if (need.kind === 'exposure') {
     return (
       <div className="need-actions">
-        <button className="btn btn-ink" disabled={publishing} onClick={act(() => void publishAndSay())}>{publishing ? 'Updating' : 'Update'}</button>
+        <button className="btn btn-ink" aria-busy={publishing} disabled={publishing} onClick={act(() => void publishAndSay())}>{publishing ? 'Updating' : 'Update'}</button>
       </div>
     )
   }

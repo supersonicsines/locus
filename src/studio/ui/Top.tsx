@@ -6,7 +6,7 @@ import { levelOf, needs, pending, priceNotes, sortNeeds, whatChanged, type Need,
 import { addArea, addPiece, publishAndSay } from '../actions.ts'
 import type { MapView } from '../map/MapView.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon, NeedActions, NeedMark, plural, ServiceMark, useEscape } from './bits.tsx'
+import { Icon, NeedActions, NeedMark, plural, ServiceMark, useEscape, usePanelFocus } from './bits.tsx'
 import { contentOf, placeOf } from './data.ts'
 
 /** How each kind of need reads in the one-line summary. */
@@ -76,6 +76,17 @@ export function StatusLine() {
   const list = sortNeeds(needs(vault))
   const open = () => setState({ panel: panel === 'needs' ? null : 'needs', highlight: null })
   const expanded = panel === 'needs'
+  // The same marks the map wears, beside what they mean, so the line teaches them with no legend. Where there's room for it.
+  const parts = (from: Need[]) => {
+    const asked = from.filter((n) => levelOf(n.kind) === 'decide').length
+    const looks = from.filter((n) => levelOf(n.kind) === 'look').length
+    return (
+      <span className="status-parts">
+        {asked > 0 && <span className="status-part"><NeedMark level="decide" />{asked} to approve</span>}
+        {looks > 0 && <span className="status-part"><NeedMark level="look" />{looks} to look at</span>}
+      </span>
+    )
+  }
 
   // Nothing to say, so it takes up next to nothing. A real need never looks like this.
   if (!list.length) {
@@ -95,13 +106,15 @@ export function StatusLine() {
     // An exposure names who and what, so it says itself. Anything else says how many, and where.
     const headline = worst.kind === 'exposure' ? worst.message.replace(/\.$/, '') : `${SUMMARY[worst.kind](same.length)}${where ? ` in ${where}` : ''}`
     const rest = list.length - (worst.kind === 'exposure' ? 1 : same.length)
+    const others = list.filter((n) => levelOf(n.kind) !== 'now')
     return (
       // Its own key, or React reuses the focused Done button as this Update button, and a second Enter on Done would publish.
       <div key="now" className="status panel is-now" role="alert">
-        <button className="status-open" onClick={open} aria-expanded={expanded}>
+        <button className={`status-open ${rest > 0 && rest === others.length ? 'has-parts' : ''}`} onClick={open} aria-expanded={expanded}>
           <NeedMark level="now" />
           <b title={headline}>{headline}</b>
           {rest > 0 && <span className="status-more">and {rest} more</span>}
+          {rest > 0 && rest === others.length && parts(others)}
           <Icon name="chevron" size={13} />
         </button>
         {worst.kind === 'exposure' && <button className="status-do go-live" aria-busy={publishing} disabled={publishing} onClick={() => void publishAndSay()}>{publishing ? 'Updating' : 'Update'}</button>}
@@ -111,10 +124,11 @@ export function StatusLine() {
 
   return (
     <div key="needs" className="status panel" role="status">
-      <button className="status-open" onClick={open} aria-expanded={expanded}>
+      <button className={`status-open ${levelOf(worst.kind) === 'decide' ? 'has-parts' : ''}`} onClick={open} aria-expanded={expanded}>
         <NeedMark level={levelOf(worst.kind)} />
         <b>Needs you</b>
         <span className="quiet">{summaryOf(list)}</span>
+        {levelOf(worst.kind) === 'decide' && parts(list)}
         <Icon name="chevron" size={13} />
       </button>
     </div>
@@ -134,6 +148,7 @@ const KIND_NAMES: Record<NeedKind, string> = {
 export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
   const vault = useStore((s) => s.vault)
   useEscape(() => setState({ panel: null, highlight: null }))
+  const ref = usePanelFocus<HTMLDivElement>('needs')
   if (!vault) return null
   const list = sortNeeds(needs(vault))
 
@@ -160,7 +175,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0 }} onClick={() => setState({ panel: null, highlight: null })} />
-      <div className="needs-panel panel" role="dialog" aria-label="Things that need you">
+      <div className="needs-panel panel" role="dialog" aria-label="Things that need you" ref={ref} tabIndex={-1}>
         {!list.length && <div className="needs-empty">Nothing needs you.</div>}
         {list.map((n, i) => {
           const where = placeOf(vault, n.pieces, n.gates)

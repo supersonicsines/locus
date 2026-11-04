@@ -174,11 +174,11 @@ Each password has a switch, **Remote access**, that makes the host refuse the la
 
 ## 9. Design
 
-**Look: Atlas.** Cool white paper, ink-black text, engraved-chart hairlines. Territories drawn as topographic contours. Pieces as small ink symbols, with a legend, like a map. Vermilion means sealed and nothing else: a closed gate carries a wax-seal mark. Full dark mode.
+**Look: Atlas.** Cool white paper, ink-black text, engraved-chart hairlines. The company is one country with a coast and water lines, and each gate is a county of it, with dashed borders. Pieces stand in columns by kind, as small ink symbols or real logos, each with its name, so nothing needs a legend. Vermilion means sealed and nothing else: a closed gate carries a wax-seal mark. Full dark mode.
 
 **Type.** Lustria (single-weight serif) for the company name, territory names, piece titles and piece body. Geist (sans) for all interface text, numbers and controls. System monospace only for passwords, code and what an agent sees. Fonts ship with the app.
 
-**The one memorable moment:** flipping a gate closed on a password. The territory seals, its contours hatch over, the wax mark lands, and the links crossing into it fade. Everything else stays quiet so that this moment lands.
+**The one memorable moment:** flipping a gate closed on a password. The county seals, its land turns vermilion-pink and its edge wears the colour, the wax mark lands, and the links crossing into it fade. Everything else stays quiet so that this moment lands.
 
 ## 10. The `$` switch
 
@@ -186,8 +186,8 @@ A switch top right, in the same place as Figma's Dev Mode. It overlays the price
 
 Two options came out of the design debate, and **both get built so the founder can pick**. They split on one question: does money annotate the geography, or replace it?
 
-- **Soundings:** press `$` and nothing moves. Every service's price prints onto the chart like depth soundings, and ink pools where the money is.
-- **Towns:** press `$` and services swell into engraved towns, so the biggest bills are the biggest places on the map.
+- **Rings** (Soundings, in the code): press `$` and every service's price prints onto the chart like depth soundings, and ink pools where the money is.
+- **Discs** (Towns, in the code): press `$` and services swell into engraved towns, so the biggest bills are the biggest places on the map.
 
 Full spec, shared rules and rejected ideas: [design/dollar-overlay.md](design/dollar-overlay.md).
 

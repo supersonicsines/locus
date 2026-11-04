@@ -28,7 +28,7 @@ Open http://localhost:4747 and choose **See an example**.
 
 **Choose who reads what.** Pick a reader and the map shows what they can see. Click an area to seal it. See the exact text an agent gets. Every password has its own keys, so a closed area is cryptography, not a setting.
 
-![Sealing gates](docs/images/seal.png)
+![Seeing the map as one reader](docs/images/seal.png)
 
 **See what it costs.** Click the total to spread the price of every service over the map, from your invoices, your own numbers, or a dated catalog of list prices that always shows as an estimate.
 

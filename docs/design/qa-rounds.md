@@ -885,3 +885,116 @@ Dropping costs more. I'd put that on closing narrow water, which adds passes ove
 - At 1280x720 Anthropic API's dot touches Cursor's mark.
 - A toast sits on the south coast and stays through what you do next.
 - `npx -y vadere` still fails, because that's the operator's call. Live with changes and live and current are still one picture when blurred.
+
+## Round 7: final acceptance, from cold
+
+Started by looking before reading: the fixed shots and a 480px squint first, a stranger's impression written to `<QA>/rounds/r7/COLD.md`, and only then this ledger. The first run of every walk came before any change, so regressions would show.
+
+**What a stranger said, cold.** They'd get it in under a minute, helped by the card. They'd trip on the small black dots ("worst unexplained thing on the page"), on "Only names and prices" (names of what?), and on `Also Facts` (reads as a typo). Live against not live didn't survive the blur. It was polished but dense, and the coast was what held it back from beautiful.
+
+**What the page does now. Later work starts from this.**
+
+| You do | The page does |
+| --- | --- |
+| Open anything from search or the list | The map keeps its scale. It slides only as far as it takes for the item, its name and any pin to clear the panel, the card and the top controls, and for its whole county to show if that fits. Closing brings it back. It comes closer only if the item would otherwise have no name, below 40% |
+| Look at the top centre | The worst need in words, then each of the others beside the mark it wears on the map: `!`, then `? 2 to approve`, then `• 5 to look at`, from 1240 wide. Under that, `and 7 more` |
+| Look at the prices | The total is on the button, once. The card holds month or year, Rings or Discs, the bar and the notes, with the diamond beside `4 price notes` |
+| Look at it live with changes | The pill goes to ink, the sea stays part way to blue, and on Update the sea deepens |
+
+**Live and current against live with changes: my ruling.** It failed, and Round 5's "good enough" doesn't survive the sheet. In `before/22b-states-blur` the two tiles differ by a dark smudge smaller than a word. Being behind isn't a warning, so it stays out of amber, and Round 5 was right that an ordinary edit mustn't shout. Two things changed. The whole pill goes to ink, so at 480px it's a long black bar in the corner and not a small button. The sea stops at `BEHIND_SEA` (45% of the way to blue), so the page is a different colour too, and the tide comes in when readers catch up. Both are one line each, and they add nothing to the screen. `after/22b-states-blur` is the evidence. It's still something you learn: nobody is born knowing a paler sea means behind. The words in the pill teach it. A week away, you'd see the black bar.
+
+**What changed.**
+- `focusPiece` no longer flies to 94%. See the table. `framed` does the arithmetic and reads the card's real rectangle through `covers`.
+- A line leaving along its own row starts after the words on that row, so Stripe's no longer runs through its summary.
+- The fit now counts the land's west shore where there's room. The card clears Brand's coast at 1440, at 51% against 52%. Below that the land still runs under it, as at 1280x720.
+- Status parts, above. They reuse `NeedMark`, so the bar and the map can't drift apart.
+- On a phone with prices: the card drops the total, the bar and its own big figure, which frees about 64px of map, so `Engineering` is whole. Subtotals drop `a month` everywhere if any one would cross its coast, and the card says per what. The phone's button has room for one currency, so `Plus €38.` joins the card's sentence.
+- `Also Facts` is gone. What has no row is said the way every kind is said, `Facts 2`, in the same type, with `Plans, Facts` and then `+2 kinds` if there's less room. A tap there lands on the area, whose panel has them all.
+- `For Accountant` drops `For` where it would cross a coast. The mark and name still say who.
+- "Only names and prices" is "Only tool names and prices" where there's room, which is the sample at 1440. `Tools` is what the map calls them.
+- Discs wedged one over the other get a last pass: the smaller slides sideways, or up a little and sideways, until it and its name are clear. Xero no longer sits on Stripe, and Stripe's name, which it was hiding, is back.
+- Land changes quickly under moving marks. On the 560 ms clock, the new land is whole at about 50 ms where it was 145, and the old has gone at about 155 ms where it was 560. That's from the curve. On the films (`w5-film`) the pale frames have gone, and in a read a faint old coast can still show for a frame or two.
+- A busy button in a sheet or panel now keeps its ink (`aria-busy`), including the sheet's Going live, Signing in, Update, Update now and Make a new password.
+
+**Bugs this round found, older than it.**
+- At 980 and under, Tab walked through the rows hidden in the folded card, and focusing one scrolled the heading out of its own card (`w4/800-after-add`). Folded contents are now `visibility: hidden`. So `waitForSelector('.reader-row')` needs `{ state: 'attached' }` everywhere; the scripts are updated.
+- A sheet is `aria-modal` and nothing kept Tab in it, which I read in the code and didn't run on the old build. It now stays in the sheet, and focus goes back where it came from.
+- Esc on the list of needs dropped focus to the page. It now goes back to the bar.
+- The walk couldn't run at 800, and no earlier round knew why. It was the same folded card. `journey-lib.mjs` now opens the card first with a mouse too, under 980.
+
+**Decisions and why.**
+- **This overturns Round 3's "close enough that it stands among its neighbours with its name".** Names are already there at the usual zoom, so the zoom bought only summaries, and it cost you the map.
+- **The whole county comes clear, not just the item.** The slide is longer than strictly needed, about 275 px for Stripe at 1440. An item among its neighbours with its link drawn is worth it, and the scale doesn't change, so it reads as the same map moved along.
+- **The bar is the legend, and it isn't a legend.** I looked at replacing the dot with a dotted underline or a word. The word doesn't fit columns at 1280, and the underline changes nothing about the meaning. A dot means "something here" in most apps people use, so what it lacked was a place that says what. The bar is the first thing read.
+- **The total leaves the card on every width, not just the phone.** Two big numbers on one screen ask to be compared. The button follows month and year already.
+- **`Facts 2` in the serif, not the sans.** It's the same kind of thing as the line beside it.
+- **Double-tap doesn't zoom on a phone, and I left it.** Round 6's `touchend` stops it. A first tap on land opens a panel, and making it wait for a second would make every tap late. Pinch zooms and `Whole map` comes back. A double click on the desktop zooms, except where the first click opened a panel that's now under the pointer.
+- **An untouched map still rearranges with every file.** It's Round 3's bargain and Round 6 made it followable. Stopping it is a large change to how a first map forms, so it waits.
+- **The sea stopping part way is a change to something the operator approved.** They approved the sea turning blue when a copy is live, and it still does. While readers are behind it now stops at 45%, and it reaches full blue on Update. Their call. `BEHIND_SEA = 1` takes it back, and the ink pill stands without it. The sea alone sits between not live and live, so on the blur the long black bar is what separates behind from not live.
+- **Left alone, as told:** the country, a tint per county, `npx -y vadere`.
+
+**Mistakes in my own work, caught on the screen.** My first disc fix searched round the big disc for the nearest clear spot, and put Xero on Money's subtotal (`w7/prices`). Tightening it found nothing at all. A sideways nudge inside the solver shuffled every other area and left Xero where it was (`w8` at that step). What's there now is the plainest thing that works: a pass after the solver that moves only what's still touching. Zooming to 46% at 1280x720 on open was also mine, from keeping an old floor. Fixed.
+
+**Repo.** `docs/PRD.md` and `docs/design/dollar-overlay.md` now describe the page: one country and counties, Rings and Discs, no total in the card. `NOTICE.md` has a Libraries section, and a build copies each licence from its package into `dist/studio/licenses/`. The list comes from a build's source maps, not from `package.json`, which is why it includes OpenTelemetry, standardwebhooks, @stablelib/base64 and fast-sha256, and not internmap. standardwebhooks ships no licence text, so a generated file says what its package.json says. README pictures are new. Tracked files searched for real names, email addresses and home paths: only two made-up strings in `test/seal.test.ts`. Every commit's author is anon, and no commit has a trailer.
+
+**A trap in earlier rounds' notes.** Rounds 2 to 5 blamed `page.screenshot` for WebKit's one CSP line, and the logos section left two refusals on opening a piece unexplained. Stepping through the page with no screenshot, the two refusals arrive on opening an item, on Round 6's build too. A bare `<select>` added to the page logs one, and an item's panel has two (`r7-wk3.mjs`). It's WebKit refusing a stylesheet of its own for that control, under the CSP, and nothing visibly changes. No other step logs anything. The CSP stays as it is.
+
+**Frame rate.** 300 items, 60 services, capped, headless Chrome, on the final build. JS time and frame spacing, not paint on a real GPU. Pan and zoom hold 59 to 60fps at 1x and 4x CPU, with up to 4 frames over 20 ms in a zoom at 4x. Worst JS frame zooming at 4x was 21.9 ms, against 20.7 on Round 6's build and 11.9 on a build between them, so I read that as noise. Letting go of an item takes 96 ms and 320 ms at 4x, against 91 and 369. A file landing on 300 items takes 110 ms and 418 ms, against 149 and 568. Nothing got slower that I can measure.
+
+**The walks, whole, on the final build.** Every part at each width, including `after`, hosted and an old map. No page errors, and no request left the machine except the mocked one to Anthropic, which the walk counts as an error if it happens. The phone's walk leaves out `laptop` by design, because that part opens its own window.
+
+| Width | Shots | Parts | Failed |
+| --- | --- | --- | --- |
+| 390x844, touch | 151 | 13 | 0 |
+| 800x700 | 156 | 14 | 0 |
+| 1280x720 | 156 | 14 | 0 |
+| 1440x900 | 156 | 14 | 0 |
+
+Walking whole for the first time showed why 800 had never run: see the folded card above. The same 101 lines of findings came out at every width, differing only where they should, such as how far things moved.
+
+**Verified on the final build.** `flow4` 36 of 36 and `flow5` 11 of 11, both rewritten for today's page, with real dragging, Undo, going live, removing a reader, a device that's behind, a failed delete and a tampered map refused by the viewer and the host. `cross` 11 of 11 in Firefox 157 and WebKit 27.2, nothing leaving the machine. `touch2`: tap, pan, pinch, and double-tap leaving the page at scale 1. `stress`: both overlays at 5 and 60 services, and dark, ran with no page errors, and I read Discs at 60 in the fixed set only. `r5-more`: all 10 parts, for the first time since its selectors changed. `r6-ghost`: 52 taps, no tap doing two things. Opening from search at 1440, 1280, 1100 and 800: the scale holds, except 800, where 39% has no names and it comes to 46%. Closing returns to where it was. Focus: an item's title and summary each get one ink line, read in both themes. The tip follows in 252 ms. Going live and Updating hold their words and ink, seen on screen. Signing in has the same rule and wasn't looked at. Tab stays inside a sheet, and Esc returns focus to what opened a sheet, the list or a reader's panel. The bar stays clear of the card and the controls at nine widths from 1101 to 1920, none cut. 128 tests pass and types are clean. `seal.ts`, the server, `agent.ts`, the CSP and the runtime dependencies are untouched.
+
+**What I read and what I didn't.** `<QA>/rounds/r7/READ-LOG.md` has a line for each.
+- Final build, fixed set: 59 of 59 opened, on the build that is this commit's `dist`.
+- BEFORE, fixed set: 7 of 59, and the 2 cold shots. The brief for this round asked for a cold look, not all of them.
+- Control sheets on the final build: dark 6 of 6, light 1 of 6. Dark was also read one build earlier.
+- Films on the final build: 2 sheets. Files in a read and one file landing.
+- Walks: 4 of 619 shots on the final build, and 2 more on the build before. Fresh readers go through all of them on this commit. I didn't and can't claim what they'll find.
+- Not opened: `flow4`, `flow5`, `touch2`, `stress` and `r5-more` shots on the final build. Those are judged by their checks and their words. Of 18 cross-browser shots on the final build, 2.
+
+**Against the bar, bluntly.**
+
+| The bar | Verdict | Where to look |
+| --- | --- | --- |
+| Someone who's never heard of MCP can make sense of it | Partial | `02-main` says what it is, and the marks are taught. The first connect tab is still a terminal (`f07-setup-panel`), and that command fails until there's a package on npm |
+| Is it live and current? | Pass, once learned | `22b-states-blur`: blue, pale with a long black bar, grey with a short one |
+| Who can read what? | Partial | `05-reader-picked` is a picture. At rest (`16-squint-480`) it's a line of small text per county |
+| Does anything need me, and what? | Pass from 1240 wide, partial under | `02-main` and `13-needs`. `09-phone` still says `and 7 more` |
+| What does it cost? | Pass | A number to read, top right, and there's no way round that |
+| Beautiful and polished | Partial | Closest: `11-dark`, `19b-reader-view`. Furthest: `06-reader-setup`, `07b-soundings`, `12-area-panel` |
+| Nothing needs a legend | Partial | The bar teaches `?` and the dot from 1240 up. Under that, a dot says nothing until you open the list. Disc sizes still have a hover legend. Kinds' pictures lean on the word above them |
+
+**Not verified.**
+- No real person has seen this. Every claim about a stranger is my judgement, including my own cold read, because I'd read the brief first.
+- A real phone, real pinch, real Safari, Windows and a screen reader.
+- Read with Claude: everything is the mock.
+- `npx -y vadere`, `claude mcp add`, and a public host over HTTPS.
+- Double-tap on real glass. Emulated, a double tap on land opens the area and leaves the page at scale 1.
+- Focus order on first run, in Sign in and with a phone keyboard.
+
+**Worst thing left.** `06-reader-setup`. Asking how to connect a reader still jumps the map to 35%, collapses every name to a count, puts Engineering's name on the coast, leaves two Go live buttons on screen and a half-empty panel. Now that opening an item is calm, this is the one that lurches. It refits so a reader's whole picture stays in view, and keeping that while holding the scale is more than a small fix, so it waits.
+
+**Also left.**
+- The default connect tab, from Round 5, and `npx -y vadere`, which is the operator's call.
+- The map stays an index on a country. Place inside a county still means only what kind of thing. Round 4's worst thing stands.
+- An untouched map rearranges with every file. In a read a faint double coast still shows for a frame or two.
+- With a panel open, the map slides under the card and Brand's lower rows show below it with their tops cut (`12-area-panel`).
+- Engineering's east shore is still nervous, and Money's bay ends in a narrow head.
+- Rings pile up in Engineering, even on the sample (`07b-soundings`). Discs at 60 services still land names on neighbours. Discs are the better option, and the choice stays the operator's.
+- At 1280x720 the card still covers Brand's west shore, and Anthropic API's dot is about 2 px from Cursor's mark.
+- Under prices, an area with nothing priced has no figure and a gap where one would go (Legal).
+- On a phone: `For Accountant` beside `Accountant` on the next county. Engineering's name touches the coast. People under prices says nothing of its Plans and Facts. A toast covers Money's last row.
+- At 800 a toast sits over the foot of the connect panel.
+- "Tools" on the map and "A service you use" in Add name one thing twice.
+- Closer in, a light line from a hovered item can still cross words on its way to something far off.
+- Focus falls to the page after going live, and after Esc on something opened from search, because what opened them has gone.

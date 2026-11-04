@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toCheck } from '../core/money.ts'
-import { levelOf, needs, sortNeeds, type NeedKind, type NeedLevel } from '../core/status.ts'
+import { levelOf, needs, pending, sortNeeds, type NeedKind, type NeedLevel } from '../core/status.ts'
 import { dismissToast, loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
 import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
@@ -157,6 +157,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const exposed = useMemo(() => exposedAreas(vault), [vault])
   const pricesReadable = useMemo(() => pricesReadableIn(vault, lens), [vault, lens])
   const live = !!view || (!!vault?.published && !!vault.site)
+  const behind = useMemo(() => !view && live && !!vault && pending(vault).changes > 0, [vault, view, live])
   const readerColours = useMemo(() => new Map((vault?.passwords ?? []).map((p, i) => [p.name, readerColour(i)])), [vault])
 
   const readers = useMemo(() => readersByArea(vault), [vault])
@@ -183,13 +184,14 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       exposed,
       pricesReadable,
       live,
+      behind,
       priceChecks,
       sealedToAll,
       readers,
       readerColours,
       readOnly: c?.readOnly ?? false,
     })
-  }, [vault, view, flagged, exposed, pricesReadable, live, priceChecks, sealedToAll, readers, readerColours, map])
+  }, [vault, view, flagged, exposed, pricesReadable, live, behind, priceChecks, sealedToAll, readers, readerColours, map])
 
   const panel = useStore((s) => s.panel)
   const rightOpen = panel === 'share'
@@ -376,7 +378,7 @@ function Locked({ name }: { name: string }) {
           <h1>{name}</h1>
           <p>This map is encrypted. A password opens the parts it's allowed to.</p>
           <input className="field mono" autoFocus placeholder="vdr_" aria-label="Password" spellCheck={false} autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
-          <button className="btn btn-ink" disabled={!key.trim() || busy}>{busy ? 'Opening' : 'Open'}</button>
+          <button className="btn btn-ink" aria-busy={busy} disabled={!key.trim() || busy}>{busy ? 'Opening' : 'Open'}</button>
           <div className="lock-error" role="alert">{error || lockError}</div>
           <p className="lock-note">It decrypts in this browser. The host only stores the encrypted copy. If you're an AI agent, ask your user for the password and read /llms.txt.</p>
         </div>
