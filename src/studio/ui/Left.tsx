@@ -109,7 +109,7 @@ function ReaderRow({ pw, index, live, picked }: { pw: Password; index: number; l
       <button className="reader-row" aria-expanded={on} onClick={pick}>
         <ReaderMark name={pw.name} index={index} size={22} />
         <span className="reader-name">{pw.name}</span>
-        <span className="reader-count">{count ? `${count} of ${plural(gates.length, 'area')}` : 'Nothing yet'}</span>
+        <span className="reader-count" title={count ? `${count} of ${plural(gates.length, 'area')}` : undefined}>{count ? `${count} of ${gates.length}` : 'Nothing yet'}</span>
       </button>
       {on && (
         <div className="reader-more">
@@ -147,7 +147,7 @@ function Readers({ picked }: { picked: () => void }) {
     <>
       {live ? (
         <button className="left-about is-live" title="Copy the address" onClick={() => void copy(address, 'Address copied.')}>
-          <span>Live at {address.replace(/^https?:\/\//, '')}</span>
+          <span>{address.replace(/^https?:\/\//, '')}</span>
           <Icon name="copy" size={13} />
         </button>
       ) : (
@@ -244,8 +244,10 @@ export function Left() {
   const [menu, setMenu] = useState(false)
   const [openOnPhone, setOpenOnPhone] = useState(false)
   // A reader's panel holds what the card holds about them, so one of them is enough: the card folds to its heading, and the map has the room. A narrow window folds it anyway.
+  // With an item or an area open, that's what you're working on, so the card folds then too and leaves the land to the left of the panel uncovered.
   const panel = useStore((s) => s.panel)
-  const folded = panel === 'share'
+  const itemOpen = useStore((s) => !!s.selected)
+  const folded = panel === 'share' || panel === 'area' || itemOpen
   const box = useFoldMotion(folded)
   useEffect(() => {
     setOpenOnPhone(false)
@@ -271,7 +273,7 @@ export function Left() {
             {!readOnly && !readerCount ? (
               <span className="company-fold is-ask"><Icon name="plus" size={11} /> Add a reader</span>
             ) : (
-              <span className="company-fold">{readOnly ? `You can read ${plural(areaCount, 'area')}` : plural(readerCount, 'reader')}</span>
+              <span className="company-fold">{sample && <span className="fold-sample">Sample · </span>}{readOnly ? `You can read ${plural(areaCount, 'area')}` : plural(readerCount, 'reader')}</span>
             )}
           </span>
           {sample && <span className="tag">Sample</span>}
@@ -283,7 +285,7 @@ export function Left() {
       </div>
       {menu && <CompanyMenu close={() => setMenu(false)} done={() => setOpenOnPhone(false)} />}
       {/* On a phone, picking someone puts the card away: the map is what you came to see, and the sheet below it holds the rest. */}
-      {readOnly ? <ReaderAreas /> : <Readers picked={() => (window.innerWidth <= 720 || folded) && setOpenOnPhone(false)} />}
+      {readOnly ? <ReaderAreas /> : <Readers picked={() => (window.innerWidth <= 980 || folded) && setOpenOnPhone(false)} />}
     </div>
   )
 }

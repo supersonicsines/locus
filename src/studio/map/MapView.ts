@@ -196,7 +196,10 @@ const tileSize = (k: number) => Math.round(clamp(25 * Math.sqrt(k), 15, 30))
 
 /** Any other item's picture, in screen pixels. */
 const iconSize = (k: number) => Math.round(clamp(19.5 * Math.sqrt(k), 14, 20))
-const LABEL_LEADING = 14
+const LABEL_LEADING = 15
+/** An area's name is the top layer of the map, so it's the heaviest word on it. A mono already gives every letter a full cell, so it takes only a breath of tracking. */
+const AREA_NAME_WEIGHT = 500
+const AREA_NAME_TRACK = 0.035
 
 /** Names step down a size just before the map gathers them up, which gives a laptop's whole-map view room for every one. */
 const nameSize = (k: number) => (k < DESIGN_K * 0.92 ? 11 : 12)
@@ -215,9 +218,11 @@ const DETAIL_K = DESIGN_K * 0.8
  * behind the wave, then what's on the land. Once per page load, never under reduced motion, and the map can be used throughout.
  */
 const SURVEY_MS = 1500
-const SURVEY_LAND = { at: 40, for: 980 }
+const SURVEY_LAND = { at: 40, for: 820 }
 const SURVEY_NAMES = { at: 240, spread: 520, for: 520 }
 const SURVEY_ITEMS = { at: 380, spread: 620 }
+/** The seals are pressed last, once the land and its names are down: sealing is what this map is for, so it's the closing beat. */
+const SURVEY_SEALS = { at: SURVEY_MS - 520, for: 300 }
 /** Before there's a map, the graticule draws itself out from the middle. */
 const EMPTY_MS = 1300
 const BEHIND_SEA = 0.45
@@ -794,7 +799,7 @@ export class MapView {
     // Below the top controls. Below 1240 the line at top centre drops under them, so there's more to clear.
     // Picked on a phone, a reader's sheet holds what the bar would say, so the map has that room too.
     const top = narrow ? (this.bottomInset ? 80 : 144) : this.w <= 1240 ? 134 : 84
-    const bottom = narrow ? (this.bottomInset || (this.subtotalsOn ? 164 : 80)) : 40
+    const bottom = this.bottomInset || (narrow ? (this.subtotalsOn ? 164 : 80) : 40)
     // A small map sits at a size where its words and its land still go together, and doesn't balloon to fill the screen.
     const kFor = (fromX: number, toX: number, fromY: number, toY: number) => clamp(Math.min((this.w - left - right) / (toX - fromX || 1), (this.h - top - bottom) / (toY - fromY || 1)), MIN_K, 0.9)
     let k = kFor(minX, maxX, minY, maxY)
@@ -921,7 +926,7 @@ export class MapView {
 
   private clampZoom(k: number) {
     // A little past the whole map and no further. Names don't shrink, so beyond this they'd only land on each other, and there's nothing out there to see.
-    const floor = this.dollarOn && this.dollarStyle === 'towns' ? Math.min(this.fitK, this.overlayK) : Math.max(MIN_K, this.fitK * 0.6)
+    const floor = this.dollarOn && this.dollarStyle === 'towns' ? Math.min(this.fitK, this.overlayK) : Math.max(MIN_K, this.fitK * 0.8)
     return clamp(k, floor, MAX_K)
   }
 
@@ -1241,6 +1246,7 @@ export class MapView {
 
   private onWheel = (e: WheelEvent) => {
     e.preventDefault()
+    const heading = this.camTarget
     this.camTarget = null
     this.userMoved = true
     this.slidOver = 0
@@ -1265,10 +1271,21 @@ export class MapView {
       // Scrolling zooms, about the point under the pointer, as on a map. A mouse wheel moves in notches, so the zoom eases between them and that point stays put the whole way.
       const px = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1
       const dy = clamp(e.deltaY * px, -160, 160)
-      const k = this.clampZoom((this.wheelZoom?.k ?? this.cam.k) * Math.exp(-dy * 0.0026))
+      const k = this.clampZoom((this.wheelZoom?.k ?? heading?.k ?? this.cam.k) * Math.exp(-dy * 0.0026))
       const [wx, wy] = this.toWorld(x, y)
-      if (this.reducedMotion) {
-        this.cam = { k, x: x - wx * k, y: y - wy * k }
+      const held = { k, x: x - wx * k, y: y - wy * k }
+      if (k < this.fitK - 0.001) {
+        // Out past the whole map there's nothing more to see, so it drifts back to the middle as it goes, and a map zoomed out from a corner isn't left in it.
+        const f = this.computeFit()
+        const r = k / f.k
+        const middle = { k, x: this.w / 2 + (f.x - this.w / 2) * r, y: this.h / 2 + (f.y - this.h / 2) * r }
+        const t = clamp((this.fitK - k) / (this.fitK * 0.15), 0, 1)
+        const to = { k, x: lerp(held.x, middle.x, t), y: lerp(held.y, middle.y, t) }
+        this.wheelZoom = null
+        if (this.reducedMotion) this.cam = to
+        else this.camTarget = to
+      } else if (this.reducedMotion) {
+        this.cam = held
         this.wheelZoom = null
       } else this.wheelZoom = { k, sx: x, sy: y, wx, wy }
       this.cb.cameraChanged(k, this.fitK)
@@ -2471,14 +2488,15 @@ export class MapView {
   }
 
   private gateLabelSize() {
-    return clamp(18.5 + 8 * (this.cam.k - 0.4), 17, 28)
+    // A phone's counties are narrow, so a name may set a little smaller there before it has to be cut.
+    return clamp(18.5 + 8 * (this.cam.k - 0.4), this.w <= 720 ? 15.5 : 17, 28)
   }
 
   private nameWidth(name: string): number {
     const size = this.gateLabelSize()
-    this.ctx.font = `${size}px ${this.sans}`
+    this.ctx.font = `${AREA_NAME_WEIGHT} ${size}px ${this.sans}`
     const c = this.ctx as CanvasRenderingContext2D & { letterSpacing?: string }
-    if ('letterSpacing' in c) c.letterSpacing = `${(size * 0.1).toFixed(1)}px`
+    if ('letterSpacing' in c) c.letterSpacing = `${(size * AREA_NAME_TRACK).toFixed(1)}px`
     const w = this.ctx.measureText(name).width
     if ('letterSpacing' in c) c.letterSpacing = '0px'
     return w
@@ -2550,7 +2568,7 @@ export class MapView {
       if (this.pendingSeal.has(gate)) return { ...none, tries: ['Can read until you update'], exposed: true }
       if (!this.data.pricesReadable.has(gate)) return { ...none, tries: ["Can't read"], sealed: true }
       // Money shows each service's name, plan and price, so "prices" alone would understate it. The area's panel spells it out.
-      return { ...none, family: 'lens-prices', tries: ["Can't read, except tool names and prices", 'Tool names and prices only', 'Tools and prices only'], sealed: true }
+      return { ...none, family: 'lens-prices', tries: ["Can't read, except tool names and prices", 'Tool names and prices only', 'Names and prices only'], sealed: true }
     }
     // Everyone's mark stays beside the warning. The words are about one fact, and the map may never understate who can read.
     const exposed = this.data.exposed.get(gate)
@@ -2559,8 +2577,8 @@ export class MapView {
     if (this.data.sealedToAll.has(gate)) {
       // Money lists every service's name and price, so an area of services is only closed apart from those.
       if (!this.data.pricesReadable.has(gate)) return { ...none, family: 'closed', tries: ['No one can read this', 'No readers'], sealed: true }
-      const end = this.data.live ? ' can be read' : ', once live'
-      return { ...none, family: 'prices', tries: [`Only tool names and prices${end}`, 'Tool names and prices only', 'Tools and prices only'], sealed: true }
+      // The same words live or not, and at every zoom: whether it's live is the top right's to say.
+      return { ...none, family: 'prices', tries: ['Tool names and prices only', 'Names and prices only', 'Names and prices'], sealed: true }
     }
     const names = this.data.readers.get(gate) ?? []
     if (!names.length) return { ...none, tries: [''] }
@@ -2571,8 +2589,8 @@ export class MapView {
     if (names.length === 1) return { ...none, family: 'readers', faces: names, tries: [`${lead} ${names[0]}`] }
     const shown = names.length === 2 ? `${names[0]} and ${names[1]}` : `${names[0]} and ${names.length - 1} others`
     const first = `${names[0]} and ${names.length - 1} ${names.length === 2 ? 'other' : 'others'}`
-    // Names when there's room, a count when there isn't.
-    const count = `${lead} ${names.length} readers`
+    // Names when there's room, a count when there isn't. The count stands alone: "for" or "read by" 2 readers only says readers twice.
+    const count = `${names.length} readers`
     return { ...none, family: 'readers', faces: names, tries: [`${lead} ${shown}`, `${lead} ${first}`, count] }
   }
 
@@ -2580,7 +2598,7 @@ export class MapView {
   private familyLevel(family: string): number {
     const had = this.familyLevels.get(family)
     if (had !== undefined) return had
-    const font = `11.5px ${this.sans}`
+    const font = `12px ${this.sans}`
     let level = 0
     for (const t of this.territories) {
       const line = this.lineFor(t.gate)
@@ -2628,13 +2646,15 @@ export class MapView {
     const t = this.territories.find((o) => o.gate === gate)
     if (!t || !text) return { ...out, text }
     const [x, y] = this.gateLabelPos(t)
-    const font = `11.5px ${this.sans}`
+    const font = `12px ${this.sans}`
     const room = this.landRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)
     // The land's grid is coarse this far out, so a phone's line gets some margin before it reaches a coast.
     if (this.measure(text, font) <= room - (this.w <= 720 ? 12 : 0)) return { ...out, text }
     // Past a border or a coast it reads as the next county's, so where there are marks they say who, alone.
     // A warning to more than one keeps its words, short as they get, as it did before.
     if (faces.length === 1 || (faces.length > 1 && !exposed)) return { ...out, text: '' }
+    // A sealed line is never cut: half a warning under a seal reads as a broken one, so it stays whole, in its shortest form, and runs long.
+    if (sealed) return { ...out, text }
     // With no marks, cut to nothing it would say nothing. Better it runs long.
     return { ...out, text: this.fitLine(text, font, this.neighbourRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)) || text }
   }
@@ -2644,7 +2664,7 @@ export class MapView {
   }
 
   private noteWidth(note: { text: string; faces: string[] }): number {
-    return this.facesWidth(note.faces.length) + (note.text ? this.measure(note.text, `11.5px ${this.sans}`) : 0)
+    return this.facesWidth(note.faces.length) + (note.text ? this.measure(note.text, `12px ${this.sans}`) : 0)
   }
 
   /** Readers' marks in a row, side by side, so each can be read. */
@@ -2729,6 +2749,13 @@ export class MapView {
     return EASE(clamp((this.frameNow - s.start - at - d * spread) / length, 0, 1))
   }
 
+  /** How far the seals have been pressed in the survey, 0 to 1. 1 when there's no survey. */
+  private sealPressed(): number {
+    const s = this.survey
+    if (!s) return 1
+    return EASE(clamp((this.frameNow - s.start - SURVEY_SEALS.at) / SURVEY_SEALS.for, 0, 1))
+  }
+
   /** The land, inked in from the middle: drawn whole on its own sheet, then cut by a soft-edged circle that grows until it holds everything. */
   private drawLandSurveyed(k: number) {
     const s = this.survey!
@@ -2755,7 +2782,8 @@ export class MapView {
     this.ctx = main
     // Ink spreads fast and then slows as it soaks in, and its edge is soft.
     const e = 1 - Math.pow(1 - spread, 2.4)
-    const feather = s.reach * 0.42
+    // A front you can see move, not a fog: about 50 px of soft edge on screen.
+    const feather = Math.min(s.reach * 0.1, 56 / k)
     const r = e * (s.reach * 1.08 + feather)
     const [cx, cy] = this.toScreen(s.cx, s.cy)
     sheet.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
@@ -3048,8 +3076,8 @@ export class MapView {
         this.strokeArea(t)
       }
       if (active) {
-        ctx.strokeStyle = `rgba(${p.inkRGB},0.72)`
-        ctx.lineWidth = 1.25 / k
+        ctx.strokeStyle = `rgba(${p.inkRGB},0.6)`
+        ctx.lineWidth = 1.1 / k
         this.strokeArea(t)
       }
     }
@@ -3168,7 +3196,8 @@ export class MapView {
       if (this.pinOf(n) !== 'now' || n.alpha < 0.01 || n.appear <= 0) continue
       const [wx, wy] = this.displayPos(n)
       const [x, y] = this.toScreen(wx, wy)
-      const r = clamp(46 * Math.sqrt(this.cam.k), 30, 60)
+      // Tight enough to stay on its own word, not a smudge across the next one's.
+      const r = clamp(30 * Math.sqrt(this.cam.k), 20, 38)
       const land = this.territories.find((t) => t.gate === n.piece.gate)
       ctx.save()
       // It stays on its own land, because it's about this area and not the sea.
@@ -3180,7 +3209,7 @@ export class MapView {
         ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
       }
       const glow = ctx.createRadialGradient(x, y, 0, x, y, r)
-      glow.addColorStop(0, `rgba(${p.alertRGB},${0.5 * n.alpha * clamp(n.appear, 0, 1)})`)
+      glow.addColorStop(0, `rgba(${p.alertRGB},${0.36 * n.alpha * clamp(n.appear, 0, 1)})`)
       glow.addColorStop(1, `rgba(${p.alertRGB},0)`)
       ctx.fillStyle = glow
       ctx.beginPath()
@@ -3513,7 +3542,7 @@ export class MapView {
       if (this.data.flagged.get(n.piece.id) === 'look' && !this.dollarOn && !this.overview && l.align === 'left') {
         const last = lines[lines.length - 1]
         ctx.globalAlpha = a
-        drawNeedDot(ctx, x + l.x + ctx.measureText(last).width + 5, y + l.y + (lines.length - 1) * leading - 3.5, 2.25, p.ink, ground)
+        drawNeedDot(ctx, x + l.x + ctx.measureText(last).width + 7, y + l.y + (lines.length - 1) * leading - 3.5, 2.6, p.ink, ground)
       }
       if (l.sub) {
         const sy = y + l.y + lines.length * leading
@@ -3544,6 +3573,7 @@ export class MapView {
     const dim = (this.highlight ? 0.14 : focused ? 0.34 : 1) * landing
     const font = this.districtFont()
     const c = ctx as CanvasRenderingContext2D & { letterSpacing?: string }
+    const lined = !!this.selected || !!this.hovered || !!this.highlight
     ctx.textBaseline = 'alphabetic'
     ctx.textAlign = 'left'
     // As with a county's name and an item's: half a heading by the card's edge reads as "ools", so it waits until it's clear.
@@ -3552,7 +3582,8 @@ export class MapView {
       const seen = (d.named ? 1 - gathered * (d.hidden ? 1 : 0) : d.hidden ? 0 : gathered) * money * (1 - (this.seal.get(d.gate) ?? 0)) * dim
       if (seen < 0.01) continue
       const [x, y] = this.districtPos(d, 1 - gathered)
-      const surveyed = this.surveyAt(x, y, SURVEY_NAMES.at + 80, SURVEY_NAMES.spread, SURVEY_NAMES.for)
+      // A heading comes up a beat before its first row, not before the whole column.
+      const surveyed = this.surveyAt(x, y, SURVEY_ITEMS.at - 40, SURVEY_ITEMS.spread, 280)
       if (surveyed <= 0) continue
       const shown = seen * surveyed
       ctx.font = font
@@ -3573,7 +3604,9 @@ export class MapView {
       ctx.fillStyle = `rgba(${p.inkRGB},${nudge.warm ? 0.72 : lerp(0.62, hot ? 1 : 0.74, gathered)})`
       ctx.globalAlpha = shown
       if ('letterSpacing' in c) c.letterSpacing = '0.4px'
-      ctx.fillText(d.def.name, x + icon + nudge.dx, y)
+      // When lines are showing, a heading keeps its ground as names do, so a line passes under it and never strikes it through.
+      if (lined) this.haloText(d.def.name, x + icon + nudge.dx, y, 3, this.groundOf(d.gate))
+      else ctx.fillText(d.def.name, x + icon + nudge.dx, y)
       const width = ctx.measureText(d.def.name).width
       if ('letterSpacing' in c) c.letterSpacing = '0px'
       if (gathered > 0.01) {
@@ -3699,8 +3732,8 @@ export class MapView {
 
       const arriving = (this.rearranging && !this.rearranging.names.has(t.gate) ? clamp((this.rearrangeT - 0.5) / 0.5, 0, 1) : 1) * surveyed
       ctx.globalAlpha = arriving
-      ctx.font = `${size}px ${this.sans}`
-      if ('letterSpacing' in c) c.letterSpacing = `${(size * 0.1).toFixed(1)}px`
+      ctx.font = `${AREA_NAME_WEIGHT} ${size}px ${this.sans}`
+      if ('letterSpacing' in c) c.letterSpacing = `${(size * AREA_NAME_TRACK).toFixed(1)}px`
       // Closed here but still readable out there isn't sealed yet, so its name stays ink.
       ctx.fillStyle = s > 0.5 && !this.pendingSeal.has(t.gate) ? p.vermilion : p.ink
       this.haloText(shown, x, y, 5, ground)
@@ -3716,7 +3749,7 @@ export class MapView {
         if (faces) this.drawFaces(note.faces, x, y + 13.5, fade * arriving * (this.data.live ? 1 : p.dark ? 0.88 : 0.82), now)
         ctx.globalAlpha = fade * arriving
         ctx.textAlign = 'left'
-        ctx.font = `${note.exposed ? '500 ' : ''}11.5px ${this.sans}`
+        ctx.font = `${note.exposed ? '500 ' : ''}12px ${this.sans}`
         ctx.fillStyle = note.sealed ? p.vermilionInk : note.exposed ? p.ink : `rgba(${p.inkRGB},0.68)`
         this.haloText(note.text, x + faces, y + 17.5, 4, ground)
         ctx.globalAlpha = 1
@@ -3733,9 +3766,13 @@ export class MapView {
         const onLine = !besideName && priced < 0.5 && this.landRoom(t, x, y + 6, y + 23) >= this.noteWidth(note) + 6 + (sealHere ? 20 : 15)
         const after = x + nameW + 8
         // A gate no password opens carries a small seal, even with no lens on. Where it fits nowhere, the word in vermilion under the name still says so.
-        if (sealHere) {
-          if (besideName) ctx.drawImage(this.waxSeal(26), after, y - 19, 26, 26)
-          else if (onLine) ctx.drawImage(this.waxSeal(20), lineEnd, y + 3, 20, 20)
+        const pressed = this.sealPressed()
+        if (sealHere && pressed > 0) {
+          ctx.globalAlpha = pressed
+          const grow = lerp(1.3, 1, pressed)
+          if (besideName) ctx.drawImage(this.waxSeal(26), after + 13 - 13 * grow, y - 6 - 13 * grow, 26 * grow, 26 * grow)
+          else if (onLine) ctx.drawImage(this.waxSeal(20), lineEnd + 10 - 10 * grow, y + 13 - 10 * grow, 20 * grow, 20 * grow)
+          ctx.globalAlpha = 1
         }
         // A closed area someone can still read wears the same pin as anything else that needs you now.
         if (pinHere) {
@@ -3756,12 +3793,12 @@ export class MapView {
       }
 
       // The wax mark lands on a closed gate.
-      if (s > 0.01 && !this.pendingSeal.has(t.gate)) {
+      if (s > 0.01 && !this.pendingSeal.has(t.gate) && this.sealPressed() > 0) {
         const landed = this.sealLanded.get(t.gate)
         const age = landed ? (now - landed) / 340 : 1
         const land = this.reducedMotion ? 1 : EASE(clamp(age, 0, 1))
         const waxSize = 44
-        const scale = lerp(1.55, 1, land)
+        const scale = lerp(1.55, 1, land) * lerp(1.3, 1, this.sealPressed())
         const wax = this.waxSeal(waxSize)
         const cx = (t.holds.minX + t.holds.maxX) / 2
         const cy = (t.holds.minY + t.holds.maxY) / 2
@@ -3770,7 +3807,7 @@ export class MapView {
         const [, nameAt] = this.gateLabelPos(t)
         const sy = Math.max(middle, nameAt + 24 + waxSize / 2)
         const draw = waxSize * scale
-        ctx.globalAlpha = Math.min(1, s * 2) * (landed ? land : s)
+        ctx.globalAlpha = Math.min(1, s * 2) * (landed ? land : s) * this.sealPressed()
         ctx.drawImage(wax, sx - draw / 2, sy - draw / 2, draw, draw)
         ctx.globalAlpha = 1
       }

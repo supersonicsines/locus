@@ -48,7 +48,7 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
         { id: 'new-pw', group: 'Actions', title: 'Add a reader', run: () => { setState({ panel: 'share', area: null }); createPassword() } },
         { id: 'add-files', group: 'Actions', title: 'Add documents', run: () => document.getElementById('add-files')?.click() },
         { id: 'add-piece', group: 'Actions', title: 'Add a note', run: () => addPiece() },
-        { id: 'add-service', group: 'Actions', title: 'Add a service', run: () => setState({ sheet: { kind: 'add-service' } }) },
+        { id: 'add-service', group: 'Actions', title: 'Add a tool', run: () => setState({ sheet: { kind: 'add-service' } }) },
         { id: 'add-area', group: 'Actions', title: 'Add an area', run: () => addArea() },
         { id: 'needs', group: 'Actions', title: 'Things that need you', run: () => setState({ panel: 'needs' }) },
         // People look for how to hand this over by what it's made of, so these answer to those words too.
@@ -124,7 +124,8 @@ export function CommandK({ map }: { map: React.RefObject<MapView | null> }) {
   let lastGroup = ''
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 39 }} onClick={close} />
+      {/* The same scrim as every other sheet, so the palette stands off the map's words instead of tangling with them. */}
+      <div className="scrim cmdk-scrim" onClick={close} />
       <div className="cmdk panel" role="dialog" aria-label="Search and actions">
         <input
           autoFocus

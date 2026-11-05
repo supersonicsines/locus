@@ -307,7 +307,7 @@ export function Peek() {
           {piece.kind === 'service' && piece.mcp?.approved && (
             <>
               <dt>MCP server</dt>
-              <dd className="mono" style={{ fontSize: 11.5 }}>{piece.mcp.url}</dd>
+              <dd className="mono">{piece.mcp.url}</dd>
             </>
           )}
         </dl>

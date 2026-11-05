@@ -18,8 +18,8 @@ const MARK = world(18)
 const TO_NAME = world(5)
 const GUTTER = world(17)
 const ROW = world(22)
-// Two lines of a name take 14 px more than one, so a tall row is 13 px taller and the gap under it is the same.
-const ROW_TALL = world(35)
+// Two lines of a name take 15 px more than one, so a tall row is 14 px taller and the gap under it is the same.
+const ROW_TALL = world(36)
 const HEADING = world(18)
 const BLOCK_GAP = world(11)
 const COLUMN_GAP = world(22)
@@ -53,7 +53,7 @@ export const districtOf = (kind: PieceKind): DistrictDef => districtOfKind.get(k
  * A long name breaks onto two lines, as on a printed map, at whichever word balances them best.
  * Past two lines it stops at a word. Hover or click for the whole of it.
  */
-const LINE_CHARS = 21
+const LINE_CHARS = 24
 export function wrapTitle(title: string): { lines: string[]; cut: boolean } {
   if (title.length <= LINE_CHARS) return { lines: [title], cut: false }
   const words = title.split(' ')

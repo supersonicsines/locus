@@ -1,6 +1,6 @@
 // Top centre: the one thing worth saying right now, as loud as it deserves. Top right: what it costs, adding to the map, and whether it's live.
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { formatMoney, summarize } from '../../core/money.ts'
 import { levelOf, needs, pending, priceNotes, sortNeeds, whatChanged, type Need, type NeedKind } from '../../core/status.ts'
 import { addArea, addPiece, clearPlainToasts, newMap, publishAndSay, toast } from '../actions.ts'
@@ -22,19 +22,101 @@ const SUMMARY: Record<NeedKind, (n: number) => string> = {
   stale: (n) => `${n} out of date`,
 }
 
-/** The worst few kinds by name, then how many more. A count alone tells you nothing. */
+/** What's waiting, in the same two words the marks on the map stand for, wherever it's said. The list says what each one is. */
 function summaryOf(list: Need[]): string {
-  const groups: [NeedKind, number][] = []
-  for (const n of sortNeeds(list)) {
-    const last = groups[groups.length - 1]
-    if (last?.[0] === n.kind) last[1]++
-    else groups.push([n.kind, 1])
-  }
-  const shown = groups.slice(0, 3)
-  const rest = groups.slice(3).reduce((sum, g) => sum + g[1], 0)
-  const words = shown.map(([k, n]) => SUMMARY[k](n))
-  if (rest) return `${words.join(', ')} and ${rest} more`
-  return words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0]
+  const asked = list.filter((n) => levelOf(n.kind) === 'decide').length
+  const looks = list.filter((n) => levelOf(n.kind) === 'look').length
+  return [asked && `${asked} to approve`, looks && `${looks} to look at`].filter(Boolean).join(' and ')
+}
+
+/** The shortest whole form of what needs you now, for when the long one won't fit. Never a cut word. */
+const SHORT: Partial<Record<NeedKind, (n: number) => string>> = {
+  secret: (n) => (n === 1 ? 'Change 1 secret' : `Change ${n} secrets`),
+}
+
+/** Two whole forms of one sentence. The top line shows the short one only when the long one won't fit. */
+function Forms({ long, short }: { long: string; short: string }) {
+  if (long === short) return <>{long}</>
+  return (
+    <>
+      <span className="form-long">{long}</span>
+      <span className="form-short">{short}</span>
+    </>
+  )
+}
+
+/**
+ * The top line's steps, least needed first. Each is a class on .top-bar, and styles.css says what it hides.
+ * Cost steps shorten the price; status steps shorten what needs you. The price only gives way for the status where the two share a row.
+ */
+const FIT_STEPS: { name: string; frees: 'cost' | 'status' }[] = [
+  { name: 'fit-1', frees: 'cost' }, // "on tools"
+  { name: 'fit-2', frees: 'status' }, // the marks spelled out become a count
+  { name: 'fit-3', frees: 'cost' }, // the other currencies
+  { name: 'fit-4', frees: 'status' }, // "and 3 more", the summary and the hint
+  { name: 'fit-5', frees: 'status' }, // the short form of the sentence
+  { name: 'fit-6', frees: 'cost' }, // "a month" becomes "/mo"
+  { name: 'fit-7', frees: 'cost' }, // the folded card's "Sample ·", which its own menu still says
+]
+
+/**
+ * The top line fits itself. Whatever's in it, at whatever width, it gives up words in order until nothing is cut or covered, and never more than it has to:
+ * a card that's short of room only costs the price its words, and a status on a row of its own only shortens itself.
+ */
+export function useFitTop() {
+  useLayoutEffect(() => {
+    const bar = document.querySelector<HTMLElement>('.top-bar')
+    if (!bar) return
+    const root = document.documentElement
+    // Cut means the words don't fit their box: they've been ended with an ellipsis, or they run out of it. A sentence broken over two lines counts too, because the last word alone on a line reads as a fragment.
+    const cut = (e: Element) => {
+      if (e.scrollWidth > e.clientWidth + 1) return true
+      if (e.tagName !== 'B') return false
+      const line = parseFloat(getComputedStyle(e).lineHeight) || 20
+      return e.getBoundingClientRect().height > line * 1.5
+    }
+    const overlap = (a: DOMRect, b: DOMRect, gap = 8) => a.right + gap > b.left && b.right + gap > a.left && a.top < b.bottom && b.top < a.bottom
+    const problems = () => {
+      const right = bar.querySelector('.top-right')
+      // A card folded to its heading shares the top of the screen with the price, so its width is what the price leaves it.
+      if (right) root.style.setProperty('--top-right-w', `${Math.ceil(right.getBoundingClientRect().width)}px`)
+      const status = bar.querySelector('.status')
+      const statusCut = [...bar.querySelectorAll('.status-slot, .status, .status-open, .status b, .status .quiet, .lens-still')].some(cut)
+      const priceCut = [...bar.querySelectorAll('.top-right, .dollar-toggle')].some(cut)
+      const card = document.querySelector('.left:not(.is-open)')
+      let cardCut = false
+      if (card) {
+        cardCut = [...card.querySelectorAll('.company-name, .company-fold')].some(cut)
+        if (right && overlap(card.getBoundingClientRect(), right.getBoundingClientRect())) cardCut = true
+      }
+      const sharesRow = !!status && !!right && overlap(status.getBoundingClientRect(), right.getBoundingClientRect(), 1e4)
+      return { status: statusCut || (sharesRow && priceCut), cost: cardCut || priceCut || (sharesRow && statusCut) }
+    }
+    const fit = () => {
+      for (const s of FIT_STEPS) bar.classList.remove(s.name)
+      let now = problems()
+      for (const step of FIT_STEPS) {
+        if (!now.status && !now.cost) break
+        if (!now[step.frees]) continue
+        bar.classList.add(step.name)
+        now = problems()
+      }
+    }
+    fit()
+    // Both answer before the next paint, so a line that wouldn't fit is never seen not fitting.
+    const sized = new ResizeObserver(fit)
+    sized.observe(document.body)
+    const changed = new MutationObserver(fit)
+    changed.observe(bar, { childList: true, subtree: true, characterData: true })
+    const card = document.querySelector('.left')
+    if (card) changed.observe(card, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class'] })
+    document.fonts?.addEventListener('loadingdone', fit)
+    return () => {
+      sized.disconnect()
+      changed.disconnect()
+      document.fonts?.removeEventListener('loadingdone', fit)
+    }
+  }, [])
 }
 
 /** The sentence that says this reader can still read something you've closed, if there is one. */
@@ -80,7 +162,7 @@ export function StatusLine() {
       return (
         <div key="lens-now" className="status panel is-now is-lens" role="alert">
           <NeedMark level="now" />
-          <b className="lens-still" title={still}>{still}</b>
+          <b className="lens-still" title={still}><Forms long={still} short={still.replace(/ until you update$/, '')} /></b>
           <button className="status-done" onClick={done}>Done</button>
         </div>
       )
@@ -102,7 +184,7 @@ export function StatusLine() {
     const looks = from.filter((n) => levelOf(n.kind) === 'look').length
     return (
       <span className="status-parts">
-        {asked > 0 && <span className="status-part"><NeedMark level="decide" />{asked} to approve</span>}
+        {asked > 0 && <span className="status-part is-decide"><NeedMark level="decide" /><b>{asked}</b> to approve</span>}
         {looks > 0 && <span className="status-part"><NeedMark level="look" />{looks} to look at</span>}
       </span>
     )
@@ -131,7 +213,7 @@ export function StatusLine() {
         <button className={`status-open ${rest > 0 && rest === others.length ? 'has-parts' : ''}`} onClick={open} aria-expanded={expanded}>
           <span className="status-head">
             <NeedMark level="now" />
-            <b title={headline}>{headline}</b>
+            <b title={headline}><Forms long={headline} short={worst.kind === 'exposure' ? headline.replace(/ until you update$/, '') : SHORT[worst.kind]?.(same.length) ?? headline} /></b>
           </span>
           {rest > 0 && <span className="status-more">and {rest} more</span>}
           {rest > 0 && rest === others.length && parts(others)}
@@ -324,7 +406,7 @@ export function TopRight() {
                 {total.approx ? '≈' : ''}{total.main}
                 {total.others.length > 0 && <span className="cost-others"> + {total.others.join(' + ')}</span>}
               </span>
-              <span className="cost-per">a {period}<span className="optional"> on tools</span></span>
+              <span className="cost-per"><span className="per-long">a {period}<span className="optional"> on tools</span></span><span className="per-short">/{period === 'year' ? 'yr' : 'mo'}</span></span>
             </>
           )}
         </button>
@@ -376,4 +458,10 @@ export function TopRight() {
       )}
     </div>
   )
+}
+
+/** Renders nothing. It's in the top line so the top line can fit itself once it's there. */
+export function FitTop() {
+  useFitTop()
+  return null
 }

@@ -17,7 +17,7 @@ import { Left } from './ui/Left.tsx'
 import { Peek } from './ui/Peek.tsx'
 import { AgentView, SharePanel } from './ui/Share.tsx'
 import { Sheets, ShredStrip } from './ui/Sheets.tsx'
-import { NeedsPanel, StatusLine, stillOpenFor, TopRight } from './ui/Top.tsx'
+import { FitTop, NeedsPanel, StatusLine, stillOpenFor, TopRight } from './ui/Top.tsx'
 
 const PALETTES: Record<'light' | 'dark', Palette> = {
   light: {
@@ -216,10 +216,11 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   }, [vault, view, flagged, exposed, pricesReadable, live, behind, priceChecks, sealedToAll, readers, readerColours, map])
 
   const panel = useStore((s) => s.panel)
-  const rightOpen = panel === 'share'
+  // An area's panel takes the same room as a reader's, so the map makes the same room for it: what's on the land slides clear of the panel.
+  const rightOpen = panel === 'share' || panel === 'area'
   // In a narrow window the panel floats over the land, because shrinking the map into what's left only makes it unreadable.
   // On a laptop a reader's panel is a little narrower, which is what it takes for everything on the land to clear it at the map's own scale.
-  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 1100 ? (window.innerWidth > 1360 ? 428 : 388) : 32), [rightOpen, map])
+  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 1100 ? (panel === 'share' && window.innerWidth <= 1360 ? 388 : 428) : 32), [rightOpen, panel, map])
 
   useEffect(() => map.current?.setSelected(selected), [selected, map])
   useEffect(() => map.current?.setHighlight(highlight), [highlight, map])
@@ -265,7 +266,8 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
 
 /** A picked reader on a phone. It holds what the card holds on a laptop, and it's short, because the map above it is the point. */
 function PhoneLens({ map }: { map: React.RefObject<MapView | null> }) {
-  const narrow = useNarrow()
+  // Wherever the card folds when a reader is picked, this sheet holds what the card would have, so nothing about them is out of reach.
+  const narrow = useNarrow(980)
   const vault = useStore((s) => s.vault)
   const lens = useStore((s) => s.lens)
   const panel = useStore((s) => s.panel)
@@ -448,6 +450,13 @@ function Chrome({ map }: { map: React.RefObject<MapView | null> }) {
   useEffect(() => {
     if (opened) clearPlainToasts(400)
   }, [opened])
+  // The cards arrive with the map the first time they're shown, and never again while they stay: what swaps in later only changes.
+  useLayoutEffect(() => {
+    if (uiHidden) return
+    document.documentElement.classList.add('arriving')
+    const t = setTimeout(() => document.documentElement.classList.remove('arriving'), 1800)
+    return () => clearTimeout(t)
+  }, [uiHidden])
 
   if (uiHidden) return null
   return (
@@ -457,6 +466,7 @@ function Chrome({ map }: { map: React.RefObject<MapView | null> }) {
         <Cartouche />
       </div>
       <div className="top-bar">
+        <FitTop />
         <div className="status-slot">
           <StatusLine />
           {panel === 'needs' && !view && <NeedsPanel map={map} />}

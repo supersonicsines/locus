@@ -1,5 +1,6 @@
 /* Atlas. Cool paper, ink, hairlines. Vermilion means sealed and nothing else. Amber means it needs you now and nothing else. */
 
+/* Type: one face, one scale. 12 for meta, 13 for controls and body, 14 for reading, 16 for a lede, 19 for titles, 24 for a sheet's heading. */
 :root {
   --alert: #f5b400;
   --on-alert: #15191e;
@@ -72,7 +73,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 19px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -86,6 +87,12 @@ select,
 textarea {
   font: inherit;
   color: inherit;
+}
+
+p,
+.need-text,
+.hint {
+  text-wrap: pretty;
 }
 
 button {
@@ -321,12 +328,11 @@ a {
 
 .mono {
   font-family: var(--sans);
-  font-size: 12.5px;
 }
 
 .label {
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .switch {
@@ -442,6 +448,7 @@ a {
 
 /* Folded, the heading also says what's inside. Open, what's inside says so itself. */
 .company-stack {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -449,6 +456,9 @@ a {
 
 .company-fold {
   display: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--soft);
   font-size: 12px;
   line-height: 15px;
@@ -466,7 +476,7 @@ a {
 .company-name {
   min-width: 0;
   font-family: var(--sans);
-  font-size: 18.5px;
+  font-size: 19px;
   line-height: 25px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -485,7 +495,7 @@ a {
   border: 1px solid var(--hair-strong);
   border-radius: 4px;
   color: var(--soft);
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 17px;
 }
 
@@ -581,7 +591,7 @@ a {
 .reader-count {
   flex: none;
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -621,7 +631,7 @@ a {
 .side-label {
   margin-bottom: 8px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .reader-setup {
@@ -693,7 +703,7 @@ a {
   flex: none;
   color: var(--faint);
   font-variant-numeric: tabular-nums;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 /* Top: the bar between the left card and the screen's edge. The status takes the middle of what's free, and gives way first. */
@@ -771,7 +781,7 @@ a {
 .status-parts .need-mark {
   width: 15px;
   height: 15px;
-  font-size: 10.5px;
+  font-size: 12px;
 }
 
 .status-open .status-parts .need-mark.is-look {
@@ -780,57 +790,65 @@ a {
   margin: 0 1px;
 }
 
-@media (min-width: 1420px) {
-  .status:not(:has(.status-do)) .has-parts .status-parts {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    flex: none;
-    margin-left: 4px;
-  }
-  .status:not(:has(.status-do)) .has-parts .status-more,
-  .status:not(:has(.status-do)) .has-parts .quiet {
-    display: none;
-  }
-  .status:not(.is-now) .has-parts > .need-mark {
-    display: none;
-  }
-  .status:not(.is-now) .status-part {
-    color: var(--soft);
-  }
-  /* Amber means it needs you now and nothing else, so it stops where that sentence stops. What's left waits on the same ground as every other control. */
-  .status.is-now:not(:has(.status-do)):has(.has-parts) {
-    background: var(--raised);
-    border-color: var(--hair);
-    color: var(--ink);
-    padding: 0 12px 0 0;
-    box-shadow: var(--shadow);
-  }
-  .status.is-now:not(:has(.status-do)) .has-parts {
-    gap: 14px;
-    align-self: stretch;
-  }
-  .status.is-now:not(:has(.status-do)) .has-parts .status-head {
-    align-self: stretch;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: -1px 0 -1px -1px;
-    padding: 0 14px;
-    background: var(--alert);
-    color: var(--on-alert);
-    border-radius: var(--panel-radius) 0 0 var(--panel-radius);
-  }
-  .status.is-now:not(:has(.status-do)) .has-parts .status-parts {
-    margin-left: 0;
-  }
-  .status.is-now .status-part {
-    color: var(--soft);
-  }
-  .status.is-now .status-parts .need-mark {
-    background: var(--ink);
-    color: var(--on-ink);
-  }
+/* What else is waiting, spelled out beside its marks, until the top line needs the room (fit-2 in Top.tsx). */
+.top-bar:not(.fit-2) .status:not(:has(.status-do)) .has-parts .status-parts {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+  margin-left: 4px;
+}
+
+.top-bar:not(.fit-2) .status:not(:has(.status-do)) .has-parts .status-more,
+.top-bar:not(.fit-2) .status:not(:has(.status-do)) .has-parts .quiet {
+  display: none;
+}
+
+.top-bar:not(.fit-2) .status:not(.is-now) .has-parts > .need-mark {
+  display: none;
+}
+
+.top-bar:not(.fit-2) .status:not(.is-now) .status-part {
+  color: var(--soft);
+}
+
+/* Amber means it needs you now and nothing else, so it stops where that sentence stops. What's left waits on the same ground as every other control. */
+.top-bar:not(.fit-2) .status.is-now:not(:has(.status-do)):has(.has-parts) {
+  background: var(--raised);
+  border-color: var(--hair);
+  color: var(--ink);
+  padding: 0 12px 0 0;
+  box-shadow: var(--shadow);
+}
+
+.top-bar:not(.fit-2) .status.is-now:not(:has(.status-do)) .has-parts {
+  gap: 14px;
+  align-self: stretch;
+}
+
+.top-bar:not(.fit-2) .status.is-now:not(:has(.status-do)) .has-parts .status-head {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -1px 0 -1px -1px;
+  padding: 0 14px;
+  background: var(--alert);
+  color: var(--on-alert);
+  border-radius: var(--panel-radius) 0 0 var(--panel-radius);
+}
+
+.top-bar:not(.fit-2) .status.is-now:not(:has(.status-do)) .has-parts .status-parts {
+  margin-left: 0;
+}
+
+.top-bar:not(.fit-2) .status.is-now .status-part {
+  color: var(--soft);
+}
+
+.top-bar:not(.fit-2) .status.is-now .status-parts .need-mark {
+  background: var(--ink);
+  color: var(--on-ink);
 }
 
 /* Nothing to say: hardly any weight. It still needs a ground of its own, because a county's border running through it reads as struck out. */
@@ -1027,7 +1045,7 @@ a {
 
 .cost-figure {
   font-family: var(--sans);
-  font-size: 18.5px;
+  font-size: 19px;
   line-height: 23px;
   font-variant-numeric: tabular-nums;
 }
@@ -1086,7 +1104,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .live-state .go-live {
@@ -1219,7 +1237,7 @@ a {
   outline: none;
   padding: 0;
   font-family: var(--sans);
-  font-size: 17.5px;
+  font-size: 19px;
   border-bottom: 1px solid transparent;
   transition: border-color 120ms ease;
 }
@@ -1260,7 +1278,7 @@ a {
   align-items: center;
   gap: 8px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .piece-title {
@@ -1272,7 +1290,7 @@ a {
   outline: none;
   resize: none;
   font-family: var(--sans);
-  font-size: 23px;
+  font-size: 24px;
   line-height: 29px;
   overflow: hidden;
   display: block;
@@ -1295,7 +1313,7 @@ a {
 
 .piece-body {
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 24px;
   cursor: text;
   min-height: 52px;
@@ -1322,7 +1340,7 @@ a {
 
 .piece-body code {
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-size: 13px;
   background: var(--wash);
   padding: 1px 4px;
   border-radius: 3px;
@@ -1332,7 +1350,7 @@ a {
 .piece-body h4 {
   font-family: var(--sans);
   font-weight: 400;
-  font-size: 16.5px;
+  font-size: 16px;
   margin: 14px 0 6px;
 }
 
@@ -1344,7 +1362,7 @@ a {
   outline: none;
   resize: none;
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 24px;
   padding: 0;
   display: block;
@@ -1399,7 +1417,7 @@ button.piece-body {
   z-index: 20;
   max-width: 300px;
   padding: 8px 12px;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
   pointer-events: none;
   transition: opacity 120ms ease;
@@ -1428,7 +1446,7 @@ button.piece-body {
 
 .props dt {
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .props dd {
@@ -1527,7 +1545,7 @@ button.piece-body {
   padding-top: 14px;
   border-top: 1px solid var(--hair);
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .callout {
@@ -1561,14 +1579,14 @@ button.piece-body {
 .callout-note {
   margin: 6px 0 0;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
 }
 
 .callout .btn {
   height: 28px;
   padding: 0 11px;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .money-grid {
@@ -1586,7 +1604,7 @@ button.piece-body {
 .source-note {
   margin: 6px 0 0;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
 }
 
@@ -1627,7 +1645,7 @@ button.piece-body {
   padding: 0 4px;
   border-radius: 5px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   white-space: nowrap;
   transition: color 100ms ease;
 }
@@ -1675,7 +1693,7 @@ button.piece-body {
   padding: 12px 0 2px;
   border-top: 1px solid var(--hair);
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   text-align: left;
   transition: color 100ms ease;
 }
@@ -1852,7 +1870,7 @@ code.inline {
 
 .hint {
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
 }
 
@@ -1884,7 +1902,7 @@ body:has(.agent-view) .map-canvas {
 .agent-note {
   display: block;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 17px;
 }
 
@@ -1906,7 +1924,7 @@ body:has(.agent-view) .map-canvas {
   margin: 0;
   padding: 20px;
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 20px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1987,7 +2005,7 @@ body:has(.agent-view) .map-canvas {
   border-radius: 50%;
   background: var(--ink);
   color: var(--on-ink);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1;
 }
@@ -1998,7 +2016,7 @@ body:has(.agent-view) .map-canvas {
   margin: 0;
   background: var(--alert);
   color: var(--on-alert);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 /* The unread dot, as on the map. */
@@ -2052,7 +2070,7 @@ body:has(.agent-view) .map-canvas {
 .need-actions .btn {
   height: 25px;
   padding: 0 10px;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .need-actions .btn-quiet:first-child {
@@ -2098,7 +2116,7 @@ body:has(.agent-view) .map-canvas {
   min-width: 42px;
   text-align: center;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   border-radius: 4px;
   height: 22px;
@@ -2109,6 +2127,21 @@ body:has(.agent-view) .map-canvas {
     background: var(--wash);
     color: var(--ink);
   }
+  .zoom-whole:hover {
+    background: var(--wash);
+    color: var(--ink);
+  }
+}
+
+.zoom-whole {
+  height: 24px;
+  margin: 0 2px 0 4px;
+  padding: 0 10px;
+  border-left: 1px solid var(--hair);
+  border-radius: 0 4px 4px 0;
+  color: var(--soft);
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 /* The cartouche: a chart's scale box. */
@@ -2133,7 +2166,7 @@ body:has(.agent-view) .map-canvas {
   justify-content: space-between;
   gap: 10px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .cart-also {
@@ -2214,7 +2247,7 @@ body:has(.agent-view) .map-canvas {
 .scale-label {
   overflow: hidden;
   white-space: nowrap;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 16px;
   color: var(--soft);
   padding-right: 4px;
@@ -2222,7 +2255,7 @@ body:has(.agent-view) .map-canvas {
 
 .cart-note {
   margin: 8px 0 0;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
   color: var(--soft);
 }
@@ -2241,7 +2274,7 @@ body:has(.agent-view) .map-canvas {
   padding: 4px 0;
   border-top: 1px solid var(--hair);
   text-align: left;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 17px;
   color: var(--ink);
 }
@@ -2265,7 +2298,7 @@ body:has(.agent-view) .map-canvas {
   justify-content: space-between;
   gap: 10px;
   margin-top: 8px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--soft);
 }
 
@@ -2289,7 +2322,7 @@ body:has(.agent-view) .map-canvas {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--soft);
   margin-top: 4px;
 }
@@ -2344,7 +2377,7 @@ body:has(.agent-view) .map-canvas {
 
 .menu-item .meta {
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .menu-item.is-on {
@@ -2360,7 +2393,7 @@ body:has(.agent-view) .map-canvas {
 .menu-note {
   padding: 7px 10px 8px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
   white-space: normal;
   max-width: 280px;
@@ -2448,7 +2481,7 @@ body:has(.agent-view) .map-canvas {
   border: 0;
   border-bottom: 1px solid var(--hair);
   outline: none;
-  font-size: 15.5px;
+  font-size: 16px;
 }
 
 .cmdk input::placeholder {
@@ -2498,13 +2531,13 @@ body:has(.agent-view) .map-canvas {
 .cmdk-item .title small {
   margin-left: 8px;
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .cmdk-item .meta {
   flex: none;
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .kbd {
@@ -2526,6 +2559,10 @@ body:has(.agent-view) .map-canvas {
   .scrim {
     opacity: 0;
   }
+}
+
+.cmdk-scrim {
+  z-index: 39;
 }
 
 .sheet:focus,
@@ -2577,7 +2614,7 @@ body:has(.sheet) .empty > * {
   margin: 0 0 6px;
   font-family: var(--sans);
   font-weight: 400;
-  font-size: 23px;
+  font-size: 24px;
   line-height: 30px;
 }
 
@@ -2602,7 +2639,7 @@ body:has(.sheet) .empty > * {
   display: block;
   margin: 12px 0 5px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .address-field {
@@ -2637,7 +2674,7 @@ body:has(.sheet) .empty > * {
 
 .field-note {
   margin-top: 5px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--soft);
   min-height: 17px;
 }
@@ -2670,7 +2707,11 @@ body:has(.sheet) .empty > * {
   border: 1px solid var(--hair);
   border-radius: 7px;
   font-family: var(--sans);
-  font-size: 13.5px;
+  /* The one string here that has to be copied exactly, so it isn't set like the sentences round it. */
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
   text-align: center;
   word-break: break-all;
   user-select: all;
@@ -2708,7 +2749,7 @@ body:has(.sheet) .empty > * {
 .file-row span:last-child {
   flex: none;
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .choice {
@@ -2748,7 +2789,7 @@ body:has(.sheet) .empty > * {
 .choice span {
   display: block;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
 }
 
@@ -2786,7 +2827,7 @@ body:has(.sheet) .empty > * {
 .catalog-item .meta {
   flex: none;
   color: var(--faint);
-  font-size: 12.5px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2811,10 +2852,12 @@ body:has(.sheet) .empty > * {
 
 .empty-word {
   position: fixed;
-  top: 22px;
-  left: 26px;
+  top: 20px;
+  left: 24px;
   font-family: var(--sans);
-  font-size: 20px;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .empty h1 {
@@ -2829,10 +2872,11 @@ body:has(.sheet) .empty > * {
 
 .empty p {
   margin: 20px 0 26px;
-  max-width: 42em;
+  /* Two sentences, two lines each, so the block under the headline reads as one column. */
+  max-width: 34em;
   text-wrap: balance;
   color: var(--soft);
-  font-size: 15.5px;
+  font-size: 16px;
   line-height: 24px;
 }
 
@@ -2851,7 +2895,7 @@ body:has(.sheet) .empty > * {
 .empty-actions .btn {
   height: 38px;
   padding: 0 18px;
-  font-size: 14.5px;
+  font-size: 14px;
 }
 
 .empty-note {
@@ -2933,7 +2977,7 @@ body:has(.sheet) .empty > * {
   margin: 0 0 4px;
   font-family: var(--sans);
   font-weight: 400;
-  font-size: 26px;
+  font-size: 24px;
   line-height: 32px;
 }
 
@@ -2958,7 +3002,7 @@ body:has(.sheet) .empty > * {
 .lock-note {
   margin: 14px 0 0 !important;
   color: var(--faint) !important;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
 }
 
@@ -2974,7 +3018,7 @@ body:has(.sheet) .empty > * {
   border-radius: 10px;
   background: var(--scrim);
   font-family: var(--sans);
-  font-size: 26px;
+  font-size: 24px;
   z-index: 50;
   pointer-events: none;
 }
@@ -3107,20 +3151,39 @@ body:has(.empty-foot) .toasts {
 
 /* Narrower screens. The Studio is for laptops, but it must not break. */
 
-@media (max-width: 1560px) {
-  .cost-per .optional {
-    display: none;
-  }
-  /* The sentence that says who can still read what matters more than the count after it. */
-  .status.is-now:has(.status-do) .status-more {
-    display: none;
-  }
+/* The top line's steps, as Top.tsx's useFitTop takes them: each gives up what's least needed, until nothing is cut or covered. */
+.form-short,
+.per-short {
+  display: none;
 }
 
-@media (max-width: 1320px) {
-  .status .optional {
-    display: none;
-  }
+.top-bar.fit-1 .cost-per .optional {
+  display: none;
+}
+
+/* The sentence that says who can still read what matters more than the count after it. */
+.top-bar.fit-1 .status.is-now:has(.status-do) .status-more {
+  display: none;
+}
+
+.top-bar.fit-3 .cost-others {
+  display: none;
+}
+
+.top-bar.fit-4 .status .status-more,
+.top-bar.fit-4 .status .quiet,
+.top-bar.fit-4 .status .optional {
+  display: none;
+}
+
+.top-bar.fit-5 .form-long,
+.top-bar.fit-6 .per-long {
+  display: none;
+}
+
+.top-bar.fit-5 .form-short,
+.top-bar.fit-6 .per-short {
+  display: inline;
 }
 
 @media (max-width: 980px) {
@@ -3239,10 +3302,6 @@ body:has(.left.is-folded) .agent-view {
 }
 
 @media (max-width: 1240px) {
-  /* On a line of its own again, so there's room to say what a click does. */
-  .status .optional {
-    display: inline;
-  }
   /* Too narrow to share a line: the status drops under the controls. */
   .top-bar,
   .status-slot {
@@ -3298,7 +3357,7 @@ body:has(.left.is-folded) .agent-view {
   }
   .left {
     align-self: flex-start;
-    width: calc(100vw - 160px);
+    width: calc(100vw - var(--top-right-w, 144px) - var(--gutter) * 3);
   }
   .left.is-open {
     width: calc(100vw - var(--gutter) * 2);
@@ -3482,6 +3541,9 @@ body:has(.left.is-folded) .agent-view {
     content: 'Whole map';
     font-size: 13px;
   }
+  .zoom-whole {
+    display: none;
+  }
 }
 
 .panel-go-live {
@@ -3503,6 +3565,14 @@ body:has(.left.is-folded) .agent-view {
   z-index: 16;
   padding: 12px 14px 14px;
   box-shadow: var(--shadow-high);
+}
+
+/* In a narrow window rather than on a phone, it's a sheet of its own size in the middle, clear of the zoom in the corner. */
+@media (min-width: 721px) {
+  .lens-sheet {
+    max-width: 520px;
+    margin: 0 auto;
+  }
 }
 
 .lens-head {
@@ -3640,7 +3710,7 @@ body:has(.left.is-folded) .agent-view {
   input,
   textarea,
   select {
-    font-size: 16.5px;
+    font-size: 16px;
   }
 }
 
@@ -3694,20 +3764,44 @@ body:has(.left.is-folded) .agent-view {
   }
 }
 
-.left-col {
+.arriving .left-col {
   animation: arrive-from-left 640ms var(--ease-out) 300ms backwards;
 }
 
-.status-slot {
+.arriving .status-slot {
   animation: arrive-from-top 560ms var(--ease-out) 420ms backwards;
 }
 
-.top-right {
+.arriving .top-right {
   animation: arrive-from-top 560ms var(--ease-out) 360ms backwards;
 }
 
-.bottom-right {
+.arriving .bottom-right {
   animation: arrive-from-below 560ms var(--ease-out) 700ms backwards;
+}
+
+@keyframes arrive-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* On its own line the status has no slot round it to carry it in, so it comes in itself. */
+@media (max-width: 1240px) {
+  .arriving .status {
+    animation: arrive-from-top 560ms var(--ease-out) 420ms backwards;
+  }
+}
+
+/* On a phone, adding and going live stand at the foot of the screen. A transform on the group would carry them in from the top and drop them there at the end, so the group only fades, and they rise from the foot with the zoom. */
+@media (max-width: 720px) {
+  .arriving .top-right {
+    animation-name: arrive-fade;
+  }
+  .arriving .live-state,
+  .arriving .add-menu {
+    animation: arrive-from-below 560ms var(--ease-out) 700ms backwards;
+  }
 }
 
 /* The first page reads top to bottom, so it comes up in that order. */
@@ -3736,11 +3830,46 @@ body:has(.left.is-folded) .agent-view {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .left-col,
-  .status-slot,
-  .top-right,
-  .bottom-right,
+  .arriving .left-col,
+  .arriving .status-slot,
+  .arriving .status,
+  .arriving .top-right,
+  .arriving .live-state,
+  .arriving .add-menu,
+  .arriving .bottom-right,
   .empty > * {
     animation: none;
+  }
+}
+
+/* Waiting for you to say yes isn't urgent, so it isn't amber, but it's yours to do, so its count carries ink and weight. */
+.top-bar:not(.fit-2) .status:not(.is-now) .status-part.is-decide {
+  color: var(--ink);
+}
+
+.status-part b {
+  font-weight: 600;
+}
+
+/* Which areas a reader can read is said by fill, and by a tick, so it doesn't rest on telling a filled chip from an outlined one. */
+.lens-chip[aria-checked='true']::before {
+  content: '✓';
+  margin-right: 6px;
+}
+
+/* On a phone the folded heading has no room for a tag beside the name, so "Sample" joins the line under it. */
+.fold-sample {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .fold-sample {
+    display: inline;
+  }
+  body:has(.top-bar.fit-7) .fold-sample {
+    display: none;
+  }
+  .left:not(.is-open) .company-btn > .tag {
+    display: none;
   }
 }

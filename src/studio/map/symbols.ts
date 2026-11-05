@@ -222,13 +222,13 @@ export function makeWaxSeal(size: number, dpr: number, wax: string, shadow: stri
   ctx.strokeStyle = highlight
   ctx.stroke()
 
-  // The mark: an L, for Locus.
-  ctx.font = `${size * 0.36}px ${face()}`
+  // The mark: an L, for Locus, pressed in pale so it reads at the size it's drawn. Dark on red only read enlarged.
+  ctx.font = `500 ${size * 0.4}px ${face()}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = highlight
-  ctx.fillText('L', c, c + size * 0.03)
   ctx.fillStyle = shadow
-  ctx.fillText('L', c, c + size * 0.012)
+  ctx.fillText('L', c, c + size * 0.045)
+  ctx.fillStyle = 'rgba(251, 236, 231, 0.92)'
+  ctx.fillText('L', c, c + size * 0.025)
   return canvas
 }

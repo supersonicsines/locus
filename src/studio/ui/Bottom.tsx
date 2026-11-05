@@ -118,9 +118,10 @@ export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
   // The side panel occupies this corner while it's open.
   const hidden = panel === 'share' || panel === 'area' || !!selected
 
+  const fitted = !moved && Math.abs(zoom - fitZoom) < 0.01
   return (
     <div className="bottom-right" style={hidden ? { right: 'calc(var(--side-w) + var(--gutter) * 2)' } : undefined}>
-      <div className={`zoom panel ${!moved && Math.abs(zoom - fitZoom) < 0.01 ? 'is-fit' : ''}`}>
+      <div className={`zoom panel ${fitted ? 'is-fit' : ''}`}>
         <button className="icon-btn" aria-label="Zoom out" onClick={() => map.current?.zoomBy(1 / 1.3)}>
           <Icon name="minus" size={14} />
         </button>
@@ -130,6 +131,8 @@ export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
         <button className="icon-btn" aria-label="Zoom in" onClick={() => map.current?.zoomBy(1.3)}>
           <Icon name="plus" size={14} />
         </button>
+        {/* The way back, said in words, only once you've left it. */}
+        {!fitted && <button className="zoom-whole" onClick={() => map.current?.fit()}>Whole map</button>}
       </div>
     </div>
   )
