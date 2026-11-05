@@ -1,6 +1,6 @@
 # Security
 
-What Vadere protects, how, and what it doesn't. **This code has not had a professional audit.** It has had one adversarial review, by an AI agent reading the code cold, which found real problems that are now fixed (see `docs/PRD-QA.md`). You can check the claims below yourself, and we'd like you to try to break them.
+What Locus protects, how, and what it doesn't. **This code has not had a professional audit.** It has had one adversarial review, by an AI agent reading the code cold, which found real problems that are now fixed (see `docs/PRD-QA.md`). You can check the claims below yourself, and we'd like you to try to break them.
 
 ## The short version
 
@@ -14,7 +14,7 @@ What Vadere protects, how, and what it doesn't. **This code has not had a profes
 
 | How the reader connects | Who decrypts | Do you need to trust the host? |
 | --- | --- | --- |
-| `vadere mcp`, `vadere pull` | The reader's machine | No, as long as this password is never sent to the host. The host only ever serves ciphertext, and anything it changes is refused |
+| `locus mcp`, `locus pull` | The reader's machine | No, as long as this password is never sent to the host. The host only ever serves ciphertext, and anything it changes is refused |
 | Browser, at your address | The reader's browser | **Yes.** The page's code comes from the host, so a dishonest host could serve code that steals the password. Self-host to remove this |
 | `Authorization: Bearer` | The host, in memory, per request | **Yes** |
 | `/k/<password>/...` | The host, in memory, per request | **Yes**, and the URL itself is sensitive |
@@ -41,7 +41,7 @@ All of it is in `src/core/seal.ts`, using only Web Crypto.
 
 ## What anyone can see
 
-The bundle is public by design: `curl https://yourco.domain/bundle.json`, or run `vadere verify`. It reveals:
+The bundle is public by design: `curl https://yourco.domain/bundle.json`, or run `locus verify`. It reveals:
 
 - The address name, the version and when it was sealed.
 - How many gates and passwords exist, and roughly how big each part is.
@@ -69,13 +69,13 @@ Gate names, password names, company name, pieces, links, prices and readers' lay
 - Put it behind HTTPS and pass `--trust-proxy`. Passwords over plain HTTP are refused when the proxy reports them.
 - Set `--proxy-hops` to the number of proxies you run in front (2 for Cloudflare and Caddy). Limits are per address, and only entries your own proxies added to `X-Forwarded-For` are believed. If this is wrong, one client can look like many.
 - A remote read decrypts and may search a whole map, so each map is limited to 240 reads a minute in hosted mode. A large free account can still cost real CPU within that.
-- **Free, encrypted hosting attracts abuse, and you can't inspect what's stored.** Hosted mode limits each account to 10 MB, which is about 3.7 MB of text because the owner's sealed copy doubles a map's size. It accepts only strictly valid bundles and serves them as JSON with `nosniff`, so it's a poor file host. Set `--abuse-contact`, and use `vadere admin remove <name>` for takedowns. Take advice on your own legal position before opening a public instance.
+- **Free, encrypted hosting attracts abuse, and you can't inspect what's stored.** Hosted mode limits each account to 10 MB, which is about 3.7 MB of text because the owner's sealed copy doubles a map's size. It accepts only strictly valid bundles and serves them as JSON with `nosniff`, so it's a poor file host. Set `--abuse-contact`, and use `locus admin remove <name>` for takedowns. Take advice on your own legal position before opening a public instance.
 
 ## Checking it yourself
 
 ```sh
-vadere verify https://yourco.domain              # what the host really holds
-vadere verify https://yourco.domain --key vdr_…  # what a password opens, and that tampering is refused
+locus verify https://yourco.domain              # what the host really holds
+locus verify https://yourco.domain --key lcr_…  # what a password opens, and that tampering is refused
 npm test                                         # the claims above, as tests
 ```
 

@@ -1,4 +1,4 @@
-# Vadere
+# Locus
 
 **A map of your company that any agent can read.**
 
@@ -6,7 +6,7 @@ Drop your company's pile onto a map: brand book, contracts, specs, invoices, exp
 
 It's a harness you don't have to build, and it's encrypted so the host can't read it at rest.
 
-*Vadere* is Latin for "to go". A *vade mecum* ("go with me") is the handbook you carry everywhere.
+*Locus* is Latin for "to go". A *vade mecum* ("go with me") is the handbook you carry everywhere.
 
 ![The map](docs/images/map.png)
 
@@ -36,29 +36,29 @@ Open http://localhost:4747 and choose **See an example**.
 
 ## Connect an agent
 
-Pick a reader, then **Connect this reader** (**How to connect them** before you go live), and you get these, filled in for that password. Vadere isn't on npm yet, so until it is, use `node dist/cli.mjs` from a clone wherever these say `npx -y vadere`.
+Pick a reader, then **Connect this reader** (**How to connect them** before you go live), and you get these, filled in for that password. Locus isn't on npm yet, so until it is, use `node dist/cli.mjs` from a clone wherever these say `npx -y locus-harness`.
 
 ```sh
 # Claude Code. Decrypts on your machine, so the host never sees the password.
-claude mcp add yourco -e VADERE_KEY=vdr_… -- npx -y vadere mcp https://yourco.domain
+claude mcp add yourco -e LOCUS_KEY=lcr_… -- npx -y locus-harness mcp https://yourco.domain
 
 # Claude Code, with no local process. The host decrypts per request.
-claude mcp add --transport http yourco https://yourco.domain/mcp --header "Authorization: Bearer vdr_…"
+claude mcp add --transport http yourco https://yourco.domain/mcp --header "Authorization: Bearer lcr_…"
 
 # Claude.ai: add this as a custom connector. Treat the whole URL as the password.
-https://yourco.domain/k/vdr_…/mcp
+https://yourco.domain/k/lcr_…/mcp
 
 # Anything that can fetch a URL.
-curl -H "Authorization: Bearer vdr_…" https://yourco.domain/llms.txt
+curl -H "Authorization: Bearer lcr_…" https://yourco.domain/llms.txt
 ```
 
 ## What's encrypted, honestly
 
-The host stores only ciphertext. Anyone can download it: that's the point of `vadere verify`. Decrypting has to happen somewhere, though, and Vadere tells you where:
+The host stores only ciphertext. Anyone can download it: that's the point of `locus verify`. Decrypting has to happen somewhere, though, and Locus tells you where:
 
 | How it connects | Who decrypts |
 | --- | --- |
-| `vadere mcp`, `vadere pull` | Your machine. The host never sees the password |
+| `locus mcp`, `locus pull` | Your machine. The host never sees the password |
 | Browser | The browser, running code the host served |
 | Bearer header, `/k/` URL | The host, in memory, for that request |
 
@@ -67,31 +67,31 @@ Turn **Let AI tools in the cloud read this** off for a reader and the host refus
 ## The command line
 
 ```sh
-vadere serve              # the Studio and the host
-vadere mcp <address>      # MCP server on stdio, decrypting locally
-vadere pull <address>     # write the map to a folder, starting with COMPANY_MAP.md
-vadere verify <address>   # show what the host really holds, and test a password
-vadere admin list         # accounts on this host
+locus serve              # the Studio and the host
+locus mcp <address>      # MCP server on stdio, decrypting locally
+locus pull <address>     # write the map to a folder, starting with COMPANY_MAP.md
+locus verify <address>   # show what the host really holds, and test a password
+locus admin list         # accounts on this host
 ```
 
-Passwords come from `--key` or `VADERE_KEY`.
+Passwords come from `--key` or `LOCUS_KEY`.
 
 ## Run your own
 
 The host has no runtime dependencies and no database. A site is a folder holding a sealed bundle and a hash.
 
 ```sh
-vadere serve --domain yourdomain.com --trust-proxy --proxy-hops 1 --data /var/lib/vadere
+locus serve --domain yourdomain.com --trust-proxy --proxy-hops 1 --data /var/lib/locus
 ```
 
 Point `*.yourdomain.com` and `yourdomain.com` at it, behind anything that terminates HTTPS. Wildcard certificates need a DNS challenge: Caddy with a DNS plugin, or Cloudflare in front, both work. Without wildcard DNS, every address also works at `/s/<name>/`.
 
-Or with Docker: `docker build -t vadere . && docker run -p 4747:4747 -v vadere:/data vadere`.
+Or with Docker: `docker build -t locus . && docker run -p 4747:4747 -v locus:/data locus`.
 
 ### The free hosted mode
 
 ```sh
-vadere serve --hosted --max-accounts 500 --donate-url https://… --abuse-contact abuse@…
+locus serve --hosted --max-accounts 500 --donate-url https://… --abuse-contact abuse@…
 ```
 
 An account is a claimed name and a recovery key: no email, nothing personal stored. A small proof of work and a per-address limit stop a script taking every spot, and each account is limited to 10 MB, or about 3.7 MB of text. When it's full, the map still works in the browser and the app offers the self-host command. Read the note on abuse in [docs/SECURITY.md](docs/SECURITY.md) before opening one to the public.
@@ -106,13 +106,13 @@ npm run typecheck
 
 - `src/core`: types, sealing, search, the text agents read. Web Crypto only.
 - `src/server`: the host.
-- `src/cli`: the `vadere` command.
+- `src/cli`: the `locus` command.
 - `src/studio`: the map. A static React app, drawn on one canvas.
 
 Start with [docs/STATUS.md](docs/STATUS.md) for where things stand and what's still to decide, then [docs/PRD.md](docs/PRD.md). [docs/PRD-QA.md](docs/PRD-QA.md) records what an adversarial read found, [docs/design/dollar-overlay.md](docs/design/dollar-overlay.md) how the `$` switch was designed, and [docs/design/qa-rounds.md](docs/design/qa-rounds.md) every round of visual QA.
 
 ## License
 
-Vadere's code is MIT. The fonts and the service logos that ship with it are not: see [NOTICE.md](NOTICE.md).
+Locus's code is MIT. The fonts and the service logos that ship with it are not: see [NOTICE.md](NOTICE.md).
 
 Logos are trademarks of their owners and aren't covered by the MIT licence. They're shown to identify the services a company uses, and no endorsement is implied.

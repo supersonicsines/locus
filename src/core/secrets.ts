@@ -14,7 +14,7 @@ const PATTERNS: { name: string; re: RegExp }[] = [
   { name: 'SendGrid key', re: /\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/g },
   { name: 'Twilio key', re: /\bSK[0-9a-f]{32}\b/g },
   { name: 'JSON web token', re: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g },
-  { name: 'Vadere key', re: /\bvd[ro]_[0-9a-hjkmnp-tv-z]{26}\b/g },
+  { name: 'Locus key', re: /\blc[ro]_[0-9a-hjkmnp-tv-z]{26}\b/g },
   { name: 'Private key', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g },
   { name: 'Database URL with password', re: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|rediss?|amqps?):\/\/[^\s:@/]*:[^\s@]+@[^\s]+/g },
   // Catches DB_PASSWORD=..., db_password: ... and {"password": "..."} as well as plain forms.

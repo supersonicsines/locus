@@ -163,7 +163,7 @@ MCP stays only where it's literally the thing: a service's details, the setup co
 - The map never understates who can read. `readersByArea` counts what's live as well as what's set here, including a removed reader whose password still works and an item moved out of an area they can read. Without it, closing an area on someone's password would have printed No one can read this while their live password still opened it. Under a picked reader, such an area now says Can read until you update, in ink, because it isn't sealed yet. There are tests in `test/readers.test.ts`.
 - Vermilion came off Delete this map and off removing a reader, because neither means sealed.
 - Agent text now says "area" as well, so See what they read matches the page. It's the one change outside the UI: `src/core/agent.ts` and its pinned test. API and tool names such as `read_piece` stay, so agent text now mixes "area" and "piece".
-- The Vadere name is still absent from the main page, apart from the company menu. A sentence explains more than a wordmark. On a live map that sentence gives way to the address, because by then you know.
+- The Locus name is still absent from the main page, apart from the company menu. A sentence explains more than a wordmark. On a live map that sentence gives way to the address, because by then you know.
 
 **A bug this round found.** Adding a piece with a password selected used the password's id as the gate id, which put the piece in no gate at all. New items now go to the open area, or the first one.
 
@@ -720,7 +720,7 @@ What jumps is the real weakness. A map nobody has rearranged is redrawn whole wi
 - An old live map keeps its scatter, and Tidy up is now in the menu you'd look in.
 - Keyboard: a new note's title, then Summary, Add detail, Area and Delete, then out to the page. Esc goes back to Add. It isn't a focus trap, on purpose, because the panel isn't modal. Focus order in the sheets wasn't audited.
 
-**What a reader got.** With what the page gives you to copy, on a local host: the Claude Code command's process, run from `dist` because `npx` can't fetch vadere until it's on npm, the Cursor settings' address and header, the connector URL, the text for any AI tool, and the link for a person. Each read only its areas. A proposed rule wasn't among its rules and a proposed server's URL appeared nowhere, until approved. A rejected rule stayed out. A local-only reader was refused by the host with a 403. A new password gave the old one a 401 and the new one a 200. A removed reader got a 401, a deleted map a 404. A device that was behind was refused, the reader the other device removed stayed removed, and Load it brought the newer map.
+**What a reader got.** With what the page gives you to copy, on a local host: the Claude Code command's process, run from `dist` because `npx` can't fetch locus until it's on npm, the Cursor settings' address and header, the connector URL, the text for any AI tool, and the link for a person. Each read only its areas. A proposed rule wasn't among its rules and a proposed server's URL appeared nowhere, until approved. A rejected rule stayed out. A local-only reader was refused by the host with a 403. A new password gave the old one a 401 and the new one a 200. A removed reader got a 401, a deleted map a 404. A device that was behind was refused, the reader the other device removed stayed removed, and Load it brought the newer map.
 
 **Traps for later rounds.**
 - Older images drop out of an agent's context here, in long sessions. Write down what you see straight after each batch, and read a final build's shots in small batches. Don't say "every image read" from memory.
@@ -756,7 +756,7 @@ Dropping costs more. I'd put that on closing narrow water, which adds passes ove
 **Not verified.**
 - No real person has seen this. Whether someone who has never heard of MCP can connect a tool from these steps is my judgement.
 - A real Claude run, so real output, real timing, real errors and whether the 400 for no credit, the 403 and the 413 say what I wrote. Those three weren't walked at all.
-- `npx -y vadere`, because it isn't on npm: the command on the Claude Code tab fails today, for anyone. I ran the same code from `dist`.
+- `npx -y locus-harness`, because it isn't on npm: the command on the Claude Code tab fails today, for anyone. I ran the same code from `dist`.
 - `claude mcp add` itself. I read its help and compared the syntax, and didn't run it, because it would change this machine's settings.
 - Claude's Settings, Connectors path and the Cursor file: wording carried over from before, not walked in either product.
 - A public host over HTTPS. Every address here was local.
@@ -767,7 +767,7 @@ Dropping costs more. I'd put that on closing narrow water, which adds passes ove
 - Going live from ⌘K during a read: Go live's button is off then, and that path isn't.
 
 **Accepted.**
-- "Updated. Your readers get this the next time they read the map." A local process rereads at most once a minute, and a saved `vadere pull` stays as it was until pulled again.
+- "Updated. Your readers get this the next time they read the map." A local process rereads at most once a minute, and a saved `locus pull` stays as it was until pulled again.
 - The Money switch can show on a map with no Money land, when services elsewhere have prices.
 - Making a new password says "New password for" and "Removed" for one reader if the update fails, which is two lines for one act.
 
@@ -884,7 +884,7 @@ Dropping costs more. I'd put that on closing narrow water, which adds passes ove
 - With a panel at 1440, the map still drops to 35% and Engineering's name meets the coast.
 - At 1280x720 Anthropic API's dot touches Cursor's mark.
 - A toast sits on the south coast and stays through what you do next.
-- `npx -y vadere` still fails, because that's the operator's call. Live with changes and live and current are still one picture when blurred.
+- `npx -y locus-harness` still fails, because that's the operator's call. Live with changes and live and current are still one picture when blurred.
 
 ## Round 7: final acceptance, from cold
 
@@ -931,7 +931,7 @@ Started by looking before reading: the fixed shots and a 480px squint first, a s
 - **Double-tap doesn't zoom on a phone, and I left it.** Round 6's `touchend` stops it. A first tap on land opens a panel, and making it wait for a second would make every tap late. Pinch zooms and `Whole map` comes back. A double click on the desktop zooms, except where the first click opened a panel that's now under the pointer.
 - **An untouched map still rearranges with every file.** It's Round 3's bargain and Round 6 made it followable. Stopping it is a large change to how a first map forms, so it waits.
 - **The sea stopping part way is a change to something the operator approved.** They approved the sea turning blue when a copy is live, and it still does. While readers are behind it now stops at 45%, and it reaches full blue on Update. Their call. `BEHIND_SEA = 1` takes it back, and the ink pill stands without it. The sea alone sits between not live and live, so on the blur the long black bar is what separates behind from not live.
-- **Left alone, as told:** the country, a tint per county, `npx -y vadere`.
+- **Left alone, as told:** the country, a tint per county, `npx -y locus-harness`.
 
 **Mistakes in my own work, caught on the screen.** My first disc fix searched round the big disc for the nearest clear spot, and put Xero on Money's subtotal (`w7/prices`). Tightening it found nothing at all. A sideways nudge inside the solver shuffled every other area and left Xero where it was (`w8` at that step). What's there now is the plainest thing that works: a pass after the solver that moves only what's still touching. Zooming to 46% at 1280x720 on open was also mine, from keeping an old floor. Fixed.
 
@@ -978,14 +978,14 @@ Walking whole for the first time showed why 800 had never run: see the folded ca
 - No real person has seen this. Every claim about a stranger is my judgement, including my own cold read, because I'd read the brief first.
 - A real phone, real pinch, real Safari, Windows and a screen reader.
 - Read with Claude: everything is the mock.
-- `npx -y vadere`, `claude mcp add`, and a public host over HTTPS.
+- `npx -y locus-harness`, `claude mcp add`, and a public host over HTTPS.
 - Double-tap on real glass. Emulated, a double tap on land opens the area and leaves the page at scale 1.
 - Focus order on first run, in Sign in and with a phone keyboard.
 
 **Worst thing left.** `06-reader-setup`. Asking how to connect a reader still jumps the map to 35%, collapses every name to a count, puts Engineering's name on the coast, leaves two Go live buttons on screen and a half-empty panel. Now that opening an item is calm, this is the one that lurches. It refits so a reader's whole picture stays in view, and keeping that while holding the scale is more than a small fix, so it waits.
 
 **Also left.**
-- The default connect tab, from Round 5, and `npx -y vadere`, which is the operator's call.
+- The default connect tab, from Round 5, and `npx -y locus-harness`, which is the operator's call.
 - The map stays an index on a country. Place inside a county still means only what kind of thing. Round 4's worst thing stands.
 - An untouched map rearranges with every file. In a read a faint double coast still shows for a frame or two.
 - With a panel open, the map slides under the card and Brand's lower rows show below it with their tops cut (`12-area-panel`).

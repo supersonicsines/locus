@@ -20,7 +20,7 @@ import { costForReaders, pieceForReaders } from './readers.ts'
 import type { Bundle, Company, Cost, Gate, Link, Piece, Sealed, Vault, View } from './types.ts'
 
 const subtle = globalThis.crypto.subtle
-const FORMAT = 'vadere/1'
+const FORMAT = 'locus/1'
 const enc = new TextEncoder()
 const dec = new TextDecoder()
 
@@ -61,14 +61,14 @@ function randomBase32(chars: number): string {
 const KEY_CHARS = 26
 
 export function generatePassword(): string {
-  return 'vdr_' + randomBase32(KEY_CHARS)
+  return 'lcr_' + randomBase32(KEY_CHARS)
 }
 
 export function generateOwnerKey(): string {
-  return 'vdo_' + randomBase32(KEY_CHARS)
+  return 'lco_' + randomBase32(KEY_CHARS)
 }
 
-const KEY_SHAPE = /^vd[ro]_[0-9a-hjkmnp-tv-z]{26}$/
+const KEY_SHAPE = /^lc[ro]_[0-9a-hjkmnp-tv-z]{26}$/
 
 export function looksLikeKey(s: string): boolean {
   return KEY_SHAPE.test(s)

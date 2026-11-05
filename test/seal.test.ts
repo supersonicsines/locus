@@ -50,7 +50,7 @@ function vaultFixture(): { vault: Vault; design: Password; finance: Password; al
 test('keys are generated, well formed and distinct', () => {
   const a = generatePassword()
   assert.ok(looksLikeKey(a))
-  assert.ok(a.startsWith('vdr_'))
+  assert.ok(a.startsWith('lcr_'))
   assert.equal(a.length, 30)
   assert.notEqual(a, generatePassword())
   assert.ok(looksLikeKey(generateOwnerKey()))

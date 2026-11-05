@@ -26,7 +26,7 @@ QA agents made each of these changes without a ruling. The recommendation is the
 
 Also open:
 
-- **npm.** Publish the package, or the default connect step (`npx -y vadere mcp …`) fails. Until then, run `node dist/cli.mjs mcp …` from a clone.
+- **npm.** Publish the package, or the default connect step (`npx -y locus-harness mcp …`) fails. Until then, run `node dist/cli.mjs mcp …` from a clone.
 - **Logos.** 111 logos come from companies' own sites with no licence (`node --experimental-strip-types scripts/build-logos.mjs --strip-official` removes them, with no downloads). The svgl copyright line, and a trademark review before going public.
 - **Donation target** for the free hosted mode. The slot exists; the address doesn't.
 - **GitHub.** Where it lives, and when.

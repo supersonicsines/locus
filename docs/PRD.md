@@ -1,8 +1,8 @@
-# Vadere PRD
+# Locus PRD
 
 Status: final for v1. QA findings applied (see [PRD-QA.md](PRD-QA.md)), then a visual polish programme (see [design/qa-rounds.md](design/qa-rounds.md)). Where things stand, and the design calls still open, are in [STATUS.md](STATUS.md).
 
-*Vadere* is Latin for "to go". A *vade mecum* ("go with me") is the handbook you carry everywhere. Vadere is that handbook for your agents.
+*Locus* is Latin for "place": the spot on a map where something is, and in mathematics the set of every point that meets a rule. Locus is the one place your agents go to learn where everything in your company is, and the rules that apply.
 
 ## 1. The problem
 
@@ -18,7 +18,7 @@ Notion and Figma semi-natives, about six months into vibecoding, who understand 
 
 Their existing habits guide how the app behaves. We don't copy either product; we use what people already intuit:
 
-| They already know | So in Vadere |
+| They already know | So in Locus |
 | --- | --- |
 | Figma's canvas: pan, zoom, floating panels | The map behaves the same way |
 | Figma's layers panel | The list of who can read the map, top left over the map |
@@ -73,7 +73,7 @@ Technical terms the audience already knows (MCP, API) are fine in the interface.
 **Two ways to run it**
 
 - **Self-hosted:** one command runs everything, or one container. No limits.
-- **SaaS-lite:** the same code in hosted mode. Free, a cap on accounts, a donation button. An account is a claimed name plus an owner key: no email, no personal data stored. A name is claimed by its first successful publish, so there are no empty reservations, and deleting an account frees its spot. When full, the map still works locally and the interface offers the self-host command. Hosted limits: 10 MB per account, a small proof-of-work on claiming, a per-IP limit, reserved names, and `vadere admin remove <name>` with a configurable abuse contact for takedowns. The crypto donation target gets wired up later; v1 ships the slot and its configuration.
+- **SaaS-lite:** the same code in hosted mode. Free, a cap on accounts, a donation button. An account is a claimed name plus an owner key: no email, no personal data stored. A name is claimed by its first successful publish, so there are no empty reservations, and deleting an account frees its spot. When full, the map still works locally and the interface offers the self-host command. Hosted limits: 10 MB per account, a small proof-of-work on claiming, a per-IP limit, reserved names, and `locus admin remove <name>` with a configurable abuse contact for takedowns. The crypto donation target gets wired up later; v1 ships the slot and its configuration.
 
 **The map (Studio)**
 
@@ -98,7 +98,7 @@ Technical terms the audience already knows (MCP, API) are fine in the interface.
 **The proof**
 
 - Open source, small, auditable crypto with no dependencies beyond the platform.
-- The sealed bundle is publicly downloadable, and `vadere verify` shows what it does and doesn't reveal.
+- The sealed bundle is publicly downloadable, and `locus verify` shows what it does and doesn't reveal.
 - A written threat model that says plainly what is not protected.
 
 ### Out, for now
@@ -163,7 +163,7 @@ Three ways to present a password, because agents differ:
 
 | How | For | Who decrypts | Trusting the host |
 | --- | --- | --- | --- |
-| `vadere mcp`, `vadere pull` | Claude Code, Cursor | The reader's machine | Not needed. The host only ever sees ciphertext |
+| `locus mcp`, `locus pull` | Claude Code, Cursor | The reader's machine | Not needed. The host only ever sees ciphertext |
 | Browser unlock | People | The reader's browser | Needed: the page's code comes from the host. Self-host to remove this |
 | `Authorization: Bearer` | Anything that can set a header | The host, in memory, per request | Needed |
 | `/k/<password>/...` in the URL | Claude.ai connectors and fetch tools that can't set headers | The host, in memory, per request | Needed, and the URL itself is sensitive |
@@ -176,7 +176,7 @@ Each password has a switch, **Remote access**, that makes the host refuse the la
 
 **Look: Atlas.** Cool white paper, ink-black text, engraved-chart hairlines. The company is one country, its land a plain fill on the sea with nothing drawn round it, and each gate is a county of it, with dashed borders. Pieces stand in columns by kind, as small ink symbols or real logos, each with its name, so nothing needs a legend. Vermilion means sealed and nothing else: a closed gate carries a wax-seal mark. Full dark mode.
 
-**Type.** Lustria (single-weight serif) for the company name, territory names, piece titles and piece body. Geist (sans) for all interface text, numbers and controls. System monospace only for passwords, code and what an agent sees. Fonts ship with the app.
+**Type.** One face, Spline Sans Mono, for everything: the company name, county names, item titles and bodies, interface text, numbers, passwords and what an agent sees. It's a monospace with drawn, warm curves rather than a terminal's, so the map reads like a surveyor's chart. Hierarchy comes from size, weight, case and ink. The font ships with the app.
 
 **The one memorable moment:** flipping a gate closed on a password. The county seals, its land turns vermilion-pink and its edge wears the colour, the wax mark lands, and the links crossing into it fade. Everything else stays quiet so that this moment lands.
 
@@ -204,7 +204,7 @@ One package, four parts:
 - `core`: types, sealing, search, the agent text. Platform crypto only. Runs in browser and Node.
 - `server`: the host. Claims names, stores sealed bundles, serves addresses and agent endpoints, serves the Studio.
 - `studio`: the map. A static React app; plaintext never leaves it except by explicit Claude shredding.
-- `cli`: `vadere serve`, `mcp`, `pull`, `verify`.
+- `cli`: `locus serve`, `mcp`, `pull`, `verify`.
 
 ### 11.2 Sealing
 
@@ -235,7 +235,7 @@ The browser holds plaintext, passwords and the Claude key, so piece bodies are r
 - A real pile becomes a useful map in under five minutes.
 - Pasting one line into Claude Code gives a session that follows the company's rules.
 - A glance passes the test in section 5.
-- `vadere verify` confirms the host holds only ciphertext.
+- `locus verify` confirms the host holds only ciphertext.
 
 ## 13. Testing
 

@@ -1,7 +1,7 @@
 // A reader's password and how to hand it over. The map beside it shows what they can see.
 
 import { useEffect, useRef, useState } from 'react'
-import { llmsTxt, viewFor } from '../../core/agent.ts'
+import { llmsTxt, PACKAGE, viewFor } from '../../core/agent.ts'
 import { pending } from '../../core/status.ts'
 import type { Password } from '../../core/types.ts'
 import { changePassword, clearStatusToasts, copy, newMap, publishAndSay, replacePassword, revokePassword, siteAddress, toast, toggleGateOnPassword } from '../actions.ts'
@@ -68,15 +68,15 @@ function Connect({ pw, address, name, shown }: { pw: Password; address: string; 
   const [tab, setTab] = useState<Tab>('code')
   const [viaHost, setViaHost] = useState(false)
   const slug = name.replace(/[^a-z0-9-]/gi, '-').toLowerCase()
-  const local = `claude mcp add ${slug} -e VADERE_KEY=${pw.key} -- npx -y vadere mcp ${address}`
+  const local = `claude mcp add ${slug} -e LOCUS_KEY=${pw.key} -- npx -y ${PACKAGE} mcp ${address}`
   const remote = `claude mcp add --transport http ${slug} ${address}/mcp --header "Authorization: Bearer ${pw.key}"`
   const urlMcp = `${address}/k/${pw.key}/mcp`
   const cursor = pw.remote
     ? JSON.stringify({ mcpServers: { [slug]: { url: `${address}/mcp`, headers: { Authorization: `Bearer ${pw.key}` } } } }, null, 2)
-    : JSON.stringify({ mcpServers: { [slug]: { command: 'npx', args: ['-y', 'vadere', 'mcp', address], env: { VADERE_KEY: pw.key } } } }, null, 2)
+    : JSON.stringify({ mcpServers: { [slug]: { command: 'npx', args: ['-y', PACKAGE, 'mcp', address], env: { LOCUS_KEY: pw.key } } } }, null, 2)
   const prompt = pw.remote
     ? `Our company's map is at ${address}/k/${pw.key}/llms.txt\nRead it before doing any company work. It has any rules you must follow and says where everything lives.`
-    : `Our company's map is at ${address}. Read it with: npx vadere pull ${address} --key ${pw.key}\nThen read COMPANY_MAP.md before doing any company work.`
+    : `Our company's map is at ${address}. Read it with: npx -y ${PACKAGE} pull ${address} --key ${pw.key}\nThen read COMPANY_MAP.md before doing any company work.`
   const link = `${address}/#key=${pw.key}`
   const cloudOff = (
     <p className="hint" style={{ margin: '8px 0 0' }}>
@@ -247,7 +247,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
               <Icon name="copy" size={14} />
             </button>
           </div>
-          <p className="hint" style={{ margin: '6px 0 0' }}>Vadere makes the password, because the encrypted map is public and a chosen password could be guessed.</p>
+          <p className="hint" style={{ margin: '6px 0 0' }}>Locus makes the password, because the encrypted map is public and a chosen password could be guessed.</p>
           {confirming === 'replace' ? (
             <div className="callout" style={{ marginTop: 10 }} ref={confirm}>
               The old password stops working on the live map straight away{others}, so whatever uses it has to be connected again. Anything it already read or saved, it keeps.

@@ -93,7 +93,7 @@ export interface State {
 
 function initialTheme(): 'light' | 'dark' {
   try {
-    const saved = localStorage.getItem('vadere-theme')
+    const saved = localStorage.getItem('locus-theme')
     if (saved === 'light' || saved === 'dark') return saved
   } catch {}
   return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -156,7 +156,7 @@ export function useStore<T>(select: (s: State) => T): T {
 
 // Saving, to IndexedDB in this browser.
 
-const DB = 'vadere'
+const DB = 'locus'
 let dbPromise: Promise<IDBDatabase> | null = null
 
 function db(): Promise<IDBDatabase> {

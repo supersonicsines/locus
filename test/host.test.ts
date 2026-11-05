@@ -14,7 +14,7 @@ const dirs: string[] = []
 after(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })))
 
 function host(over: Partial<Config> = {}) {
-  const dataDir = mkdtempSync(join(tmpdir(), 'vadere-test-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'locus-test-'))
   dirs.push(dataDir)
   return createHandler({
     domain: 'localhost',
@@ -66,7 +66,7 @@ async function publish(h: ReturnType<typeof host>, vault: Vault, version = 1, no
   return h(
     new Request(`http://localhost:4747/api/sites/${name}`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${await publishToken(vault.site!.ownerKey)}`, ...(nonce ? { 'x-vadere-pow': nonce } : {}) },
+      headers: { Authorization: `Bearer ${await publishToken(vault.site!.ownerKey)}`, ...(nonce ? { 'x-locus-pow': nonce } : {}) },
       body: JSON.stringify(await sealVault(vault, version)),
     }),
   )
@@ -143,16 +143,16 @@ test('a local-only password is refused remotely', async () => {
 })
 
 test('passwords over plain HTTP are refused off localhost', async () => {
-  const h = host({ domain: 'vadere.test' })
+  const h = host({ domain: 'locus.test' })
   const { vault, open } = vaultFor('acme')
   await h(
-    new Request('http://vadere.test/api/sites/acme', {
+    new Request('http://locus.test/api/sites/acme', {
       method: 'PUT',
       headers: { Authorization: `Bearer ${await publishToken(vault.site!.ownerKey)}` },
       body: JSON.stringify(await sealVault(vault, 1)),
     }),
   )
-  const r = await get(h, 'http://acme.vadere.test/llms.txt', { Authorization: `Bearer ${open}` })
+  const r = await get(h, 'http://acme.locus.test/llms.txt', { Authorization: `Bearer ${open}` })
   assert.equal(r.status, 400)
   assert.ok((await r.text()).includes('plain HTTP'))
 })
@@ -245,7 +245,7 @@ test('hosted mode: cap, limits, proof of work', async () => {
   assert.equal((await publish(pow, v, 1, 'nope')).status, 400)
   let nonce = 0
   for (; ; nonce++) {
-    const hex = await sha256Hex(`vadere claim work ${nonce}`)
+    const hex = await sha256Hex(`locus claim work ${nonce}`)
     if (hex.startsWith('00')) break
   }
   assert.equal((await publish(pow, v, 1, String(nonce))).status, 201)
@@ -254,7 +254,7 @@ test('hosted mode: cap, limits, proof of work', async () => {
 })
 
 test('security headers on the Studio', async () => {
-  const dataDir = mkdtempSync(join(tmpdir(), 'vadere-test-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'locus-test-'))
   dirs.push(dataDir)
   const h = createHandler({ domain: 'localhost', dataDir, studioDir: join(process.cwd(), 'test', 'fixtures'), hosted: false, maxAccounts: 1, maxBundleBytes: 1000, powBits: 0, donateUrl: '', abuseContact: '', trustProxy: false })
   const r = await get(h, 'http://localhost:4747/', { Accept: 'text/html' })
@@ -264,7 +264,7 @@ test('security headers on the Studio', async () => {
   assert.ok(csp.includes("script-src 'self'"))
   assert.ok(!csp.includes('unsafe-inline'))
   const t = await get(h, 'http://localhost:4747/../../package.json')
-  assert.ok(!(await t.text()).includes('"name": "vadere"'), 'no path traversal')
+  assert.ok(!(await t.text()).includes('"name": "locus-harness"'), 'no path traversal')
 })
 
 test('wrong passwords are limited per address', async () => {
@@ -291,7 +291,7 @@ test('odd names and paths are refused cleanly', async () => {
   assert.equal((await get(h, `${SITE}/k/${escaped}/llms.txt`)).status, 401)
   // Host headers and paths that aren't valid names reach no site.
   const body = await (await get(h, 'http://x_y.localhost:4747/bundle.json')).text()
-  assert.ok(!body.includes('vadere/1'))
+  assert.ok(!body.includes('locus/1'))
   assert.notEqual((await h(new Request('http://localhost:4747/api/sites/-bad-', { method: 'DELETE' }))).status, 200)
 })
 
@@ -305,7 +305,7 @@ test('two simultaneous claims of a name cannot both win', async () => {
 })
 
 test('the page is never served without its security headers', async () => {
-  const dataDir = mkdtempSync(join(tmpdir(), 'vadere-test-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'locus-test-'))
   dirs.push(dataDir)
   const h = createHandler({ domain: 'localhost', dataDir, studioDir: join(process.cwd(), 'test', 'fixtures'), hosted: false, maxAccounts: 1, maxBundleBytes: 1000, powBits: 0, donateUrl: '', abuseContact: '', trustProxy: false })
   for (const path of ['/', '/index.html', '/s/acme/', '/s/acme/index.html']) {

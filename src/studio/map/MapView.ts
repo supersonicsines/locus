@@ -175,8 +175,6 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const MIN_K = 0.12
 const MAX_K = 3.5
 
-const SERIF = 'Lustria, Georgia, "Times New Roman", serif'
-
 /** A reader's mark under an area's name, in screen pixels. */
 const FACE = 20
 const FACE_STEP = 24
@@ -198,11 +196,11 @@ const tileSize = (k: number) => Math.round(clamp(25 * Math.sqrt(k), 15, 30))
 
 /** Any other item's picture, in screen pixels. */
 const iconSize = (k: number) => Math.round(clamp(19.5 * Math.sqrt(k), 14, 20))
-const LABEL_LEADING = 13
+const LABEL_LEADING = 14
 
 /** Names step down a size just before the map gathers them up, which gives a laptop's whole-map view room for every one. */
-const nameSize = (k: number) => (k < DESIGN_K * 0.92 ? 10.5 : 11.5)
-const leadingAt = (k: number) => (nameSize(k) < 11 ? 12 : LABEL_LEADING)
+const nameSize = (k: number) => (k < DESIGN_K * 0.92 ? 11 : 12)
+const leadingAt = (k: number) => (nameSize(k) < 11.5 ? 13 : LABEL_LEADING)
 
 /**
  * What the map shows at each zoom. Like a real map, it changes in kind and not only in size.
@@ -212,6 +210,16 @@ const leadingAt = (k: number) => (nameSize(k) < 11 ? 12 : LABEL_LEADING)
  *   gathers into one line with a count. Logos stay, because a logo says something on its own. Anything wearing a pin stays with its name.
  */
 const DETAIL_K = DESIGN_K * 0.8
+/**
+ * The survey: the first map a page shows is inked in from its middle out. The land spreads first, then each county's name rises into place
+ * behind the wave, then what's on the land. Once per page load, never under reduced motion, and the map can be used throughout.
+ */
+const SURVEY_MS = 1500
+const SURVEY_LAND = { at: 40, for: 980 }
+const SURVEY_NAMES = { at: 240, spread: 520, for: 520 }
+const SURVEY_ITEMS = { at: 380, spread: 620 }
+/** Before there's a map, the graticule draws itself out from the middle. */
+const EMPTY_MS = 1300
 const BEHIND_SEA = 0.45
 const SUMMARY_K = 0.85
 
@@ -220,7 +228,7 @@ export class MapView {
   private ctx: CanvasRenderingContext2D
   private cb: MapCallbacks
   // Canvas fonts can't use var(), so this reads the --sans token and the sans is only named in styles.css.
-  private sans = getComputedStyle(document.documentElement).getPropertyValue('--sans').trim() || 'sans-serif'
+  private sans = getComputedStyle(document.documentElement).getPropertyValue('--sans').trim() || 'monospace'
   private w = 0
   private h = 0
   private dpr = 1
@@ -249,7 +257,7 @@ export class MapView {
   private fitK = 1
   private overlayK = 1
   private hasFitted = false
-  private rightInset = 28
+  private rightInset = 32
   private userMoved = false
 
   private palette: Palette | null = null
@@ -311,11 +319,17 @@ export class MapView {
   private raf = 0
   private lastFrame = 0
   private reducedMotion = false
+  private survey: { start: number; cx: number; cy: number; reach: number } | null = null
+  private surveyed = false
+  private emptySince = 0
+  private frameNow = 0
   private appeared = false
 
   private pointers = new Map<number, { x: number; y: number }>()
   private drag: { kind: 'pan' | 'piece' | 'pinch'; id?: string; sx: number; sy: number; moved: boolean; lastX: number; lastY: number; dist?: number; k?: number; ox?: number; oy?: number } | null = null
   private spaceDown = false
+  /** A zoom from the wheel, easing to k with the world point (wx, wy) held under the screen point (sx, sy). */
+  private wheelZoom: { k: number; sx: number; sy: number; wx: number; wy: number } | null = null
 
   constructor(canvas: HTMLCanvasElement, cb: MapCallbacks) {
     this.canvas = canvas
@@ -773,13 +787,14 @@ export class MapView {
     // Leave room for the panels that float over the map.
     const narrow = this.w <= 720
     // Up to here the card folds away to its heading, so the map has the width.
-    const left = this.w <= 980 ? 16 : 300
+    // The card's width and the gutters each side of it, as --left-w and --gutter say, and a little air.
+    const left = this.w <= 980 ? 20 : 340
     // A panel never changes the scale. See the end of this.
-    const right = narrow ? 16 : 28
-    // Below the top controls. Below 1100 the line at top centre drops under them, so there's more to clear.
+    const right = narrow ? 20 : 36
+    // Below the top controls. Below 1240 the line at top centre drops under them, so there's more to clear.
     // Picked on a phone, a reader's sheet holds what the bar would say, so the map has that room too.
-    const top = narrow ? (this.bottomInset ? 72 : 130) : this.w <= 1100 ? 116 : 70
-    const bottom = narrow ? (this.bottomInset || (this.subtotalsOn ? 152 : 72)) : 24
+    const top = narrow ? (this.bottomInset ? 80 : 144) : this.w <= 1240 ? 134 : 84
+    const bottom = narrow ? (this.bottomInset || (this.subtotalsOn ? 164 : 80)) : 40
     // A small map sits at a size where its words and its land still go together, and doesn't balloon to fill the screen.
     const kFor = (fromX: number, toX: number, fromY: number, toY: number) => clamp(Math.min((this.w - left - right) / (toX - fromX || 1), (this.h - top - bottom) / (toY - fromY || 1)), MIN_K, 0.9)
     let k = kFor(minX, maxX, minY, maxY)
@@ -810,7 +825,7 @@ export class MapView {
     const x = left + (this.w - left - right - (maxX - minX) * k) / 2 - minX * k
     const y = top + (this.h - top - bottom - (maxY - minY) * k) / 2 - minY * k
     // A reader's panel takes a third of the width, and squeezing the map into what's left costs its names. So the map keeps its scale, the card folds away, and the map slides over into the room that gives. Only as far as it takes for what's on the land to clear the panel, and it's the land's empty west that goes off the sheet if anything has to.
-    if (!narrow && this.rightInset > 28 && this.territories.length) {
+    if (!narrow && this.rightInset > 32 && this.territories.length) {
       const held = Math.min(...this.territories.map((t) => t.holds.minX)) * k + x
       const reach = Math.max(...this.territories.map((t) => t.holds.maxX)) * k + x
       const over = reach + 16 - (this.w - this.rightInset)
@@ -885,7 +900,7 @@ export class MapView {
     const right = sx + half + 8 + name.width + 16
     const top = sy - half - (pinned ? 30 : 0) - 8
     const bottom = sy + half + 8 + (name.lines.length - 1) * leadingAt(c.k)
-    const safeTop = this.w <= 1100 ? 130 : 84
+    const safeTop = this.w <= 1240 ? 134 : 84
     const safeBottom = this.h - 64
     const dy = top < safeTop ? safeTop - top : bottom > safeBottom ? safeBottom - bottom : 0
     const safeRight = this.w - 396
@@ -1047,6 +1062,7 @@ export class MapView {
     this.pointers.set(e.pointerId, { x, y })
     this.canvas.setPointerCapture(e.pointerId)
     this.camTarget = null
+    this.wheelZoom = null
 
     if (this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()]
@@ -1230,18 +1246,32 @@ export class MapView {
     this.slidOver = 0
     this.slidDown = 0
     this.returnTo = null
+    const [x, y] = this.localPoint(e)
     if (e.ctrlKey || e.metaKey) {
-      // Pinch on a trackpad arrives as ctrl+wheel.
-      const [x, y] = this.localPoint(e)
+      // Pinch on a trackpad arrives as ctrl+wheel. It follows the fingers exactly, so it isn't eased.
+      this.wheelZoom = null
       const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.01))
       const k = this.clampZoom(this.cam.k * factor)
       const [wx, wy] = this.toWorld(x, y)
       this.cam = { k, x: x - wx * k, y: y - wy * k }
       this.cb.cameraChanged(k, this.fitK)
-    } else {
+    } else if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      // Sideways, or with shift, the wheel still pans, as it does on any map.
+      this.wheelZoom = null
       const unit = e.deltaMode === 1 ? 16 : 1
-      this.cam.x -= e.deltaX * unit
-      this.cam.y -= e.deltaY * unit
+      this.cam.x -= (e.deltaX || e.deltaY) * unit
+      if (!e.shiftKey) this.cam.y -= e.deltaY * unit
+    } else {
+      // Scrolling zooms, about the point under the pointer, as on a map. A mouse wheel moves in notches, so the zoom eases between them and that point stays put the whole way.
+      const px = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1
+      const dy = clamp(e.deltaY * px, -160, 160)
+      const k = this.clampZoom((this.wheelZoom?.k ?? this.cam.k) * Math.exp(-dy * 0.0026))
+      const [wx, wy] = this.toWorld(x, y)
+      if (this.reducedMotion) {
+        this.cam = { k, x: x - wx * k, y: y - wy * k }
+        this.wheelZoom = null
+      } else this.wheelZoom = { k, sx: x, sy: y, wx, wy }
+      this.cb.cameraChanged(k, this.fitK)
     }
     this.scheduleLabels(140)
     this.invalidate()
@@ -1276,6 +1306,18 @@ export class MapView {
   private step(dt: number, now: number): boolean {
     let moving = false
     const follow = (rate: number) => 1 - Math.exp(-dt * rate)
+
+    if (!this.nodes.length && !this.reducedMotion) {
+      if (!this.emptySince) this.emptySince = now
+      if (now - this.emptySince < EMPTY_MS) moving = true
+    }
+    if (!this.surveyed && this.nodes.length && this.territories.length && this.w) this.startSurvey(now)
+    if (this.survey) {
+      if (now - this.survey.start > SURVEY_MS) {
+        this.survey = null
+        this.landLayer = null
+      } else moving = true
+    }
 
     // Everything that's rearranging goes on one clock: marks, names, land and the camera.
     if (this.rearranging) {
@@ -1323,6 +1365,18 @@ export class MapView {
       const next = this.reducedMotion ? target : target > a ? Math.min(1, a + dt / 110) : Math.max(0, a - dt / 170)
       this.hotAreas.set(t.gate, next)
       moving = true
+    }
+
+    if (this.wheelZoom && this.camTarget) this.wheelZoom = null
+    if (this.wheelZoom) {
+      const z = this.wheelZoom
+      const near = Math.abs(this.cam.k - z.k) < 0.0006
+      const k = near ? z.k : lerp(this.cam.k, z.k, follow(0.018))
+      this.cam = { k, x: z.sx - z.wx * k, y: z.sy - z.wy * k }
+      if (near) {
+        this.wheelZoom = null
+        this.scheduleLabels(0)
+      } else moving = true
     }
 
     if (this.camTarget && !this.rearranging) {
@@ -2014,7 +2068,7 @@ export class MapView {
   }
 
   private districtFont(): string {
-    return `12px ${SERIF}`
+    return `12px ${this.sans}`
   }
 
   /**
@@ -2383,7 +2437,7 @@ export class MapView {
   private figureFont(n: Node): string {
     const m = n.month ?? 0
     const size = m >= 1000 ? 16 : m >= 150 ? 13.5 : 11.5
-    return `${size}px ${SERIF}`
+    return `${size}px ${this.sans}`
   }
 
   /** Where an area's name starts, closer in: on its own land, flush with what's under it. */
@@ -2422,7 +2476,7 @@ export class MapView {
 
   private nameWidth(name: string): number {
     const size = this.gateLabelSize()
-    this.ctx.font = `${size}px ${SERIF}`
+    this.ctx.font = `${size}px ${this.sans}`
     const c = this.ctx as CanvasRenderingContext2D & { letterSpacing?: string }
     if ('letterSpacing' in c) c.letterSpacing = `${(size * 0.1).toFixed(1)}px`
     const w = this.ctx.measureText(name).width
@@ -2647,7 +2701,79 @@ export class MapView {
     return c
   }
 
+  /** Sets the survey going: where the middle is, how far the land reaches from it, and when each item comes up. */
+  private startSurvey(now: number) {
+    this.surveyed = true
+    if (this.reducedMotion) return
+    const minX = Math.min(...this.territories.map((t) => t.minX))
+    const maxX = Math.max(...this.territories.map((t) => t.maxX))
+    const minY = Math.min(...this.territories.map((t) => t.minY))
+    const maxY = Math.max(...this.territories.map((t) => t.maxY))
+    const cx = (minX + maxX) / 2
+    const cy = (minY + maxY) / 2
+    const reach = Math.hypot(maxX - minX, maxY - minY) / 2 || 1
+    this.survey = { start: now, cx, cy, reach }
+    for (const n of this.nodes) {
+      const d = clamp(Math.hypot(n.tx - cx, n.ty - cy) / reach, 0, 1)
+      // Appearing runs from 0 to 1 in 280 ms, so starting below 0 is a wait.
+      n.appear = -(SURVEY_ITEMS.at + d * SURVEY_ITEMS.spread) / 280
+    }
+  }
+
+  /** How far the survey has come for something at this point on screen, 0 to 1. 1 when there's no survey. */
+  private surveyAt(sx: number, sy: number, at: number, spread: number, length: number): number {
+    const s = this.survey
+    if (!s) return 1
+    const { k, x, y } = this.cam
+    const d = clamp(Math.hypot(sx - (s.cx * k + x), sy - (s.cy * k + y)) / (s.reach * k), 0, 1)
+    return EASE(clamp((this.frameNow - s.start - at - d * spread) / length, 0, 1))
+  }
+
+  /** The land, inked in from the middle: drawn whole on its own sheet, then cut by a soft-edged circle that grows until it holds everything. */
+  private drawLandSurveyed(k: number) {
+    const s = this.survey!
+    const spread = clamp((this.frameNow - s.start - SURVEY_LAND.at) / SURVEY_LAND.for, 0, 1)
+    if (spread >= 1) {
+      this.drawLand(k)
+      return
+    }
+    if (spread <= 0) return
+    const main = this.ctx
+    if (!this.landLayer) this.landLayer = document.createElement('canvas')
+    const layer = this.landLayer
+    if (layer.width !== this.canvas.width || layer.height !== this.canvas.height) {
+      layer.width = this.canvas.width
+      layer.height = this.canvas.height
+    }
+    const sheet = layer.getContext('2d')!
+    sheet.setTransform(1, 0, 0, 1, 0, 0)
+    sheet.globalCompositeOperation = 'source-over'
+    sheet.clearRect(0, 0, layer.width, layer.height)
+    sheet.setTransform(this.dpr * k, 0, 0, this.dpr * k, this.dpr * this.cam.x, this.dpr * this.cam.y)
+    this.ctx = sheet
+    this.drawTerritories(k)
+    this.ctx = main
+    // Ink spreads fast and then slows as it soaks in, and its edge is soft.
+    const e = 1 - Math.pow(1 - spread, 2.4)
+    const feather = s.reach * 0.42
+    const r = e * (s.reach * 1.08 + feather)
+    const [cx, cy] = this.toScreen(s.cx, s.cy)
+    sheet.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
+    sheet.globalCompositeOperation = 'destination-in'
+    const g = sheet.createRadialGradient(cx, cy, Math.max(0, (r - feather) * k), cx, cy, Math.max(1, r * k))
+    g.addColorStop(0, 'rgba(0,0,0,1)')
+    g.addColorStop(1, 'rgba(0,0,0,0)')
+    sheet.fillStyle = g
+    sheet.fillRect(0, 0, this.w, this.h)
+    sheet.globalCompositeOperation = 'source-over'
+    main.save()
+    main.setTransform(1, 0, 0, 1, 0, 0)
+    main.drawImage(layer, 0, 0)
+    main.restore()
+  }
+
   private draw(now: number) {
+    this.frameNow = now
     const ctx = this.ctx
     const p = this.palette
     if (!p || !this.w) return
@@ -2673,7 +2799,8 @@ export class MapView {
     ctx.save()
     ctx.translate(x, y)
     ctx.scale(k, k)
-    this.drawLand(k)
+    if (this.survey) this.drawLandSurveyed(k)
+    else this.drawLand(k)
     if (!this.rearranging) this.drawLinks(k)
     if (this.dollarT > 0 && this.dollarStyle === 'soundings') this.drawSoundings(k)
     ctx.restore()
@@ -2754,16 +2881,11 @@ export class MapView {
     if (this.w < 640) return
     ctx.lineWidth = 1
     ctx.strokeStyle = `rgba(${p.inkRGB},${p.dark ? 0.06 : 0.05})`
-    ctx.beginPath()
-    for (let sx = ((this.w / 2 - step / 2) % step + step) % step; sx < this.w; sx += step) {
-      ctx.moveTo(Math.round(sx) + 0.5, 0)
-      ctx.lineTo(Math.round(sx) + 0.5, this.h)
-    }
-    for (let sy = ((this.h / 2 - step / 2) % step + step) % step; sy < this.h; sy += step) {
-      ctx.moveTo(0, Math.round(sy) + 0.5)
-      ctx.lineTo(this.w, Math.round(sy) + 0.5)
-    }
-    ctx.stroke()
+    const xs: number[] = []
+    const ys: number[] = []
+    for (let sx = ((this.w / 2 - step / 2) % step + step) % step; sx < this.w; sx += step) xs.push(Math.round(sx) + 0.5)
+    for (let sy = ((this.h / 2 - step / 2) % step + step) % step; sy < this.h; sy += step) ys.push(Math.round(sy) + 0.5)
+    this.ruleLines(xs, ys, this.reducedMotion || !this.emptySince ? 1 : (this.frameNow - this.emptySince) / (EMPTY_MS * 0.8))
     const rx = Math.max(this.w * 0.62, 260)
     const ry = this.h * 0.55
     ctx.save()
@@ -2778,6 +2900,32 @@ export class MapView {
     ctx.restore()
   }
 
+  /**
+   * Rules the graticule's lines, each one drawn out from the middle of the screen, the nearest first. At 1 they're whole.
+   * xs and ys are where the vertical and horizontal lines fall.
+   */
+  private ruleLines(xs: number[], ys: number[], drawn: number) {
+    const ctx = this.ctx
+    const cx = this.w / 2
+    const cy = this.h / 2
+    ctx.beginPath()
+    for (const sx of xs) {
+      const t = drawn >= 1 ? 1 : EASE(clamp((drawn - (Math.abs(sx - cx) / this.w) * 0.5) / 0.5, 0, 1))
+      if (t <= 0) continue
+      const half = t * (this.h / 2 + 2)
+      ctx.moveTo(sx, cy - half)
+      ctx.lineTo(sx, cy + half)
+    }
+    for (const sy of ys) {
+      const t = drawn >= 1 ? 1 : EASE(clamp((drawn - (Math.abs(sy - cy) / this.h) * 0.5) / 0.5, 0, 1))
+      if (t <= 0) continue
+      const half = t * (this.w / 2 + 2)
+      ctx.moveTo(cx - half, sy)
+      ctx.lineTo(cx + half, sy)
+    }
+    ctx.stroke()
+  }
+
   private drawGraticule() {
     const ctx = this.ctx
     const p = this.palette!
@@ -2786,18 +2934,11 @@ export class MapView {
     if (step < 40) return
     ctx.lineWidth = 1
     ctx.strokeStyle = `rgba(${p.inkRGB},0.035)`
-    ctx.beginPath()
-    for (let sx = ((x % step) + step) % step; sx < this.w; sx += step) {
-      const px = Math.round(sx) + 0.5
-      ctx.moveTo(px, 0)
-      ctx.lineTo(px, this.h)
-    }
-    for (let sy = ((y % step) + step) % step; sy < this.h; sy += step) {
-      const py = Math.round(sy) + 0.5
-      ctx.moveTo(0, py)
-      ctx.lineTo(this.w, py)
-    }
-    ctx.stroke()
+    const xs: number[] = []
+    const ys: number[] = []
+    for (let sx = ((x % step) + step) % step; sx < this.w; sx += step) xs.push(Math.round(sx) + 0.5)
+    for (let sy = ((y % step) + step) % step; sy < this.h; sy += step) ys.push(Math.round(sy) + 0.5)
+    this.ruleLines(xs, ys, this.survey ? (this.frameNow - this.survey.start) / 700 : 1)
   }
 
   /** The border of an area, inside the coast. Where it meets the sea, its fill is its edge. */
@@ -3408,9 +3549,12 @@ export class MapView {
     // As with a county's name and an item's: half a heading by the card's edge reads as "ools", so it waits until it's clear.
     const overlays = this.cb.overlays()
     for (const d of this.districts) {
-      const shown = (d.named ? 1 - gathered * (d.hidden ? 1 : 0) : d.hidden ? 0 : gathered) * money * (1 - (this.seal.get(d.gate) ?? 0)) * dim
-      if (shown < 0.01) continue
+      const seen = (d.named ? 1 - gathered * (d.hidden ? 1 : 0) : d.hidden ? 0 : gathered) * money * (1 - (this.seal.get(d.gate) ?? 0)) * dim
+      if (seen < 0.01) continue
       const [x, y] = this.districtPos(d, 1 - gathered)
+      const surveyed = this.surveyAt(x, y, SURVEY_NAMES.at + 80, SURVEY_NAMES.spread, SURVEY_NAMES.for)
+      if (surveyed <= 0) continue
+      const shown = seen * surveyed
       ctx.font = font
       const across = (d.def.id === 'tools' ? 0 : LINE_ICON * gathered) + ctx.measureText(`${d.def.name} ${d.members.length}`).width + 6
       if (overlays.some((o) => x < o.right && x + across > o.left && y - 12 < o.bottom && y + 3 > o.top && !(x >= o.left && x + across <= o.right && y - 12 >= o.top && y + 3 <= o.bottom))) continue
@@ -3543,16 +3687,19 @@ export class MapView {
     for (const t of this.territories) {
       const gate = this.data.gates.find((g) => g.id === t.gate)
       if (!gate) continue
-      const [x, y] = this.gateLabelPos(t)
+      const [x, settled] = this.gateLabelPos(t)
+      const surveyed = this.surveyAt(x, settled, SURVEY_NAMES.at, SURVEY_NAMES.spread, SURVEY_NAMES.for)
+      if (surveyed <= 0) continue
+      const y = settled + (1 - surveyed) * 10
       // Only for a name that's partly showing. One wholly under a panel is drawn and nobody sees it, and either way there's nothing to cut.
       if (cutBy(x, y - size, this.nameWidth(this.shownName(t)), size + 4)) continue
       const s = this.seal.get(t.gate) ?? 0
       const ground = s > 0.5 ? (this.pendingSeal.has(t.gate) ? p.exposedLand : p.sealedLand) : this.groundOf(t.gate)
       const shown = this.shownName(t)
 
-      const arriving = this.rearranging && !this.rearranging.names.has(t.gate) ? clamp((this.rearrangeT - 0.5) / 0.5, 0, 1) : 1
+      const arriving = (this.rearranging && !this.rearranging.names.has(t.gate) ? clamp((this.rearrangeT - 0.5) / 0.5, 0, 1) : 1) * surveyed
       ctx.globalAlpha = arriving
-      ctx.font = `${size}px ${SERIF}`
+      ctx.font = `${size}px ${this.sans}`
       if ('letterSpacing' in c) c.letterSpacing = `${(size * 0.1).toFixed(1)}px`
       // Closed here but still readable out there isn't sealed yet, so its name stays ink.
       ctx.fillStyle = s > 0.5 && !this.pendingSeal.has(t.gate) ? p.vermilion : p.ink

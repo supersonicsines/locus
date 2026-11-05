@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { CATALOG, CATALOG_AS_OF, findInCatalog, type CatalogEntry } from '../../core/catalog.ts'
+import { PACKAGE } from '../../core/agent.ts'
 import type { Gate } from '../../core/types.ts'
 import { generateOwnerKey, looksLikeKey } from '../../core/seal.ts'
 import { shredLocally, DEFAULT_GATES } from '../../core/shred-local.ts'
@@ -157,8 +158,8 @@ function PublishSheet() {
           Your map is still here, in this browser, and you can keep building it. Nobody else can read it until it's live. To go live today, run your own host on a computer with Node.js: it takes one command in a terminal, and it has no limit on accounts.
         </p>
         <div className="code-block">
-          <code>npx vadere serve</code>
-          <button className="btn btn-paper code-copy" aria-label="Copy the command" onClick={async () => { if (await copy('npx vadere serve', null)) setCopiedKey(true) }}>
+          <code>npx {PACKAGE} serve</code>
+          <button className="btn btn-paper code-copy" aria-label="Copy the command" onClick={async () => { if (await copy(`npx ${PACKAGE} serve`, null)) setCopiedKey(true) }}>
             <Icon name={copiedKey ? 'check' : 'copy'} size={13} /> {copiedKey ? 'Copied' : 'Copy'}
           </button>
         </div>
@@ -227,7 +228,7 @@ function PublishSheet() {
         <button
           className="btn btn-paper"
           onClick={() => {
-            downloadText(`vadere-recovery-key-${name || 'map'}.txt`, `Vadere recovery key for ${name}\n${ownerKey}\n\nNobody can recover this for you.\n`)
+            downloadText(`locus-recovery-key-${name || 'map'}.txt`, `Locus recovery key for ${name}\n${ownerKey}\n\nNobody can recover this for you.\n`)
             setSaved(true)
             setDownloaded(true)
           }}
@@ -267,11 +268,11 @@ function SignInSheet() {
       <label htmlFor="si-name">Your address</label>
       <input id="si-name" className="field" autoFocus value={name} placeholder="yourco" onChange={(e) => setName(e.target.value)} />
       <label htmlFor="si-key">Recovery key</label>
-      <input id="si-key" className="field mono" value={key} placeholder="vdo_" spellCheck={false} onChange={(e) => setKey(e.target.value)} />
+      <input id="si-key" className="field mono" value={key} placeholder="lco_" spellCheck={false} onChange={(e) => setKey(e.target.value)} />
       {error && <p style={{ margin: '10px 0 0', color: 'var(--ink)' }} role="alert">{error}</p>}
       <div className="actions">
         <button className="btn btn-quiet" onClick={close}>Cancel</button>
-        <button className="btn btn-ink" aria-busy={busy} disabled={busy || !name.trim() || !looksLikeKey(key.trim()) || !key.trim().startsWith('vdo_')} onClick={() => void go()}>
+        <button className="btn btn-ink" aria-busy={busy} disabled={busy || !name.trim() || !looksLikeKey(key.trim()) || !key.trim().startsWith('lco_')} onClick={() => void go()}>
           {busy ? 'Signing in' : 'Sign in'}
         </button>
       </div>
@@ -287,7 +288,7 @@ function OwnerKeySheet() {
     <Sheet label="Recovery key" onClose={close}>
       <h2>Recovery key</h2>
       <p>This updates your live map, and it brings the map back on another device. Anyone who has it controls this map. Nobody can recover it for you.</p>
-      <code className="owner-key">{shown ? vault.site?.ownerKey : `vdo_${'•'.repeat(26)}`}</code>
+      <code className="owner-key">{shown ? vault.site?.ownerKey : `lco_${'•'.repeat(26)}`}</code>
       <div className="actions">
         <button className="btn btn-paper" onClick={() => setShown(!shown)}>{shown ? 'Hide' : 'Show'}</button>
         <button className="btn btn-paper" onClick={async () => { if (await copy(vault.site?.ownerKey ?? '', null)) setCopied(true) }}>{copied ? 'Copied' : 'Copy'}</button>
@@ -304,7 +305,7 @@ function DonateSheet() {
     <Sheet label="Donate" onClose={close}>
       <h2>Keep it free</h2>
       <p>
-        Vadere is open source and free to run yourself. Donations pay for the free hosted accounts
+        Locus is open source and free to run yourself. Donations pay for the free hosted accounts
         {accounts ? `, of which ${accounts.used} of ${accounts.max} are taken` : ''}.
       </p>
       <div className="actions">
@@ -476,7 +477,7 @@ function AddServiceSheet() {
 /** Around here a file has more sections than one file can put on the map. It's a warning, so it doesn't have to be exact. */
 const LONG_FILE = 400_000
 
-const READS = 'Vadere reads PDFs, Word documents, images and text files such as Markdown, CSV and JSON.'
+const READS = 'Locus reads PDFs, Word documents, images and text files such as Markdown, CSV and JSON.'
 
 /** What a run costs beyond the files' own words: the instructions and schema on each call, what comes back, and the step that sorts the map. Rough, and on the safe side, because it's someone's own money. Not yet checked against a real bill. */
 const PER_CALL_IN = 1200
@@ -540,7 +541,7 @@ function ShredSheet({ files, error, fromSample }: { files: File[]; error?: strin
       <Sheet label="These files can't be added" onClose={close}>
         <h2>{only ? `Can't add ${only.name}` : `Can't add these ${files.length} files`}</h2>
         {only ? (
-          <p>{only.note} {only.note === "Vadere can't read this type of file." ? READS : only.note === 'This file seems to be damaged.' ? 'Try saving it again from wherever it came from.' : ''}{/\.(xlsx?|numbers|ods)$/i.test(only.name) ? ' For a spreadsheet, save it as CSV and add that.' : ''}</p>
+          <p>{only.note} {only.note === "Locus can't read this type of file." ? READS : only.note === 'This file seems to be damaged.' ? 'Try saving it again from wherever it came from.' : ''}{/\.(xlsx?|numbers|ods)$/i.test(only.name) ? ' For a spreadsheet, save it as CSV and add that.' : ''}</p>
         ) : (
           <>
             <ul className="file-list">

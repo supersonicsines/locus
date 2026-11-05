@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// vadere: run a host, or read a map from your own machine.
+// locus: run a host, or read a map from your own machine.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -13,14 +13,14 @@ import type { Bundle, View } from '../core/types.ts'
 import { createHandler, FileStore, type Config } from '../server/app.ts'
 import { listen } from '../server/node.ts'
 
-const HELP = `vadere ${SERVER_VERSION}
+const HELP = `locus ${SERVER_VERSION}
 
 A map of your company that any agent can read.
 
-  vadere serve              Run the Studio and host. Open http://localhost:4747
+  locus serve              Run the Studio and host. Open http://localhost:4747
     --port 4747
     --domain localhost      Your wildcard domain, for yourco.domain addresses
-    --data ~/.vadere        Where sealed maps are stored
+    --data ~/.locus        Where sealed maps are stored
     --hosted                Free-with-a-cap mode (see --max-accounts)
     --max-accounts 500
     --donate-url <url>
@@ -28,15 +28,15 @@ A map of your company that any agent can read.
     --trust-proxy           Read X-Forwarded-* from your reverse proxy
     --proxy-hops 1          How many proxies you run in front (2 for Cloudflare and Caddy)
 
-  vadere mcp <address>      MCP server on stdio. Decrypts here; the host never sees the password
-  vadere pull <address>     Write the map to a folder as Markdown
+  locus mcp <address>      MCP server on stdio. Decrypts here; the host never sees the password
+  locus pull <address>     Write the map to a folder as Markdown
     --out ./company
-  vadere verify <address>   Show what the host really holds, and test it
+  locus verify <address>   Show what the host really holds, and test it
 
-  vadere admin list         Accounts on this host
-  vadere admin remove <name>
+  locus admin list         Accounts on this host
+  locus admin remove <name>
 
-Passwords come from --key or the VADERE_KEY environment variable.
+Passwords come from --key or the LOCUS_KEY environment variable.
 `
 
 interface Args {
@@ -63,18 +63,18 @@ function die(message: string): never {
   process.exit(1)
 }
 
-const dataDir = (args: Args) => resolve(args.data ?? process.env.VADERE_DATA ?? join(homedir(), '.vadere'))
+const dataDir = (args: Args) => resolve(args.data ?? process.env.LOCUS_DATA ?? join(homedir(), '.locus'))
 
 function needKey(args: Args): string {
-  const key = args.key ?? process.env.VADERE_KEY
-  if (!key) die('This needs a password. Use --key or set VADERE_KEY.')
-  if (!looksLikeKey(key)) die('That does not look like a Vadere password. They start with vdr_.')
+  const key = args.key ?? process.env.LOCUS_KEY
+  if (!key) die('This needs a password. Use --key or set LOCUS_KEY.')
+  if (!looksLikeKey(key)) die('That does not look like a Locus password. They start with lcr_.')
   return key
 }
 
 function address(args: Args): string {
   const a = args._[1]
-  if (!a) die('This needs an address, for example https://yourco.vadere.dev')
+  if (!a) die('This needs an address, for example https://yourco.example.com')
   return a.replace(/\/+$/, '')
 }
 
@@ -86,25 +86,25 @@ async function fetchBundle(addr: string): Promise<Bundle> {
 }
 
 async function serve(args: Args) {
-  const hosted = Boolean(args.hosted ?? process.env.VADERE_HOSTED)
+  const hosted = Boolean(args.hosted ?? process.env.LOCUS_HOSTED)
   const here = dirname(fileURLToPath(import.meta.url))
   const config: Config = {
-    domain: args.domain ?? process.env.VADERE_DOMAIN ?? 'localhost',
+    domain: args.domain ?? process.env.LOCUS_DOMAIN ?? 'localhost',
     dataDir: dataDir(args),
     studioDir: args.studio ?? join(here, 'studio'),
     hosted,
-    maxAccounts: Number(args['max-accounts'] ?? process.env.VADERE_MAX_ACCOUNTS ?? 500),
+    maxAccounts: Number(args['max-accounts'] ?? process.env.LOCUS_MAX_ACCOUNTS ?? 500),
     maxBundleBytes: (hosted ? 10 : 200) * 1_048_576,
-    powBits: Number(process.env.VADERE_POW_BITS ?? 16),
-    donateUrl: args['donate-url'] ?? process.env.VADERE_DONATE_URL ?? '',
-    abuseContact: args['abuse-contact'] ?? process.env.VADERE_ABUSE_CONTACT ?? '',
-    trustProxy: Boolean(args['trust-proxy'] ?? process.env.VADERE_TRUST_PROXY),
-    proxyHops: Number(args['proxy-hops'] ?? process.env.VADERE_PROXY_HOPS ?? 1),
+    powBits: Number(process.env.LOCUS_POW_BITS ?? 16),
+    donateUrl: args['donate-url'] ?? process.env.LOCUS_DONATE_URL ?? '',
+    abuseContact: args['abuse-contact'] ?? process.env.LOCUS_ABUSE_CONTACT ?? '',
+    trustProxy: Boolean(args['trust-proxy'] ?? process.env.LOCUS_TRUST_PROXY),
+    proxyHops: Number(args['proxy-hops'] ?? process.env.LOCUS_PROXY_HOPS ?? 1),
   }
   const port = Number(args.port ?? process.env.PORT ?? 4747)
   mkdirSync(config.dataDir, { recursive: true })
   await listen(createHandler(config), port, config.maxBundleBytes, config.trustProxy ? config.proxyHops ?? 1 : 0)
-  console.log(`Vadere is running at http://${config.domain === 'localhost' ? 'localhost' : config.domain}:${port}`)
+  console.log(`Locus is running at http://${config.domain === 'localhost' ? 'localhost' : config.domain}:${port}`)
   console.log(`Sealed maps are stored in ${config.dataDir}`)
   if (hosted) console.log(`Hosted mode: up to ${config.maxAccounts} free accounts.`)
   if (config.domain !== 'localhost' && !config.trustProxy) {
@@ -128,7 +128,7 @@ async function mcp(args: Args) {
   }
 
   await current().catch((e) => die(e instanceof Error ? e.message : String(e)))
-  console.error(`Vadere: reading ${view!.company.name} as "${view!.passwordName}". Decrypting on this machine.`)
+  console.error(`Locus: reading ${view!.company.name} as "${view!.passwordName}". Decrypting on this machine.`)
 
   const rl = createInterface({ input: process.stdin })
   rl.on('line', async (line) => {
@@ -194,7 +194,7 @@ async function verify(args: Args) {
   console.log(`  Plaintext:    ${leaks.length ? `FOUND ${leaks.join(', ')}` : 'none of the data format appears in the ciphertext'}`)
   if (leaks.length || e < 7.5) process.exitCode = 1
 
-  if (!args.key && !process.env.VADERE_KEY) {
+  if (!args.key && !process.env.LOCUS_KEY) {
     console.log('\nThat is everything the host stores. Add --key to test a password too.')
     return
   }
@@ -244,7 +244,7 @@ function admin(args: Args) {
     console.log(store.remove(name) ? `Removed ${name}.` : `No account named ${name}.`)
     return
   }
-  die('Use: vadere admin list | vadere admin remove <name>')
+  die('Use: locus admin list | locus admin remove <name>')
 }
 
 const args = parseArgs(process.argv.slice(2))

@@ -1,12 +1,12 @@
 # Notices
 
-Vadere's own code is under the MIT licence, in `LICENSE`. Three things that ship with it are not.
+Locus's own code is under the MIT licence, in `LICENSE`. Three things that ship with it are not.
 
 ## Service logos
 
-The logos in `src/studio/logos/logos.bundle.json` are trademarks of their owners. They aren't covered by Vadere's MIT licence, and nothing here gives you a right to use them.
+The logos in `src/studio/logos/logos.bundle.json` are trademarks of their owners. They aren't covered by Locus's MIT licence, and nothing here gives you a right to use them.
 
-They're shown only to identify the services a company uses, on that company's own private map. **No endorsement or affiliation is implied**, by or with any company. Vadere isn't connected with any of them.
+They're shown only to identify the services a company uses, on that company's own private map. **No endorsement or affiliation is implied**, by or with any company. Locus isn't connected with any of them.
 
 If you own a mark and want it changed or removed, open an issue.
 
@@ -30,7 +30,7 @@ Every file was changed: sanitised, optimised and re-framed so its mark is centre
 
 ## Fonts
 
-Geist and Lustria ship with the Studio under the SIL Open Font License 1.1. A build copies each font's licence, with its copyright notice, into `dist/studio/licenses/` (`OFL-Geist.txt` and `OFL-Lustria.txt`) from the `@fontsource` packages in `node_modules`, so every copy of the built app carries them. Geist is copyright The Geist Project Authors. Lustria's copyright notice and Reserved Font Name are in its licence file.
+Spline Sans Mono ships with the Studio under the SIL Open Font License 1.1. A build copies its licence, with its copyright notice, into `dist/studio/licenses/OFL-SplineSansMono.txt` from the `@fontsource-variable/spline-sans-mono` package in `node_modules`, so every copy of the built app carries it. Spline Sans Mono is copyright The Spline Sans Mono Project Authors.
 
 ## Libraries
 

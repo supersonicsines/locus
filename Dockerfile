@@ -9,7 +9,7 @@ RUN npm run build
 FROM node:22-alpine
 WORKDIR /app
 COPY --from=build /app/dist ./dist
-ENV VADERE_DATA=/data
+ENV LOCUS_DATA=/data
 VOLUME /data
 EXPOSE 4747
 USER node

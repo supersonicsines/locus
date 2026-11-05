@@ -18,8 +18,8 @@ const MARK = world(18)
 const TO_NAME = world(5)
 const GUTTER = world(17)
 const ROW = world(22)
-// Two lines of a name take 13 px more than one, so a tall row is 12 px taller and the gap under it is the same.
-const ROW_TALL = world(34)
+// Two lines of a name take 14 px more than one, so a tall row is 13 px taller and the gap under it is the same.
+const ROW_TALL = world(35)
 const HEADING = world(18)
 const BLOCK_GAP = world(11)
 const COLUMN_GAP = world(22)
@@ -81,24 +81,17 @@ export function wrapTitle(title: string): { lines: string[]; cut: boolean } {
   return { lines: [top.join(' '), `${bottom.join(' ')}…`], cut: true }
 }
 
+/** The size an item's name is printed at, at the design zoom. */
+const NAME_PX = 12
+
 /**
- * About how wide a line of an item's name is, in pixels at the size it's printed.
- * Estimated from letter shapes and not measured, so geography doesn't depend on whether a font has loaded.
+ * How wide a line of an item's name is, in pixels at the size it's printed.
+ * The face is monospaced, every character 0.6 of an em, so this is exact without waiting for it to load. Anything it doesn't have, such as CJK, falls back to a full em.
  */
 function textWidth(text: string): number {
   let em = 0
-  for (const c of text) {
-    if (c === ' ') em += 0.26
-    else if (c > '\u2e7f') em += 1
-    else if ('ijl.,\'!:;|'.includes(c)) em += 0.26
-    else if ('ftr()[]I-"'.includes(c)) em += 0.36
-    else if ('mw'.includes(c)) em += 0.82
-    else if ('MW'.includes(c)) em += 0.92
-    else if (c >= 'A' && c <= 'Z') em += 0.66
-    else if (c >= '0' && c <= '9') em += 0.58
-    else em += 0.55
-  }
-  return em * 11.5
+  for (const c of text) em += c > '\u2e7f' ? 1 : 0.6
+  return em * NAME_PX
 }
 
 interface Box {

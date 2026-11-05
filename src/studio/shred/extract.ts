@@ -110,7 +110,7 @@ export async function extract(file: File): Promise<Extracted> {
   } catch {
     return { ...base, type: 'unreadable', text: '', secrets: [], note: 'This file seems to be damaged.' }
   }
-  return { ...base, type: 'unreadable', text: '', secrets: [], note: "Vadere can't read this type of file." }
+  return { ...base, type: 'unreadable', text: '', secrets: [], note: "Locus can't read this type of file." }
 }
 
 /** A rough guess at tokens, for the estimate shown before a Claude run. */

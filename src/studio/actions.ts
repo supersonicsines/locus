@@ -389,7 +389,7 @@ async function solvePow(name: string, bits: number): Promise<string> {
   const rest = bits % 4
   const prefix = '0'.repeat(zeroHexChars)
   for (let n = 0; ; n++) {
-    const hex = await sha256Hex(`vadere claim ${name} ${n}`)
+    const hex = await sha256Hex(`locus claim ${name} ${n}`)
     if (!hex.startsWith(prefix)) continue
     if (rest === 0 || parseInt(hex[zeroHexChars], 16) < 2 ** (4 - rest)) return String(n)
   }
@@ -439,7 +439,7 @@ export async function publish({ quiet = false }: { quiet?: boolean } = {}): Prom
     const sealedBytes = new TextEncoder().encode(body).length
     const res = await fetch(`/api/sites/${v.site.name}`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(nonce ? { 'x-vadere-pow': nonce } : {}) },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(nonce ? { 'x-locus-pow': nonce } : {}) },
       body,
     })
 
@@ -537,7 +537,7 @@ export async function unlockViewer(name: string, key: string): Promise<string | 
 
 export function setTheme(theme: 'light' | 'dark') {
   try {
-    localStorage.setItem('vadere-theme', theme)
+    localStorage.setItem('locus-theme', theme)
   } catch {}
   document.documentElement.dataset.theme = theme
   setState({ theme })

@@ -8,7 +8,7 @@ import { llmsTxt, viewFor } from '../src/core/agent.ts'
 import type { Vault } from '../src/core/types.ts'
 import { asReaderSees, contentOf, putPieceBack, rejectKeepsItem, rejectProposal, undoRejectProposal } from '../src/studio/ui/data.ts'
 
-const live = (v: Vault): Vault => ({ ...v, site: { name: 'meridian', ownerKey: 'vdo_x', origin: 'http://localhost' }, published: snapshot(v, 1) })
+const live = (v: Vault): Vault => ({ ...v, site: { name: 'meridian', ownerKey: 'lco_x', origin: 'http://localhost' }, published: snapshot(v, 1) })
 
 test('price notes are not needs, and the sample keeps them with the prices', () => {
   const v = createSample()
@@ -92,14 +92,14 @@ test('what has not gone live is said by name, so you can tell whether it is wort
   assert.ok(said.includes(`What ${v.passwords[0].name} can read`))
   assert.ok(!said.some((c) => c.includes(second.title)))
   // A new password for a reader leaves the old one out there until the update, and it says so.
-  const replaced: Vault = { ...v, passwords: [{ ...v.passwords[0], id: 'fresh', key: 'vdr_fresh' }, ...v.passwords.slice(1)] }
+  const replaced: Vault = { ...v, passwords: [{ ...v.passwords[0], id: 'fresh', key: 'lcr_fresh' }, ...v.passwords.slice(1)] }
   assert.ok(pending(replaced).exposures.some((e) => e.message === `${v.passwords[0].name} still works until you update.`))
 })
 
 // What Reject does, and what the words say it does. Until now a rejected rule stayed on the map, and reached every reader who could open its area.
 
 const proposed = (v: Vault) => v.pieces.find((p) => p.always === 'proposed')!
-const reader = (v: Vault, gate: string) => ({ id: 'r', name: 'Tool', key: 'vdr_x', gates: [gate], remote: true, createdAt: 1 }) as Vault['passwords'][number]
+const reader = (v: Vault, gate: string) => ({ id: 'r', name: 'Tool', key: 'lcr_x', gates: [gate], remote: true, createdAt: 1 }) as Vault['passwords'][number]
 
 test('what a proposal says matches what readers get: reference until approved, in the area it sits in', () => {
   const v = createSample()

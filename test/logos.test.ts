@@ -268,11 +268,11 @@ test('the licences and notices ship with the package', () => {
   assert.match(notice, /trademarks of their owners/)
   assert.match(notice, /No endorsement/)
   assert.match(readFileSync('README.md', 'utf8'), /NOTICE\.md/)
-  // The build copies the fonts' licences out of their packages, and each one has to be the OFL.
+  // The build copies the face's licence out of its package, and it has to be the OFL.
   const build = readFileSync('scripts/build-server.mjs', 'utf8')
-  for (const font of ['geist', 'lustria']) {
-    assert.match(build, new RegExp(`@fontsource/${font}/LICENSE`))
-    assert.match(readFileSync(`node_modules/@fontsource/${font}/LICENSE`, 'utf8'), /SIL OPEN FONT LICENSE/i)
+  for (const font of ['@fontsource-variable/spline-sans-mono']) {
+    assert.match(build, new RegExp(`${font}/LICENSE`))
+    assert.match(readFileSync(`node_modules/${font}/LICENSE`, 'utf8'), /SIL OPEN FONT LICENSE/i)
   }
   const csv = readFileSync('licenses/logo-sources.csv', 'utf8').trim().split('\n')
   assert.equal(csv.length, SERVICES.length + 1)

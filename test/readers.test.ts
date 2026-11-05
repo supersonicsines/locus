@@ -5,7 +5,7 @@ import { pending, snapshot } from '../src/core/status.ts'
 import type { Password, PublishedState, Vault } from '../src/core/types.ts'
 import { areasOnMap, exposedAreas, pricesReadableIn, putAreaBack, readersByArea, withoutArea } from '../src/studio/ui/data.ts'
 
-const pw = (id: string, name: string, gates: string[]): Password => ({ id, name, key: `vdr_${id}`, gates, remote: false, createdAt: 1 })
+const pw = (id: string, name: string, gates: string[]): Password => ({ id, name, key: `lcr_${id}`, gates, remote: false, createdAt: 1 })
 
 function vault(passwords: Password[], published?: Partial<PublishedState>): Vault {
   return {
@@ -14,7 +14,7 @@ function vault(passwords: Password[], published?: Partial<PublishedState>): Vaul
     gates: [],
     links: [],
     costs: [],
-    ...(published ? { published: { version: 1, at: 1, pieces: {}, pieceGates: {}, passwords: {}, rest: '', ...published }, site: { name: 'co', ownerKey: 'vdo_x', origin: 'https://co', ownerKeySaved: true } } : {}),
+    ...(published ? { published: { version: 1, at: 1, pieces: {}, pieceGates: {}, passwords: {}, rest: '', ...published }, site: { name: 'co', ownerKey: 'lco_x', origin: 'https://co', ownerKeySaved: true } } : {}),
   } as unknown as Vault
 }
 
@@ -101,7 +101,7 @@ test('only areas you can see are counted and offered, and Money stays while ther
 
 test('Undo on a deleted area puts back only what the delete took, and a reader removed since stays removed', () => {
   const sample = createSample()
-  const v: Vault = { ...sample, site: { name: 'meridian', ownerKey: 'vdo_x', origin: 'http://localhost' }, published: snapshot(sample, 1) }
+  const v: Vault = { ...sample, site: { name: 'meridian', ownerKey: 'lco_x', origin: 'http://localhost' }, published: snapshot(sample, 1) }
   const gate = v.gates.find((g) => g.builtin !== 'money' && v.passwords.some((p) => p.gates.includes(g.id)))!.id
 
   // Straight back: not a single change left to publish.

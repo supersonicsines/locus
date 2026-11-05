@@ -19,10 +19,9 @@ console.log('Built dist/cli.mjs')
 // The font licences come straight from the packages the fonts come from, with their copyright lines intact.
 const out = 'dist/studio/licenses'
 mkdirSync(out, { recursive: true })
-copyFileSync('node_modules/@fontsource/geist/LICENSE', join(out, 'OFL-Geist.txt'))
-copyFileSync('node_modules/@fontsource/lustria/LICENSE', join(out, 'OFL-Lustria.txt'))
+copyFileSync('node_modules/@fontsource-variable/spline-sans-mono/LICENSE', join(out, 'OFL-SplineSansMono.txt'))
 copyFileSync('NOTICE.md', join(out, 'NOTICE.txt'))
-copyFileSync('LICENSE', join(out, 'LICENSE-Vadere.txt'))
+copyFileSync('LICENSE', join(out, 'LICENSE-Locus.txt'))
 for (const f of readdirSync('licenses')) copyFileSync(join('licenses', f), join(out, f))
 // Every package whose code reaches the Studio's bundle, read from a build's source maps. Their licences ask to travel with every copy, and these come straight from the packages for the same reason.
 for (const name of ['react', 'react-dom', 'scheduler', 'pdfjs-dist', 'fflate', '@anthropic-ai/sdk', '@opentelemetry/api', 'standardwebhooks', '@stablelib/base64', 'fast-sha256', 'd3-contour', 'd3-array']) {

@@ -219,7 +219,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const rightOpen = panel === 'share'
   // In a narrow window the panel floats over the land, because shrinking the map into what's left only makes it unreadable.
   // On a laptop a reader's panel is a little narrower, which is what it takes for everything on the land to clear it at the map's own scale.
-  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 1100 ? (window.innerWidth > 1360 ? 396 : 356) : 28), [rightOpen, map])
+  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 1100 ? (window.innerWidth > 1360 ? 428 : 388) : 32), [rightOpen, map])
 
   useEffect(() => map.current?.setSelected(selected), [selected, map])
   useEffect(() => map.current?.setHighlight(highlight), [highlight, map])
@@ -312,7 +312,7 @@ function FirstRun() {
   const accounts = server?.accounts
   return (
     <div className="empty">
-      <div className="empty-word">Vadere</div>
+      <div className="empty-word">Locus</div>
       <h1>Teach your AI tools about your company.</h1>
       <p><span>Add your documents: brand{'\u00a0'}book, contracts, specs, invoices.</span> <span>They become one map, and you choose which parts each AI tool or person can read.</span></p>
       <div className="empty-actions">
@@ -412,7 +412,7 @@ function Locked({ name }: { name: string }) {
           <img src="/favicon.svg" width="40" height="40" alt="" />
           <h1>{name}</h1>
           <p>This map is encrypted. A password opens the parts it's allowed to.</p>
-          <input className="field mono" autoFocus placeholder="vdr_" aria-label="Password" spellCheck={false} autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
+          <input className="field mono" autoFocus placeholder="lcr_" aria-label="Password" spellCheck={false} autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
           <button className="btn btn-ink" aria-busy={busy} disabled={!key.trim() || busy}>{busy ? 'Opening' : 'Open'}</button>
           <div className="lock-error" role="alert">{error || lockError}</div>
           <p className="lock-note">It decrypts in this browser. The host only stores the encrypted copy. If you're an AI agent, ask your user for the password and read /llms.txt.</p>
@@ -493,7 +493,7 @@ export function App() {
       if (site) {
         setState({ mode: 'locked', siteName: site })
         // A link can carry the password in its fragment, which never reaches the host.
-        const key = location.hash.match(/key=(vdr_[0-9a-z]+)/)?.[1]
+        const key = location.hash.match(/key=(lcr_[0-9a-z]+)/)?.[1]
         if (key) {
           history.replaceState(null, '', location.pathname)
           const err = await unlockViewer(site, key)

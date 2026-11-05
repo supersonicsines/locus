@@ -119,7 +119,7 @@ export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
   const hidden = panel === 'share' || panel === 'area' || !!selected
 
   return (
-    <div className="bottom-right" style={hidden ? { right: 396 } : undefined}>
+    <div className="bottom-right" style={hidden ? { right: 'calc(var(--side-w) + var(--gutter) * 2)' } : undefined}>
       <div className={`zoom panel ${!moved && Math.abs(zoom - fitZoom) < 0.01 ? 'is-fit' : ''}`}>
         <button className="icon-btn" aria-label="Zoom out" onClick={() => map.current?.zoomBy(1 / 1.3)}>
           <Icon name="minus" size={14} />

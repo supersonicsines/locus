@@ -41,12 +41,16 @@ const ICONS: Record<Exclude<PieceKind, 'clause'>, string> = {
 
 const paths = new Map<PieceKind, Path2D>()
 
+// Canvas fonts can't use var(), so this reads the one face from --sans in styles.css, where it's named.
+let faceName = ''
+const face = () => (faceName ||= getComputedStyle(document.documentElement).getPropertyValue('--sans').trim() || 'monospace')
+
 /** Draws a kind's picture centred on (x, y), size pixels square. The caller sets the colours. */
 export function drawSymbol(ctx: CanvasRenderingContext2D, kind: PieceKind, x: number, y: number, size: number) {
   if (kind === 'clause') {
     // The section sign is the one mark in law everyone has seen at the bottom of a contract.
     ctx.save()
-    ctx.font = `${size * 1.02}px Lustria, Georgia, serif`
+    ctx.font = `${size * 1.02}px ${face()}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText('§', x, y + size * 0.03)
@@ -218,13 +222,13 @@ export function makeWaxSeal(size: number, dpr: number, wax: string, shadow: stri
   ctx.strokeStyle = highlight
   ctx.stroke()
 
-  // The mark: a V, for vadere.
-  ctx.font = `${size * 0.36}px Lustria, Georgia, serif`
+  // The mark: an L, for Locus.
+  ctx.font = `${size * 0.36}px ${face()}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillStyle = highlight
-  ctx.fillText('V', c, c + size * 0.03)
+  ctx.fillText('L', c, c + size * 0.03)
   ctx.fillStyle = shadow
-  ctx.fillText('V', c, c + size * 0.012)
+  ctx.fillText('L', c, c + size * 0.012)
   return canvas
 }

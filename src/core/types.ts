@@ -1,4 +1,4 @@
-// The shared vocabulary of Vadere. Everything else is built from these.
+// The shared vocabulary of Locus. Everything else is built from these.
 
 export type PieceKind =
   | 'rule'
@@ -83,7 +83,7 @@ export interface Cost {
 export interface Password {
   id: string
   name: string
-  /** vdr_... generated, never chosen. Kept so the owner can re-seal and show it again. */
+  /** lcr_... generated, never chosen. Kept so the owner can re-seal and show it again. */
   key: string
   gates: string[]
   /** Whether the host may decrypt on this password's behalf. */
@@ -157,7 +157,7 @@ export interface Sealed {
 }
 
 export interface Bundle {
-  format: 'vadere/1'
+  format: 'locus/1'
   site: string
   version: number
   sealedAt: string

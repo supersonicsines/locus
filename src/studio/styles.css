@@ -23,16 +23,18 @@
   --shadow-high: 0 2px 4px rgba(21, 25, 30, 0.05), 0 24px 60px -16px rgba(21, 25, 30, 0.22);
   --scrim: rgba(226, 230, 234, 0.62);
 
-  --serif: Lustria, Georgia, 'Times New Roman', serif;
-  /* The one place the interface sans is named. The map's canvas text reads this too. */
-  --sans: Geist, 'Helvetica Neue', Arial, sans-serif;
-  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* The one face, and the one place it's named. The map's canvas text reads this too. */
+  --sans: 'Spline Sans Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
-  --gutter: 12px;
-  --panel-radius: 10px;
-  --control-radius: 7px;
+  --gutter: 16px;
+  /* The height of what stands in the top line, and the widths of the two cards. Offsets below are built from these. */
+  --bar: 40px;
+  --left-w: 296px;
+  --side-w: 396px;
+  --panel-radius: 12px;
+  --control-radius: 8px;
 }
 
 :root[data-theme='dark'] {
@@ -70,8 +72,8 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 13.5px;
+  line-height: 19px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
@@ -173,9 +175,9 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
   border-radius: var(--control-radius);
   white-space: nowrap;
   transition: transform 140ms var(--ease-out), background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
@@ -218,7 +220,7 @@ a {
 }
 
 .btn-flush {
-  margin-left: -12px;
+  margin-left: -14px;
 }
 
 .btn-paper {
@@ -274,7 +276,7 @@ a {
   align-items: center;
   justify-content: center;
   width: 28px;
-  height: 28px;
+  height: 30px;
   border-radius: 6px;
   color: var(--soft);
   transition: background-color 120ms ease, color 120ms ease;
@@ -294,8 +296,8 @@ a {
 
 .field {
   width: 100%;
-  height: 34px;
-  padding: 0 10px;
+  height: 38px;
+  padding: 0 12px;
   background: var(--field);
   border: 1px solid var(--hair);
   border-radius: var(--control-radius);
@@ -318,13 +320,13 @@ a {
 }
 
 .mono {
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--sans);
+  font-size: 12.5px;
 }
 
 .label {
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .switch {
@@ -389,11 +391,11 @@ a {
   top: var(--gutter);
   left: var(--gutter);
   bottom: var(--gutter);
-  width: 272px;
+  width: var(--left-w);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   z-index: 10;
   pointer-events: none;
 }
@@ -413,7 +415,7 @@ a {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding-right: 8px;
+  padding-right: 10px;
   border-bottom: 1px solid var(--hair);
 }
 
@@ -422,8 +424,8 @@ a {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 6px 10px 12px;
+  gap: 10px;
+  padding: 12px 7px 12px 14px;
   text-align: left;
   border-radius: var(--panel-radius) 0 0 0;
 }
@@ -448,8 +450,8 @@ a {
 .company-fold {
   display: none;
   color: var(--soft);
-  font-size: 11.5px;
-  line-height: 14px;
+  font-size: 12px;
+  line-height: 15px;
 }
 
 .company-fold.is-ask {
@@ -463,9 +465,9 @@ a {
 
 .company-name {
   min-width: 0;
-  font-family: var(--serif);
-  font-size: 18px;
-  line-height: 24px;
+  font-family: var(--sans);
+  font-size: 18.5px;
+  line-height: 25px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -479,22 +481,22 @@ a {
 
 .tag {
   flex: none;
-  padding: 0 6px;
+  padding: 0 7px;
   border: 1px solid var(--hair-strong);
   border-radius: 4px;
   color: var(--soft);
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 11.5px;
+  line-height: 17px;
 }
 
 .left-about {
   display: block;
   margin: 0;
   text-wrap: pretty;
-  padding: 10px 12px 2px;
+  padding: 12px 14px 2px;
   color: var(--soft);
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
   text-align: left;
 }
 
@@ -502,7 +504,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   color: var(--ink);
   white-space: nowrap;
@@ -526,16 +528,16 @@ a {
 }
 
 .left-title {
-  padding: 12px 12px 4px;
-  font-size: 12.5px;
+  padding: 14px 14px 4px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 18px;
+  line-height: 19px;
 }
 
 .reader-list {
   min-height: 0;
   overflow-y: auto;
-  padding: 0 6px;
+  padding: 0 7px;
 }
 
 .reader {
@@ -549,10 +551,10 @@ a {
 .reader-row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
   min-height: 38px;
-  padding: 6px;
+  padding: 7px;
   border-radius: 7px;
   text-align: left;
   transition: background-color 100ms ease;
@@ -579,21 +581,21 @@ a {
 .reader-count {
   flex: none;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
 }
 
 .reader-more {
-  padding: 0 6px 8px 37px;
+  padding: 0 7px 10px 37px;
 }
 
 .reader-area {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
-  height: 28px;
+  height: 30px;
   text-align: left;
 }
 
@@ -613,39 +615,39 @@ a {
 }
 
 .reader-area.in-panel {
-  height: 34px;
+  height: 38px;
 }
 
 .side-label {
   margin-bottom: 8px;
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .reader-setup {
   width: 100%;
-  height: 28px;
+  height: 30px;
   margin-top: 6px;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .reader-none {
   margin: 0;
-  padding: 2px 6px 6px;
+  padding: 2px 7px 7px;
   color: var(--soft);
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
 }
 
 .left-foot {
-  padding: 2px 6px 6px;
+  padding: 2px 7px 7px;
 }
 
 .reader-add {
   width: 100%;
-  height: 34px;
+  height: 38px;
   justify-content: flex-start;
-  padding: 0 6px 0 10px;
+  padding: 0 7px 0 12px;
   gap: 13px;
   color: var(--soft);
 }
@@ -655,17 +657,17 @@ a {
 
 .gate-list {
   overflow-y: auto;
-  padding: 0 6px 6px;
+  padding: 0 7px 7px;
 }
 
 .gate-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
-  height: 32px;
-  padding: 0 6px;
+  height: 36px;
+  padding: 0 7px;
   border-radius: 6px;
   text-align: left;
   transition: background-color 100ms ease;
@@ -691,7 +693,7 @@ a {
   flex: none;
   color: var(--faint);
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 /* Top: the bar between the left card and the screen's edge. The status takes the middle of what's free, and gives way first. */
@@ -699,11 +701,11 @@ a {
 .top-bar {
   position: fixed;
   top: var(--gutter);
-  left: 296px;
+  left: calc(var(--left-w) + var(--gutter) * 2);
   right: var(--gutter);
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   z-index: 11;
   pointer-events: none;
 }
@@ -722,9 +724,9 @@ a {
 /* The one thing worth saying right now, as loud as it deserves. */
 
 .status {
-  min-height: 36px;
-  padding: 7px 12px;
-  line-height: 20px;
+  min-height: 40px;
+  padding: 8px 14px;
+  line-height: 21px;
   white-space: nowrap;
 }
 
@@ -739,7 +741,7 @@ a {
 .status-open {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   max-width: 100%;
   border-radius: 3px;
 }
@@ -763,13 +765,13 @@ a {
 .status-part {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .status-parts .need-mark {
   width: 15px;
   height: 15px;
-  font-size: 10px;
+  font-size: 10.5px;
 }
 
 .status-open .status-parts .need-mark.is-look {
@@ -778,11 +780,11 @@ a {
   margin: 0 1px;
 }
 
-@media (min-width: 1240px) {
+@media (min-width: 1420px) {
   .status:not(:has(.status-do)) .has-parts .status-parts {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     flex: none;
     margin-left: 4px;
   }
@@ -801,20 +803,20 @@ a {
     background: var(--raised);
     border-color: var(--hair);
     color: var(--ink);
-    padding: 0 10px 0 0;
+    padding: 0 12px 0 0;
     box-shadow: var(--shadow);
   }
   .status.is-now:not(:has(.status-do)) .has-parts {
-    gap: 12px;
+    gap: 14px;
     align-self: stretch;
   }
   .status.is-now:not(:has(.status-do)) .has-parts .status-head {
     align-self: stretch;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin: -1px 0 -1px -1px;
-    padding: 0 12px;
+    padding: 0 14px;
     background: var(--alert);
     color: var(--on-alert);
     border-radius: var(--panel-radius) 0 0 var(--panel-radius);
@@ -842,12 +844,12 @@ a {
 .status.is-clear {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   width: fit-content;
-  min-height: 28px;
-  padding: 4px 10px 4px 8px;
+  min-height: 30px;
+  padding: 4px 12px 4px 10px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
   background: var(--raised);
   border: 1px solid var(--hair);
   border-radius: var(--control-radius);
@@ -857,7 +859,7 @@ a {
 .status.is-now {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   background: var(--alert);
   border-color: transparent;
   color: var(--on-alert);
@@ -906,18 +908,18 @@ a {
 
 .status-do {
   flex: none;
-  height: 26px;
-  padding: 0 10px;
+  height: 28px;
+  padding: 0 12px;
   border-radius: 5px;
   background: var(--on-alert);
   color: #fbfcfc;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 /* A picked reader can still read something you've closed, so while their picture is up it's the bar's whole message. */
 .status.is-now.is-lens {
-  gap: 8px;
+  gap: 10px;
 }
 
 .status.is-now.is-lens .status-done {
@@ -934,20 +936,20 @@ a {
 .lens-still-row {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   margin: 6px 0 2px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   background: color-mix(in srgb, var(--alert) 22%, var(--raised));
   border-radius: 7px;
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
 }
 
 .status.is-lens {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-right: 6px;
+  gap: 14px;
+  padding-right: 7px;
   padding-top: 0;
   padding-bottom: 0;
 }
@@ -960,11 +962,11 @@ a {
 
 .status-done {
   flex: none;
-  height: 24px;
-  padding: 0 9px;
+  height: 26px;
+  padding: 0 11px;
   border-radius: 5px;
   background: var(--wash-strong);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -987,16 +989,16 @@ a {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
 
 /* The cost is the button: the number answers the question, and clicking it spreads the prices over the map. */
 .dollar-toggle {
   display: inline-flex;
   align-items: baseline;
-  gap: 5px;
-  height: 36px;
-  padding: 6px 12px 0;
+  gap: 6px;
+  height: 40px;
+  padding: 7px 14px 0;
   border-radius: var(--control-radius);
   background: var(--raised);
   border: 1px solid var(--hair);
@@ -1024,21 +1026,21 @@ a {
 }
 
 .cost-figure {
-  font-family: var(--serif);
-  font-size: 18px;
-  line-height: 22px;
+  font-family: var(--sans);
+  font-size: 18.5px;
+  line-height: 23px;
   font-variant-numeric: tabular-nums;
 }
 
 /* The unread dot again: there's something to look at in here, when you have a minute. */
 .cost-others {
   color: var(--soft);
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .cost-per {
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .cost-none {
@@ -1057,7 +1059,7 @@ a {
 }
 
 .top-right > .add-menu > .btn {
-  height: 36px;
+  height: 40px;
   box-shadow: var(--shadow);
 }
 
@@ -1067,8 +1069,8 @@ a {
   position: relative;
   display: inline-flex;
   align-items: center;
-  height: 36px;
-  padding: 0 4px 0 12px;
+  height: 40px;
+  padding: 0 4px 0 14px;
   border-radius: var(--control-radius);
   background: var(--raised);
   border: 1px solid var(--hair);
@@ -1077,20 +1079,20 @@ a {
 }
 
 .live-state.is-current {
-  padding-right: 12px;
+  padding-right: 14px;
 }
 
 .live-word {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 13.5px;
 }
 
 .live-state .go-live {
-  height: 28px;
+  height: 30px;
   margin-left: 10px;
-  padding: 0 11px;
+  padding: 0 13px;
   box-shadow: none;
 }
 
@@ -1161,11 +1163,11 @@ a {
 
 .side {
   position: fixed;
-  top: 56px;
+  top: calc(var(--gutter) + var(--bar) + 8px);
   right: var(--gutter);
   /* As tall as what it holds, up to the foot of the screen. The rest of the height is map. */
-  max-height: calc(100dvh - 56px - var(--gutter));
-  width: 372px;
+  max-height: calc(100dvh - var(--gutter) * 2 - var(--bar) - 8px);
+  width: var(--side-w);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1185,9 +1187,9 @@ a {
 .side-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 8px 8px 8px 16px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 10px 10px 18px;
   border-bottom: 1px solid var(--hair);
 }
 
@@ -1199,14 +1201,14 @@ a {
 .side-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 18px;
 }
 
 .side-foot {
   display: flex;
   justify-content: space-between;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: 7px;
+  padding: 12px 14px;
   border-top: 1px solid var(--hair);
 }
 
@@ -1216,8 +1218,8 @@ a {
   border: 0;
   outline: none;
   padding: 0;
-  font-family: var(--serif);
-  font-size: 17px;
+  font-family: var(--sans);
+  font-size: 17.5px;
   border-bottom: 1px solid transparent;
   transition: border-color 120ms ease;
 }
@@ -1256,9 +1258,9 @@ a {
 .piece-kind {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .piece-title {
@@ -1269,7 +1271,7 @@ a {
   border: 0;
   outline: none;
   resize: none;
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 23px;
   line-height: 29px;
   overflow: hidden;
@@ -1285,18 +1287,18 @@ a {
   outline: none;
   resize: none;
   color: var(--soft);
-  font-size: 13.5px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 21px;
   overflow: hidden;
   display: block;
 }
 
 .piece-body {
-  font-family: var(--serif);
-  font-size: 14.5px;
-  line-height: 23px;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 24px;
   cursor: text;
-  min-height: 48px;
+  min-height: 52px;
   border-radius: 4px;
 }
 
@@ -1315,12 +1317,12 @@ a {
 .piece-body ul,
 .piece-body ol {
   margin: 0 0 10px;
-  padding-left: 20px;
+  padding-left: 22px;
 }
 
 .piece-body code {
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--sans);
+  font-size: 12.5px;
   background: var(--wash);
   padding: 1px 4px;
   border-radius: 3px;
@@ -1328,9 +1330,9 @@ a {
 
 .piece-body h3,
 .piece-body h4 {
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-weight: 400;
-  font-size: 16px;
+  font-size: 16.5px;
   margin: 14px 0 6px;
 }
 
@@ -1341,9 +1343,9 @@ a {
   border: 0;
   outline: none;
   resize: none;
-  font-family: var(--serif);
-  font-size: 14.5px;
-  line-height: 23px;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 24px;
   padding: 0;
   display: block;
 }
@@ -1396,9 +1398,9 @@ button.piece-body {
   position: fixed;
   z-index: 20;
   max-width: 300px;
-  padding: 7px 10px;
-  font-size: 12px;
-  line-height: 17px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 18px;
   pointer-events: none;
   transition: opacity 120ms ease;
 }
@@ -1416,17 +1418,17 @@ button.piece-body {
 
 .props {
   margin: 18px 0 0;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid var(--hair);
   display: grid;
   grid-template-columns: 76px 1fr;
-  gap: 8px 10px;
+  gap: 10px 12px;
   align-items: center;
 }
 
 .props dt {
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .props dd {
@@ -1437,7 +1439,7 @@ button.piece-body {
 
 .prop-input {
   width: 100%;
-  padding: 2px 6px;
+  padding: 2px 7px;
   margin-left: -7px;
   background: transparent;
   border: 1px solid transparent;
@@ -1462,7 +1464,7 @@ button.piece-body {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 5px;
-  padding: 2px 6px;
+  padding: 2px 7px;
   margin-left: -7px;
   max-width: 100%;
   cursor: pointer;
@@ -1494,9 +1496,9 @@ button.piece-body {
 .link-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 5px 6px;
+  padding: 5px 7px;
   margin-left: -6px;
   border-radius: 5px;
   text-align: left;
@@ -1517,29 +1519,29 @@ button.piece-body {
   flex: none;
   color: var(--faint);
   font-family: var(--sans);
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .section-title {
   margin: 18px 0 6px;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid var(--hair);
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .callout {
   margin: 0 0 14px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: var(--wash);
   border-radius: 7px;
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
 }
 
 .callout.has-mark {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .callout.is-now {
@@ -1547,36 +1549,36 @@ button.piece-body {
 }
 
 .callout .need-actions .btn {
-  height: 26px;
+  height: 28px;
 }
 
 .callout .actions {
   display: flex;
-  gap: 6px;
+  gap: 7px;
   margin-top: 8px;
 }
 
 .callout-note {
   margin: 6px 0 0;
   color: var(--soft);
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 12.5px;
+  line-height: 18px;
 }
 
 .callout .btn {
-  height: 26px;
-  padding: 0 9px;
-  font-size: 12px;
+  height: 28px;
+  padding: 0 11px;
+  font-size: 12.5px;
 }
 
 .money-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 7px;
 }
 
 .money-big {
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 24px;
   line-height: 30px;
 }
@@ -1584,8 +1586,8 @@ button.piece-body {
 .source-note {
   margin: 6px 0 0;
   color: var(--soft);
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 12.5px;
+  line-height: 18px;
 }
 
 /* Share. */
@@ -1594,7 +1596,7 @@ button.piece-body {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 4px 4px 10px;
+  padding: 4px 4px 4px 12px;
   background: var(--field);
   border: 1px solid var(--hair);
   border-radius: var(--control-radius);
@@ -1606,8 +1608,8 @@ button.piece-body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--mono);
-  font-size: 11.5px;
+  font-family: var(--sans);
+  font-size: 12px;
   user-select: all;
 }
 
@@ -1621,11 +1623,11 @@ button.piece-body {
 
 .tab {
   flex: 1;
-  height: 26px;
+  height: 28px;
   padding: 0 4px;
   border-radius: 5px;
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
   white-space: nowrap;
   transition: color 100ms ease;
 }
@@ -1644,7 +1646,7 @@ button.piece-body {
 
 .code-block {
   margin: 8px 0 0;
-  padding: 10px;
+  padding: 12px;
   background: var(--field);
   border: 1px solid var(--hair);
   border-radius: 7px;
@@ -1652,9 +1654,9 @@ button.piece-body {
 
 .code-block code {
   display: block;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  line-height: 17px;
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 18px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -1670,10 +1672,10 @@ button.piece-body {
   justify-content: space-between;
   width: 100%;
   margin-top: 16px;
-  padding: 10px 0 2px;
+  padding: 12px 0 2px;
   border-top: 1px solid var(--hair);
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
   text-align: left;
   transition: color 100ms ease;
 }
@@ -1693,9 +1695,9 @@ button.piece-body {
 }
 
 .code-copy {
-  height: 26px;
-  padding: 0 9px;
-  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
+  gap: 6px;
 }
 
 /* Copy is the whole job in here, so it stays at the top of the box, where the box's own length can't push it out of sight. */
@@ -1728,9 +1730,9 @@ button.piece-body {
 
 .steps {
   margin: 10px 0 0;
-  padding: 0 0 0 18px;
-  font-size: 12.5px;
-  line-height: 18px;
+  padding: 0 0 0 20px;
+  font-size: 13px;
+  line-height: 19px;
 }
 
 .steps li {
@@ -1748,8 +1750,8 @@ button.piece-body {
 }
 
 code.inline {
-  font-family: var(--mono);
-  font-size: 11.5px;
+  font-family: var(--sans);
+  font-size: 12px;
 }
 
 .select-wrap {
@@ -1761,7 +1763,7 @@ code.inline {
 
 .select-wrap .select {
   margin: 0;
-  padding: 3px 22px 3px 8px;
+  padding: 3px 24px 3px 10px;
   border-color: var(--hair);
 }
 
@@ -1774,20 +1776,20 @@ code.inline {
 .start-own {
   margin: 6px 12px 0;
   align-self: flex-start;
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
 }
 
 .shred-note {
   margin-top: 6px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--soft);
 }
 
 .live-changes {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   cursor: pointer;
   transition: opacity 100ms ease;
 }
@@ -1805,11 +1807,11 @@ code.inline {
   top: calc(100% + 8px);
   right: 0;
   width: 280px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   z-index: 30;
   white-space: normal;
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
   transform-origin: top right;
   transition: opacity 120ms ease, transform 160ms var(--ease-out);
 }
@@ -1845,27 +1847,27 @@ code.inline {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
 }
 
 .hint {
   color: var(--soft);
-  font-size: 12px;
-  line-height: 17px;
-}
-
-.exposure {
-  margin: 0 0 14px;
-  padding: 10px 12px;
-  background: color-mix(in srgb, var(--alert) 22%, var(--raised));
-  border-radius: 7px;
   font-size: 12.5px;
   line-height: 18px;
 }
 
+.exposure {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--alert) 22%, var(--raised));
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 19px;
+}
+
 .exposure .btn {
   margin-top: 8px;
-  height: 28px;
+  height: 30px;
 }
 
 /* What an agent sees. */
@@ -1882,16 +1884,16 @@ body:has(.agent-view) .map-canvas {
 .agent-note {
   display: block;
   color: var(--soft);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 12.5px;
+  line-height: 17px;
 }
 
 .agent-view {
   position: fixed;
-  top: 56px;
-  right: 396px;
+  top: calc(var(--gutter) + var(--bar) + 8px);
+  right: calc(var(--side-w) + var(--gutter) * 2);
   bottom: var(--gutter);
-  left: 296px;
+  left: calc(var(--left-w) + var(--gutter) * 2);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1902,10 +1904,10 @@ body:has(.agent-view) .map-canvas {
   flex: 1;
   overflow: auto;
   margin: 0;
-  padding: 18px;
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 19px;
+  padding: 20px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 20px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -1925,7 +1927,7 @@ body:has(.agent-view) .map-canvas {
   width: min(500px, calc(100vw - 24px));
   max-height: calc(100vh - 80px);
   overflow-y: auto;
-  padding: 6px;
+  padding: 7px;
   box-shadow: var(--shadow-high);
   transition: opacity 120ms ease, transform 160ms var(--ease-out);
 }
@@ -1940,18 +1942,18 @@ body:has(.agent-view) .map-canvas {
 /* What a dot on the map means, said once, where a finger can read it too. */
 .need-group {
   margin: 6px 0 0;
-  padding: 8px 10px 2px;
+  padding: 10px 12px 2px;
   border-top: 1px solid var(--hair);
   color: var(--soft);
-  font-size: 11.5px;
-  line-height: 15px;
+  font-size: 12px;
+  line-height: 16px;
 }
 
 .need {
   position: relative;
   display: flex;
-  gap: 10px;
-  padding: 9px 10px;
+  gap: 12px;
+  padding: 11px 12px;
   border-radius: 7px;
 }
 
@@ -1985,7 +1987,7 @@ body:has(.agent-view) .map-canvas {
   border-radius: 50%;
   background: var(--ink);
   color: var(--on-ink);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
   line-height: 1;
 }
@@ -1996,7 +1998,7 @@ body:has(.agent-view) .map-canvas {
   margin: 0;
   background: var(--alert);
   color: var(--on-alert);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 /* The unread dot, as on the map. */
@@ -2021,10 +2023,10 @@ body:has(.agent-view) .map-canvas {
 .need-kind {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   color: var(--soft);
-  font-size: 11.5px;
-  line-height: 15px;
+  font-size: 12px;
+  line-height: 16px;
   margin-bottom: 2px;
 }
 
@@ -2034,11 +2036,11 @@ body:has(.agent-view) .map-canvas {
 
 .need-quote {
   margin: 6px 0 0;
-  padding-left: 10px;
+  padding-left: 12px;
   border-left: 2px solid var(--hair-strong);
-  font-family: var(--serif);
-  font-size: 13.5px;
-  line-height: 20px;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 21px;
 }
 
 .need-actions {
@@ -2049,8 +2051,8 @@ body:has(.agent-view) .map-canvas {
 
 .need-actions .btn {
   height: 25px;
-  padding: 0 8px;
-  font-size: 12px;
+  padding: 0 10px;
+  font-size: 12.5px;
 }
 
 .need-actions .btn-quiet:first-child {
@@ -2058,7 +2060,7 @@ body:has(.agent-view) .map-canvas {
 }
 
 .needs-empty {
-  padding: 18px;
+  padding: 20px;
   text-align: center;
   color: var(--soft);
 }
@@ -2072,20 +2074,20 @@ body:has(.agent-view) .map-canvas {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
   z-index: 9;
 }
 
 .zoom {
   display: inline-flex;
   align-items: center;
-  height: 30px;
+  height: 32px;
   padding: 0 2px;
 }
 
 .zoom .icon-btn {
   width: 26px;
-  height: 26px;
+  height: 28px;
 }
 
 .zoom .pct:active {
@@ -2096,7 +2098,7 @@ body:has(.agent-view) .map-canvas {
   min-width: 42px;
   text-align: center;
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
   border-radius: 4px;
   height: 22px;
@@ -2122,16 +2124,16 @@ body:has(.agent-view) .map-canvas {
 }
 
 .cartouche-inner {
-  padding: 12px 12px 10px;
+  padding: 14px 14px 12px;
 }
 
 .cart-per {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .cart-also {
@@ -2158,9 +2160,9 @@ body:has(.agent-view) .map-canvas {
 
 .segmented button {
   height: 20px;
-  padding: 0 6px;
+  padding: 0 7px;
   border-radius: 3px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--soft);
 }
 
@@ -2212,16 +2214,16 @@ body:has(.agent-view) .map-canvas {
 .scale-label {
   overflow: hidden;
   white-space: nowrap;
-  font-size: 11px;
-  line-height: 15px;
+  font-size: 11.5px;
+  line-height: 16px;
   color: var(--soft);
   padding-right: 4px;
 }
 
 .cart-note {
   margin: 8px 0 0;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 12.5px;
+  line-height: 18px;
   color: var(--soft);
 }
 
@@ -2239,8 +2241,8 @@ body:has(.agent-view) .map-canvas {
   padding: 4px 0;
   border-top: 1px solid var(--hair);
   text-align: left;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 12.5px;
+  line-height: 17px;
   color: var(--ink);
 }
 
@@ -2261,9 +2263,9 @@ body:has(.agent-view) .map-canvas {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--soft);
 }
 
@@ -2272,7 +2274,7 @@ body:has(.agent-view) .map-canvas {
   left: 100%;
   bottom: 0;
   margin-left: 8px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   white-space: nowrap;
   display: none;
 }
@@ -2286,8 +2288,8 @@ body:has(.agent-view) .map-canvas {
 .town-legend-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12px;
+  gap: 12px;
+  font-size: 12.5px;
   color: var(--soft);
   margin-top: 4px;
 }
@@ -2322,9 +2324,9 @@ body:has(.agent-view) .map-canvas {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border-radius: 5px;
   text-align: left;
   white-space: nowrap;
@@ -2342,7 +2344,7 @@ body:has(.agent-view) .map-canvas {
 
 .menu-item .meta {
   color: var(--faint);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .menu-item.is-on {
@@ -2356,10 +2358,10 @@ body:has(.agent-view) .map-canvas {
 }
 
 .menu-note {
-  padding: 6px 8px 7px;
+  padding: 7px 10px 8px;
   color: var(--soft);
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 12.5px;
+  line-height: 18px;
   white-space: normal;
   max-width: 280px;
 }
@@ -2440,13 +2442,13 @@ body:has(.agent-view) .map-canvas {
 
 .cmdk input {
   width: 100%;
-  height: 48px;
-  padding: 0 16px;
+  height: 52px;
+  padding: 0 18px;
   background: none;
   border: 0;
   border-bottom: 1px solid var(--hair);
   outline: none;
-  font-size: 15px;
+  font-size: 15.5px;
 }
 
 .cmdk input::placeholder {
@@ -2460,17 +2462,17 @@ body:has(.agent-view) .map-canvas {
 }
 
 .cmdk-group {
-  padding: 8px 10px 3px;
+  padding: 10px 12px 3px;
   color: var(--faint);
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .cmdk-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 7px 10px;
+  padding: 8px 12px;
   border-radius: 6px;
   text-align: left;
 }
@@ -2496,17 +2498,17 @@ body:has(.agent-view) .map-canvas {
 .cmdk-item .title small {
   margin-left: 8px;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .cmdk-item .meta {
   flex: none;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .kbd {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--faint);
 }
 
@@ -2537,7 +2539,7 @@ body:has(.agent-view) .map-canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 18px;
   z-index: 36;
   overflow-y: auto;
   pointer-events: none;
@@ -2563,7 +2565,7 @@ body:has(.agent-view) .map-canvas {
 }
 
 .sheet-inner {
-  padding: 22px 22px 18px;
+  padding: 24px 24px 20px;
 }
 
 /* A sheet has the floor. What's behind it stays behind it, or an empty map's big words poke out at its sides. */
@@ -2573,7 +2575,7 @@ body:has(.sheet) .empty > * {
 
 .sheet h2 {
   margin: 0 0 6px;
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-weight: 400;
   font-size: 23px;
   line-height: 30px;
@@ -2582,7 +2584,7 @@ body:has(.sheet) .empty > * {
 .sheet p {
   margin: 0 0 14px;
   color: var(--soft);
-  line-height: 19px;
+  line-height: 20px;
 }
 
 .sheet .actions {
@@ -2590,9 +2592,9 @@ body:has(.sheet) .empty > * {
   bottom: 0;
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 7px;
   margin-top: 8px;
-  padding: 10px 0 0;
+  padding: 12px 0 0;
   background: var(--raised);
 }
 
@@ -2600,13 +2602,13 @@ body:has(.sheet) .empty > * {
   display: block;
   margin: 12px 0 5px;
   color: var(--soft);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .address-field {
   display: flex;
   align-items: center;
-  height: 34px;
+  height: 38px;
   background: var(--field);
   border: 1px solid var(--hair);
   border-radius: var(--control-radius);
@@ -2621,7 +2623,7 @@ body:has(.sheet) .empty > * {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 0 0 10px;
+  padding: 0 0 0 12px;
   background: none;
   border: 0;
   outline: none;
@@ -2629,13 +2631,13 @@ body:has(.sheet) .empty > * {
 
 .address-field span {
   flex: none;
-  padding-right: 10px;
+  padding-right: 12px;
   color: var(--faint);
 }
 
 .field-note {
   margin-top: 5px;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--soft);
   min-height: 17px;
 }
@@ -2653,7 +2655,7 @@ body:has(.sheet) .empty > * {
 
 .sheet p.sheet-error {
   margin: 14px 0 0;
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: var(--wash);
   border-radius: 7px;
   color: var(--ink);
@@ -2662,13 +2664,13 @@ body:has(.sheet) .empty > * {
 
 .owner-key {
   display: block;
-  padding: 12px;
+  padding: 14px;
   margin: 4px 0 10px;
   background: var(--field);
   border: 1px solid var(--hair);
   border-radius: 7px;
-  font-family: var(--mono);
-  font-size: 13px;
+  font-family: var(--sans);
+  font-size: 13.5px;
   text-align: center;
   word-break: break-all;
   user-select: all;
@@ -2687,8 +2689,8 @@ body:has(.sheet) .empty > * {
 .file-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 6px 10px;
+  gap: 14px;
+  padding: 7px 12px;
   border-bottom: 1px solid var(--hair);
 }
 
@@ -2706,13 +2708,13 @@ body:has(.sheet) .empty > * {
 .file-row span:last-child {
   flex: none;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .choice {
   display: block;
   width: 100%;
-  padding: 11px 12px;
+  padding: 13px 14px;
   margin-bottom: 6px;
   text-align: left;
   border: 1px solid var(--hair);
@@ -2740,14 +2742,14 @@ body:has(.sheet) .empty > * {
 .choice b {
   display: block;
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .choice span {
   display: block;
   color: var(--soft);
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 12.5px;
+  line-height: 18px;
 }
 
 .catalog-list {
@@ -2759,9 +2761,9 @@ body:has(.sheet) .empty > * {
 .catalog-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border-radius: 5px;
   text-align: left;
 }
@@ -2784,7 +2786,7 @@ body:has(.sheet) .empty > * {
 .catalog-item .meta {
   flex: none;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2797,7 +2799,7 @@ body:has(.sheet) .empty > * {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 26px;
   text-align: center;
   z-index: 5;
   pointer-events: none;
@@ -2811,13 +2813,13 @@ body:has(.sheet) .empty > * {
   position: fixed;
   top: 22px;
   left: 26px;
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 20px;
 }
 
 .empty h1 {
   margin: 0;
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-weight: 400;
   font-size: clamp(38px, 6.4vw, 72px);
   line-height: 1.06;
@@ -2830,8 +2832,8 @@ body:has(.sheet) .empty > * {
   max-width: 42em;
   text-wrap: balance;
   color: var(--soft);
-  font-size: 15px;
-  line-height: 23px;
+  font-size: 15.5px;
+  line-height: 24px;
 }
 
 /* Each sentence balances on its own, so the wrap doesn't split one across lines to even them out. */
@@ -2843,19 +2845,19 @@ body:has(.sheet) .empty > * {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .empty-actions .btn {
   height: 38px;
-  padding: 0 16px;
-  font-size: 14px;
+  padding: 0 18px;
+  font-size: 14.5px;
 }
 
 .empty-note {
   margin-top: 16px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .empty-foot {
@@ -2868,7 +2870,7 @@ body:has(.sheet) .empty > * {
   justify-content: center;
   gap: 4px 18px;
   color: var(--soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .empty-foot button,
@@ -2905,7 +2907,7 @@ body:has(.sheet) .empty > * {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 18px;
   z-index: 5;
 }
 
@@ -2918,7 +2920,7 @@ body:has(.sheet) .empty > * {
 }
 
 .lock-inner {
-  padding: 26px 24px 20px;
+  padding: 26px 26px 22px;
   text-align: center;
 }
 
@@ -2929,7 +2931,7 @@ body:has(.sheet) .empty > * {
 
 .lock-card h1 {
   margin: 0 0 4px;
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-weight: 400;
   font-size: 26px;
   line-height: 32px;
@@ -2943,21 +2945,21 @@ body:has(.sheet) .empty > * {
 .lock-card .btn {
   width: 100%;
   margin-top: 8px;
-  height: 36px;
+  height: 40px;
 }
 
 .lock-error {
   margin-top: 8px;
   min-height: 18px;
   color: var(--ink);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .lock-note {
   margin: 14px 0 0 !important;
   color: var(--faint) !important;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 12.5px;
+  line-height: 18px;
 }
 
 /* Dropping. */
@@ -2971,7 +2973,7 @@ body:has(.sheet) .empty > * {
   border: 1px dashed var(--ink);
   border-radius: 10px;
   background: var(--scrim);
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 26px;
   z-index: 50;
   pointer-events: none;
@@ -2983,14 +2985,14 @@ body:has(.sheet) .empty > * {
   left: 50%;
   transform: translateX(-50%);
   width: min(420px, calc(100vw - 24px));
-  padding: 10px 14px;
+  padding: 12px 16px;
   z-index: 15;
 }
 
 .shred-strip .line {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
 }
 
 .shred-strip .line span:first-child {
@@ -3030,7 +3032,7 @@ body:has(.sheet) .empty > * {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   z-index: 60;
   pointer-events: none;
 }
@@ -3047,9 +3049,9 @@ body:has(.sheet) .empty > * {
 .toast {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   max-width: min(100%, 680px);
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: var(--ink);
   color: var(--on-ink);
   border-radius: 8px;
@@ -3105,7 +3107,7 @@ body:has(.empty-foot) .toasts {
 
 /* Narrower screens. The Studio is for laptops, but it must not break. */
 
-@media (max-width: 1360px) {
+@media (max-width: 1560px) {
   .cost-per .optional {
     display: none;
   }
@@ -3115,7 +3117,7 @@ body:has(.empty-foot) .toasts {
   }
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1320px) {
   .status .optional {
     display: none;
   }
@@ -3133,7 +3135,7 @@ body:has(.empty-foot) .toasts {
     overflow: hidden;
   }
   .left .left-head {
-    min-height: 46px;
+    min-height: 50px;
   }
   .left:not(.is-open) .company-btn {
     padding-top: 3px;
@@ -3143,7 +3145,7 @@ body:has(.empty-foot) .toasts {
     display: block;
   }
   .left:not(.is-open) .company-name {
-    line-height: 22px;
+    line-height: 23px;
   }
   /* Folded means folded. Or Tab walks through rows nobody can see, and scrolls the heading out of its own card. */
   .left:not(.is-open) > :not(.left-head) {
@@ -3174,8 +3176,8 @@ body:has(.empty-foot) .toasts {
   }
   /* Beside the open card, so what needs you and the way out of a reader's view don't go when it opens. */
   body:has(.left.is-open) .status {
-    left: 296px;
-    max-width: calc(100vw - 296px - var(--gutter));
+    left: calc(var(--left-w) + var(--gutter) * 2);
+    max-width: calc(100vw - var(--left-w) - var(--gutter) * 3);
   }
 }
 
@@ -3185,11 +3187,11 @@ body:has(.empty-foot) .toasts {
 
 @media (min-width: 1101px) and (max-width: 1360px) {
   .side:has(.lens-chips) {
-    width: 332px;
+    width: calc(var(--side-w) - 40px);
   }
   /* What a reader reads stands beside that panel, so it narrows with it. */
   .agent-view {
-    right: calc(332px + var(--gutter) * 2);
+    right: calc(var(--side-w) - 40px + var(--gutter) * 2);
   }
 }
 
@@ -3199,7 +3201,7 @@ body:has(.empty-foot) .toasts {
   overflow: hidden;
 }
 .left.is-folded .left-head {
-  min-height: 46px;
+  min-height: 50px;
 }
 .left.is-folded:not(.is-open) .company-btn {
   padding-top: 3px;
@@ -3209,7 +3211,7 @@ body:has(.empty-foot) .toasts {
   display: block;
 }
 .left.is-folded:not(.is-open) .company-name {
-  line-height: 22px;
+  line-height: 23px;
 }
 .left.is-folded:not(.is-open) > :not(.left-head) {
   visibility: hidden;
@@ -3236,7 +3238,7 @@ body:has(.left.is-folded) .agent-view {
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1240px) {
   /* On a line of its own again, so there's room to say what a click does. */
   .status .optional {
     display: inline;
@@ -3254,38 +3256,38 @@ body:has(.left.is-folded) .agent-view {
   }
   .status {
     position: fixed;
-    top: 54px;
-    left: 296px;
+    top: calc(var(--gutter) + var(--bar) + 6px);
+    left: calc(var(--left-w) + var(--gutter) * 2);
     right: var(--gutter);
     width: fit-content;
-    max-width: calc(100vw - 296px - var(--gutter));
+    max-width: calc(100vw - var(--left-w) - var(--gutter) * 3);
     z-index: 11;
   }
   .needs-panel {
     position: fixed;
-    top: 96px;
+    top: calc(var(--gutter) + var(--bar) * 2 + 10px);
     z-index: 12;
   }
   /* Under the line, not across it. */
   .side {
-    top: 100px;
-    max-height: calc(100dvh - 100px - var(--gutter));
+    top: calc(var(--gutter) + var(--bar) * 2 + 14px);
+    max-height: calc(100dvh - var(--gutter) * 2 - var(--bar) * 2 - 14px);
   }
 }
 
 @media (max-width: 980px) {
   /* Under the folded card, not across its edge. */
   .status {
-    top: 62px;
+    top: 74px;
     left: var(--gutter);
     max-width: calc(100vw - var(--gutter) * 2);
   }
   .needs-panel {
-    top: 104px;
+    top: 122px;
   }
   .side {
-    top: 106px;
-    max-height: calc(100dvh - 106px - var(--gutter));
+    top: 124px;
+    max-height: calc(100dvh - 124px - var(--gutter));
   }
 }
 
@@ -3338,7 +3340,7 @@ body:has(.left.is-folded) .agent-view {
     height: 42px;
   }
   .live-state .go-live {
-    height: 34px;
+    height: 38px;
   }
   .changes {
     top: auto;
@@ -3385,7 +3387,7 @@ body:has(.left.is-folded) .agent-view {
     display: none;
   }
   .cartouche-inner {
-    padding: 8px 10px 7px;
+    padding: 10px 12px 8px;
   }
   /* Each area says its own share on a phone, so a bar of them says nothing more, and Rings and Discs aren't offered here. */
   .cart-style,
@@ -3408,13 +3410,13 @@ body:has(.left.is-folded) .agent-view {
     top: 66px;
     width: auto;
     max-width: none;
-    font-size: 12.5px;
+    font-size: 13px;
     white-space: normal;
   }
   .status-open {
     flex-wrap: wrap;
     text-align: left;
-    gap: 2px 8px;
+    gap: 2px 10px;
   }
   /* The mark stays beside the first line, however many lines the words take. */
   .status.is-now .status-open {
@@ -3454,8 +3456,8 @@ body:has(.left.is-folded) .agent-view {
   }
   /* A little tighter, so it clears the company's card and the name there isn't cut. */
   .dollar-toggle {
-    padding-left: 9px;
-    padding-right: 9px;
+    padding-left: 11px;
+    padding-right: 11px;
   }
   .empty-word {
     left: 18px;
@@ -3473,12 +3475,12 @@ body:has(.left.is-folded) .agent-view {
   }
   /* A number says nothing about what pressing it does. Here it's only the way back. */
   .zoom .pct {
-    padding: 0 10px;
+    padding: 0 12px;
     font-size: 0;
   }
   .zoom .pct::after {
     content: 'Whole map';
-    font-size: 12.5px;
+    font-size: 13px;
   }
 }
 
@@ -3499,15 +3501,15 @@ body:has(.left.is-folded) .agent-view {
   right: var(--gutter);
   bottom: calc(var(--gutter) + env(safe-area-inset-bottom));
   z-index: 16;
-  padding: 10px 12px 12px;
+  padding: 12px 14px 14px;
   box-shadow: var(--shadow-high);
 }
 
 .lens-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 34px;
+  gap: 10px;
+  min-height: 38px;
 }
 
 .lens-head .grow {
@@ -3520,21 +3522,21 @@ body:has(.left.is-folded) .agent-view {
 
 .lens-note {
   color: var(--soft);
-  font-size: 12.5px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 19px;
 }
 
 .lens-chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   margin: 6px 0 10px;
 }
 
 .lens-chip {
-  height: 36px;
-  padding: 0 12px;
+  height: 40px;
+  padding: 0 14px;
   border: 1px solid var(--hair-strong);
   border-radius: 18px;
   transition: background-color 120ms ease, color 120ms ease, transform 140ms var(--ease-out);
@@ -3552,16 +3554,16 @@ body:has(.left.is-folded) .agent-view {
 
 .lens-sheet > .btn {
   width: 100%;
-  height: 40px;
+  height: 44px;
 }
 
 /* A mouse doesn't need a finger's room, and beside a panel's other controls a tall pill is the loudest thing in it. */
 @media (pointer: fine) {
   .side .lens-chip {
-    height: 28px;
-    padding: 0 10px;
+    height: 30px;
+    padding: 0 12px;
     border-radius: 14px;
-    font-size: 12.5px;
+    font-size: 13px;
   }
 }
 
@@ -3578,53 +3580,53 @@ body:has(.left.is-folded) .agent-view {
     width: 100%;
   }
   .select-wrap .select {
-    min-height: 44px;
+    min-height: 48px;
   }
   .btn {
-    min-height: 40px;
+    min-height: 44px;
   }
   .icon-btn {
     width: 40px;
-    height: 40px;
+    height: 44px;
   }
   .reader-row,
   .menu-item,
   .catalog-item,
   .link-item {
-    min-height: 44px;
+    min-height: 48px;
   }
   .reader-area {
-    height: 44px;
+    height: 48px;
   }
   .tab {
-    height: 44px;
+    height: 48px;
   }
   .segmented button {
-    height: 44px;
-    padding: 0 12px;
+    height: 48px;
+    padding: 0 14px;
   }
   .need-actions .btn,
   .callout .btn,
   .lens-chip,
   .btn {
-    min-height: 44px;
+    min-height: 48px;
   }
   .need-actions .btn,
   .callout .btn {
-    height: 44px;
+    height: 48px;
   }
   .lens-chip {
-    height: 44px;
+    height: 48px;
   }
   /* A finger's size, reaching into the toast's own padding so the toast stays the same height. */
   .toast button {
-    min-height: 44px;
+    min-height: 48px;
     margin: -6px -6px -6px 0;
-    padding: 0 10px;
+    padding: 0 12px;
   }
   .code-block .code-copy {
-    min-height: 36px;
-    height: 36px;
+    min-height: 40px;
+    height: 40px;
   }
   /* A finger's button needs its own line, or it lands on the words beside it. */
   .need.is-look .need-actions {
@@ -3633,32 +3635,32 @@ body:has(.left.is-folded) .agent-view {
   }
   .status-do,
   .status-done {
-    height: 36px;
+    height: 40px;
   }
   input,
   textarea,
   select {
-    font-size: 16px;
+    font-size: 16.5px;
   }
 }
 
 /* A button inside a pill has to stay inside it. */
 @media (pointer: coarse) and (max-width: 720px) {
   .live-state {
-    height: 46px;
+    height: 50px;
   }
   .live-state .go-live {
     min-height: 38px;
     height: 38px;
   }
   .top-right > .add-menu > .btn {
-    height: 46px;
+    height: 50px;
   }
 }
 
 @media (pointer: coarse) and (min-width: 721px) {
   .live-state .go-live {
-    min-height: 28px;
+    min-height: 30px;
   }
 }
 
@@ -3666,5 +3668,79 @@ body:has(.left.is-folded) .agent-view {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* Arriving. As the land is inked in, the cards come in from the edges they belong to, after the land has started and before the last of it is up. Once, on mount: what swaps in later is only ever the inside of these. */
+
+@keyframes arrive-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes arrive-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes arrive-from-below {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.left-col {
+  animation: arrive-from-left 640ms var(--ease-out) 300ms backwards;
+}
+
+.status-slot {
+  animation: arrive-from-top 560ms var(--ease-out) 420ms backwards;
+}
+
+.top-right {
+  animation: arrive-from-top 560ms var(--ease-out) 360ms backwards;
+}
+
+.bottom-right {
+  animation: arrive-from-below 560ms var(--ease-out) 700ms backwards;
+}
+
+/* The first page reads top to bottom, so it comes up in that order. */
+.empty > * {
+  animation: arrive-from-below 720ms var(--ease-out) backwards;
+}
+
+.empty > :nth-child(1) {
+  animation-delay: 140ms;
+}
+
+.empty > :nth-child(2) {
+  animation-delay: 230ms;
+}
+
+.empty > :nth-child(3) {
+  animation-delay: 320ms;
+}
+
+.empty > :nth-child(4) {
+  animation-delay: 410ms;
+}
+
+.empty > :nth-child(n + 5) {
+  animation-delay: 500ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .left-col,
+  .status-slot,
+  .top-right,
+  .bottom-right,
+  .empty > * {
+    animation: none;
   }
 }

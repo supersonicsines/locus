@@ -1,7 +1,7 @@
 // A bundled catalog of what startups typically pay for.
 //
 // Checked by hand against vendor pages and recent sources on the date below.
-// Vadere shows these as estimates, never as facts about your bill. An entry we
+// Locus shows these as estimates, never as facts about your bill. An entry we
 // couldn't verify has no amount, so it shows as unknown rather than as a guess.
 // MCP URLs come from vendors' own docs, which is why these need no approval:
 // see "Proposals" in docs/PRD.md.

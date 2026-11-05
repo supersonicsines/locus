@@ -8,7 +8,7 @@
 
 import { readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize, sep } from 'node:path'
-import { costsText, llmsFull, llmsTxt, lockedText, pieceText, searchText } from '../core/agent.ts'
+import { costsText, llmsFull, llmsTxt, lockedText, PACKAGE, pieceText, searchText } from '../core/agent.ts'
 import { handleRpc, SERVER_VERSION } from '../core/mcp.ts'
 import { AlteredBundle, isBundleShaped, looksLikeKey, openBundle, passwordId, sha256Hex, WrongPassword } from '../core/seal.ts'
 import type { Bundle, View } from '../core/types.ts'
@@ -29,7 +29,7 @@ export interface Config {
 }
 
 export const RESERVED = new Set(
-  'www app api admin mail smtp ftp root status static assets cdn docs help support blog vadere dashboard account accounts login signin signup billing about security abuse'.split(' '),
+  'www app api admin mail smtp ftp root status static assets cdn docs help support blog locus dashboard account accounts login signin signup billing about security abuse'.split(' '),
 )
 
 const NAME = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/
@@ -134,7 +134,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 /** Leading zero bits of a SHA-256, for the small proof-of-work on claiming a name. */
 export async function powOk(name: string, nonce: string, bits: number): Promise<boolean> {
   if (bits <= 0) return true
-  const hex = await sha256Hex(`vadere claim ${name} ${nonce}`)
+  const hex = await sha256Hex(`locus claim ${name} ${nonce}`)
   let zero = 0
   for (const ch of hex) {
     const v = parseInt(ch, 16)
@@ -261,14 +261,14 @@ export function createHandler(config: Config) {
       try {
         bundle = JSON.parse(raw)
       } catch {
-        return json({ error: 'That is not a Vadere bundle.' }, 400)
+        return json({ error: 'That is not a Locus bundle.' }, 400)
       }
-      if (!isBundleShaped(bundle, name)) return json({ error: 'That is not a Vadere bundle.' }, 400)
+      if (!isBundleShaped(bundle, name)) return json({ error: 'That is not a Locus bundle.' }, 400)
 
       // Finish everything that can wait first. From reading the account to writing it
       // there's no await, so two claims of one name can't both win.
       const tokenHash = await sha256Hex(token)
-      const claimNonce = req.headers.get('x-vadere-pow') ?? ''
+      const claimNonce = req.headers.get('x-locus-pow') ?? ''
       const powPassed = config.hosted && !store.has(name) ? await powOk(name, claimNonce, config.powBits) : true
       const meta = store.meta(name)
       const now = new Date().toISOString()
@@ -323,7 +323,7 @@ export function createHandler(config: Config) {
     if (entry && !entry.remote) {
       return {
         fail: textReply(
-          'This password is set to local use only, so this host will not decrypt with it.\nDecrypt on your own machine instead: npx vadere mcp <address>\n',
+          `This password is set to local use only, so this host will not decrypt with it.\nDecrypt on your own machine instead: npx -y ${PACKAGE} mcp <address>\n`,
           403,
         ),
       }
@@ -393,7 +393,7 @@ export function createHandler(config: Config) {
 
     // Refuse to accept a password over plain HTTP from the open internet.
     if (proto(req) === 'http' && !isLocal(hostOf(req))) {
-      return textReply('Refusing a password over plain HTTP. Use HTTPS, or decrypt locally: npx vadere mcp <address>\n', 400)
+      return textReply(`Refusing a password over plain HTTP. Use HTTPS, or decrypt locally: npx -y ${PACKAGE} mcp <address>\n`, 400)
     }
 
     const { view, fail } = await openFor(name, key, ip)

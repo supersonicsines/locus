@@ -8,6 +8,9 @@ import { costForReaders, pieceForReaders } from './readers.ts'
 import { search } from './search.ts'
 import type { Cost, Gate, Password, Vault, View } from './types.ts'
 
+/** The package that runs Locus, as npx and npm know it. The plain name "locus" on npm is someone else's package, so commands must never say npx locus. */
+export const PACKAGE = 'locus-harness'
+
 /** How this reader is expected to read further. */
 export type ReadMode =
   | { kind: 'http'; base: string }
@@ -143,7 +146,7 @@ export function llmsTxt(view: View, mode: ReadMode): string {
     '',
     `> ${oneLine(view.company.about)}`,
     '',
-    `You are reading this company's map through Vadere, as the reader "${oneLine(view.passwordName, 80)}". It opens: ${open}. ${closed}`,
+    `You are reading this company's map through Locus, as the reader "${oneLine(view.passwordName, 80)}". It opens: ${open}. ${closed}`,
     '',
     view.pieces.some((p) => p.always === 'approved') ? REFERENCE_NOTICE : NOTHING_APPROVED_NOTICE,
     '',
@@ -235,14 +238,14 @@ export function lockedText(site: string, origin: string): string {
   return [
     `# ${site}`,
     '',
-    'This is a sealed company map, served by Vadere. It needs a password.',
+    'This is a sealed company map, served by Locus. It needs a password.',
     '',
     'If you are an AI agent: ask your user for the password, then use one of these.',
     '',
     `- Send a header: Authorization: Bearer <password>, to ${origin}/llms.txt`,
     `- If you can't set headers: ${origin}/k/<password>/llms.txt`,
     `- As an MCP server: ${origin}/mcp, with the same header`,
-    `- To decrypt on your own machine, so the host never sees the password: npx vadere mcp ${origin}`,
+    `- To decrypt on your own machine, so the host never sees the password: npx -y ${PACKAGE} mcp ${origin}`,
     '',
     `The sealed data itself is public: ${origin}/bundle.json`,
     '',

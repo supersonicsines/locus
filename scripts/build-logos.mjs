@@ -1,6 +1,6 @@
 // Builds the logo bundle: src/studio/logos/logos.bundle.json, and the record of where each logo came from.
 //
-// The bundle is vendored, so nobody needs this script to build or run Vadere. It's here to show how the
+// The bundle is vendored, so nobody needs this script to build or run Locus. It's here to show how the
 // file was made and to remake it. Nothing it needs is a dependency of this repo:
 //
 //   mkdir sources tools
@@ -243,7 +243,7 @@ const REFUSE = new Set(['image', 'text', 'tspan', 'textPath'])
 
 function allowlist(state) {
   return {
-    name: 'vadereAllowlist',
+    name: 'locusAllowlist',
     fn: () => ({
       element: {
         enter(node, parent) {

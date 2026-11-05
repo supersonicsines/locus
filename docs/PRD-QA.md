@@ -48,7 +48,7 @@ Fix: stored only in the browser, optional, and excluded from the owner's sealed 
 ## Risks to the SaaS-lite decision
 
 **10. Free, anonymous, encrypted hosting is an abuse magnet.** This is the largest non-technical risk, and it's the founder's to weigh. An operator can't inspect what's stored, and there's no email to contact or ban.
-Partial fix: the hosted limit is 10 MB per account, the host accepts only a valid bundle served as `application/json` with `nosniff` (so it's useless for serving files), and `vadere admin remove <name>` plus a configurable abuse contact handles takedowns. **Flag to the founder before running a public instance.**
+Partial fix: the hosted limit is 10 MB per account, the host accepts only a valid bundle served as `application/json` with `nosniff` (so it's useless for serving files), and `locus admin remove <name>` plus a configurable abuse contact handles takedowns. **Flag to the founder before running a public instance.**
 
 **11. With no email, a script can claim every spot.**
 Fix: a small proof-of-work on claiming, a per-IP limit, a reserved-names list. A name is claimed only by a first successful publish, so there are no empty reservations. Deleting an account frees its spot.
@@ -81,7 +81,7 @@ After the build, a fresh agent read the code with no briefing on these findings 
 | Severity | Finding | Fix |
 | --- | --- | --- |
 | High | **Forgery.** Gate keys are shared, so one password plus write access to the bundle could forge content for every other reader, including "Always follow" rules. The first draft of SECURITY.md wrongly claimed otherwise | Each envelope lists the hash of everything its reader may trust, sealed under that password's own key |
-| High | `vadere pull` could write outside its folder, through a hostile piece ID | IDs sanitised, and paths outside the folder refused |
+| High | `locus pull` could write outside its folder, through a hostile piece ID | IDs sanitised, and paths outside the folder refused |
 | High | Document text could forge an "Always follow" section through fields other than title and summary, or an underlined heading in a body, and could reach MCP `instructions` | Every interpolated field flattened, bodies quoted line by line, and nothing from the map in MCP's privileged text |
 | Medium | The owner approved a rule by its title, while agents obeyed a summary the owner never saw | The approval shows the exact words |
 | Medium | A device that was behind could publish over a newer version, silently bringing a revoked password back | Refused, with an offer to load the newer version |
@@ -109,4 +109,4 @@ What held up: envelopes, links and the owner copy exposed nothing beyond granted
 | Cloudflare Worker as the only host | Node host, kept portable | Runs on anything today, including a laptop |
 | `Authorization: Bearer` only | Also `/k/` URLs and MCP | Many agent fetch tools can't set headers, and the audience lives in MCP connectors |
 
-Also corrected: Gemini's draft calls bearer access "zero-knowledge". It isn't: the host handles the key during the request. Vadere labels this honestly.
+Also corrected: Gemini's draft calls bearer access "zero-knowledge". It isn't: the host handles the key during the request. Locus labels this honestly.

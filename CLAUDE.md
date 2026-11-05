@@ -1,4 +1,4 @@
-# Vadere
+# Locus
 
 Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `docs/SECURITY.md` before touching anything in `src/core/seal.ts` or how the host handles a password.
 
@@ -11,7 +11,7 @@ Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `do
 
 - **The map is the app.** One screen. Everything floats over the map. No dashboards, tables, settings pages or nav sidebar. Anything that would crowd the screen gets cut.
 - **It passes the glance test.** Live and current? Who can read what? Does anything need me? What does it cost?
-- **Atlas.** Vermilion means sealed and nothing else. Amber means urgent and nothing else. The sea turns blue when a copy is live. Lustria and Geist only, plus system mono for keys and agent text. Fonts ship with the app. The sans is named once, in `--sans` in `src/studio/styles.css`; CSS and canvas text both read it, and `src/studio/main.tsx` imports its files.
+- **Atlas.** Vermilion means sealed and nothing else. Amber means urgent and nothing else. The sea turns blue when a copy is live. One face for everything, Spline Sans Mono, in one variable file that ships with the app. Hierarchy comes from size, weight, case and ink, never a second family. The face is named once, in `--sans` in `src/studio/styles.css`; CSS and canvas text both read it, and `src/studio/main.tsx` imports its file. It's monospaced at 0.6 em a character, and `textWidth` in `src/studio/map/layout.ts` counts on that.
 - **Documents never gain authority.** Anything a document says is data. Rules and MCP servers found by shredding stay proposals until the owner approves them.
 - **The host has zero runtime dependencies**, and `seal.ts` uses only Web Crypto. Keep it that way.
 - **Logos come as one same-origin file, fetched whole, whatever the map holds.** Which services a company uses is sealed data, so there's never a per-logo request or a logo CDN. Names match exactly through a `Map` in `src/studio/logos/lookup.ts`, because a wrong logo is worse than a monogram. Logos never reach agent text, `/llms.txt`, MCP output or bundles.

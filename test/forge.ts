@@ -9,11 +9,11 @@ const enc = new TextEncoder()
 const b64 = (u: Uint8Array) => Buffer.from(u).toString('base64')
 const unb64 = (s: string) => new Uint8Array(Buffer.from(s, 'base64'))
 
-export const aad = (site: string, version: number, part: string) => enc.encode(`vadere/1|${site}|${version}|${part}`)
+export const aad = (site: string, version: number, part: string) => enc.encode(`locus/1|${site}|${version}|${part}`)
 
 async function derive(secret: string, info: string) {
   const key = await subtle.importKey('raw', enc.encode(secret), 'HKDF', false, ['deriveBits'])
-  return new Uint8Array(await subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: enc.encode('vadere/1'), info: enc.encode(info) }, key, 256))
+  return new Uint8Array(await subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: enc.encode('locus/1'), info: enc.encode(info) }, key, 256))
 }
 
 export async function openWith(keyBytes: Uint8Array, ad: Uint8Array, s: Sealed): Promise<any> {
