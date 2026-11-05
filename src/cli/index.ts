@@ -17,10 +17,10 @@ const HELP = `locus ${SERVER_VERSION}
 
 A map of your company that any agent can read.
 
-  locus serve              Run the Studio and host. Open http://localhost:4747
-    --port 4747
+  locus serve               Run the Studio and host. Open http://localhost:4747
+    --port 4747             Or the PORT environment variable
     --domain localhost      Your wildcard domain, for yourco.domain addresses
-    --data ~/.locus        Where sealed maps are stored
+    --data ~/.locus         Where sealed maps are stored
     --hosted                Free-with-a-cap mode (see --max-accounts)
     --max-accounts 500
     --donate-url <url>
@@ -28,15 +28,16 @@ A map of your company that any agent can read.
     --trust-proxy           Read X-Forwarded-* from your reverse proxy
     --proxy-hops 1          How many proxies you run in front (2 for Cloudflare and Caddy)
 
-  locus mcp <address>      MCP server on stdio. Decrypts here; the host never sees the password
-  locus pull <address>     Write the map to a folder as Markdown
+  locus mcp <address>       MCP server on stdio. Decrypts here; the host never sees the password
+  locus pull <address>      Write the map to a folder as Markdown
     --out ./company
-  locus verify <address>   Show what the host really holds, and test it
+  locus verify <address>    Show what the host really holds, and test it
 
-  locus admin list         Accounts on this host
+  locus admin list          Accounts on this host
   locus admin remove <name>
 
 Passwords come from --key or the LOCUS_KEY environment variable.
+Every flag of serve can also be set as LOCUS_<FLAG>, such as LOCUS_DOMAIN or LOCUS_TRUST_PROXY=1.
 `
 
 interface Args {
@@ -63,6 +64,9 @@ function die(message: string): never {
   process.exit(1)
 }
 
+// A switch set in the environment, as a host such as Railway sets it. "false" and "0" mean off, which Boolean() alone would read as on.
+const on = (v: unknown) => (typeof v === 'string' ? /^(1|true|yes|on)$/i.test(v.trim()) : Boolean(v))
+
 const dataDir = (args: Args) => resolve(args.data ?? process.env.LOCUS_DATA ?? join(homedir(), '.locus'))
 
 function needKey(args: Args): string {
@@ -86,7 +90,7 @@ async function fetchBundle(addr: string): Promise<Bundle> {
 }
 
 async function serve(args: Args) {
-  const hosted = Boolean(args.hosted ?? process.env.LOCUS_HOSTED)
+  const hosted = on(args.hosted ?? process.env.LOCUS_HOSTED)
   const here = dirname(fileURLToPath(import.meta.url))
   const config: Config = {
     domain: args.domain ?? process.env.LOCUS_DOMAIN ?? 'localhost',
@@ -98,7 +102,7 @@ async function serve(args: Args) {
     powBits: Number(process.env.LOCUS_POW_BITS ?? 16),
     donateUrl: args['donate-url'] ?? process.env.LOCUS_DONATE_URL ?? '',
     abuseContact: args['abuse-contact'] ?? process.env.LOCUS_ABUSE_CONTACT ?? '',
-    trustProxy: Boolean(args['trust-proxy'] ?? process.env.LOCUS_TRUST_PROXY),
+    trustProxy: on(args['trust-proxy'] ?? process.env.LOCUS_TRUST_PROXY),
     proxyHops: Number(args['proxy-hops'] ?? process.env.LOCUS_PROXY_HOPS ?? 1),
   }
   const port = Number(args.port ?? process.env.PORT ?? 4747)
