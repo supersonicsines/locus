@@ -45,7 +45,7 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
     land: '#1a212a',
     sealedLand: '#2a1d1e',
     exposedLand: '#2e2815',
-    alert: '#f5b400',
+    alert: '#dea400',
     alertRGB: '245,180,0',
     onAlert: '#15191e',
     ink: '#e8e6df',
@@ -134,20 +134,28 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
     window.addEventListener('resize', size)
     void document.fonts?.ready.then(() => view.fontsReady())
     // An area's name gives way to what's floating over it, so when something opens or closes, the map has to look again.
-    const floating = new MutationObserver(() => {
+    // A class that ends up as it was, as the top line's fitting leaves it when nothing changed, moved nothing.
+    const floating = new MutationObserver((records) => {
+      // Compared by each element's first value in the batch, because a class taken off and put back leaves records with values in between.
+      const first = new Map<Node, string | null>()
+      for (const r of records) if (!first.has(r.target)) first.set(r.target, r.type === 'attributes' ? r.oldValue : '\u0000')
+      if ([...first].every(([el, was]) => was === (el as Element).className)) return
       floatingOver = null
       view.invalidate()
     })
-    floating.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] })
+    floating.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true })
     // A panel slides in, so where it was read on opening isn't where it stops. Read again once it has.
     const settled = () => {
       floatingOver = null
       view.invalidate()
     }
     document.addEventListener('transitionend', settled)
+    // The cards arrive with a slide, and a slide measured mid-flight is in the wrong place, so they're read again once they've landed.
+    document.addEventListener('animationend', settled)
     return () => {
       floating.disconnect()
       document.removeEventListener('transitionend', settled)
+      document.removeEventListener('animationend', settled)
       window.removeEventListener('resize', size)
       view.destroy()
       map.current = null
@@ -220,9 +228,18 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const rightOpen = panel === 'share' || panel === 'area'
   // In a narrow window the panel floats over the land, because shrinking the map into what's left only makes it unreadable.
   // On a laptop a reader's panel is a little narrower, which is what it takes for everything on the land to clear it at the map's own scale.
-  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 720 ? (panel === 'share' && window.innerWidth > 1100 && window.innerWidth <= 1360 ? 388 : 428) : 32), [rightOpen, panel, map])
   const cardOpen = useStore((s) => s.cardOpen)
-  useEffect(() => map.current?.setLeftInset(cardOpen && window.innerWidth > 720 && window.innerWidth <= 980 ? 328 : 0), [cardOpen, map])
+  // What a panel or the open card takes depends on the window's width, so it's worked out again when the window changes, not only when they open.
+  useEffect(() => {
+    const insets = () => {
+      const w = window.innerWidth
+      map.current?.setRightInset(rightOpen && w > 720 ? (panel === 'share' && w > 1100 && w <= 1360 ? 388 : 428) : 32)
+      map.current?.setLeftInset(cardOpen && w > 720 && w <= 980 ? 328 : 0)
+    }
+    insets()
+    window.addEventListener('resize', insets)
+    return () => window.removeEventListener('resize', insets)
+  }, [rightOpen, panel, cardOpen, map])
 
   useEffect(() => map.current?.setSelected(selected), [selected, map])
   useEffect(() => map.current?.setHighlight(highlight), [highlight, map])

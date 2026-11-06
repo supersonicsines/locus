@@ -1254,3 +1254,50 @@ The programme stopped after the last round. Afterwards:
 - **The orchestrator checked the last round's security claim in the code.** `scrubSecrets` runs in `src/studio/shred/extract.ts` on text, Word and PDF text before anything is stored or sent, and a PDF with a secret in it never leaves as a PDF. So `It was taken out, so it isn't on the map and no reader gets it` is true for every secret the scan finds. Secrets in images aren't scanned, and they raise no alert either.
 - **Where things stand,** with the operator's open calls and what was never verified, is now in [../STATUS.md](../STATUS.md).
 - **The harness moved into the project folder,** in `qa/`, which stays out of git. Its main scripts find the repo relative to themselves.
+
+## The Locus pass: a new name, one face, and four rounds of critique
+
+The operator, after the handover: keep the aesthetic but tighten it. One monospace sans that's beautiful and doesn't read as a terminal or as AI slop. The name Locus everywhere, for the terrain-map look. Motion when the page loads. UI slightly larger, with more room. Scroll to zoom. Then four rounds of vigorous critique, with the screenshots taken again each round, on beauty, function, legibility and design principles, within the product's scope. Then an audit of the code, the docs brought into line, and a launch plan for Railway.
+
+**What was built first.**
+- **One face, Spline Sans Mono**, for everything, replacing Lustria and Geist. It was picked from nine OFL monospaces set on the real map and in a specimen of the map's own words (`<QA>/rounds/locus/bake/`). The wide faces (Martian, Azeret, Sono, Monaspace) spread the map. The familiar ones (Geist Mono, JetBrains, Space Mono, IBM Plex) read as defaults. DM Mono's descending f was too quirky for headings. Spline is compact, warm in its curves, and variable from 300 to 700. Every character is 0.6 em, so `textWidth` in `layout.ts` is exact without waiting for the font.
+- **Locus everywhere**: the screen, the code, the docs, the sealing format (`locus/1`), key prefixes (`lcr_`, `lco_`), environment variables (`LOCUS_*`) and the `locus` command. `locus` on npm is someone else's package, so the package is `locus-harness`, named once as `PACKAGE` in `src/core/agent.ts`.
+- **Larger chrome, with more room**: gutters of 16, controls about 10% taller, panel radius 12, and a fit with more margin round the land. Offsets come from tokens (`--gutter`, `--bar`, `--left-w`, `--side-w`, `--fold-h`), not from numbers repeated across the file.
+- **Scroll zooms** about the pointer, eased, so a mouse wheel's notches don't jump. Shift or sideways scroll pans, and pinch zooms.
+- **The survey, on load.** The land is inked in from the middle with a soft front. Names, headings and items come up a set time after the front passes them. The cards arrive from their edges. The seal is pressed last.
+
+**The rounds.** Each round, two Opus critics read every shot in their manifest, logged each read, and wrote a ranked list: critic A on beauty, critic B on function and legibility. The orchestrator triaged against scope, fixed, rebuilt and took the shots again. Briefs, manifests, read logs, lists and crops are in `<QA>/rounds/locus/`.
+
+| Round | Findings (A + B) | The worst thing it found | What changed most |
+| --- | --- | --- | --- |
+| 1 | 25 + 23 | The wider face broke the top line's breakpoints: text over text at 1440, a price with no currency on every phone | The top line fits itself (`useFitTop`): it steps down through whole shorter forms instead of using media queries. Also the phone intro, heavier county names, one type scale |
+| 2 | 24 + 23 | Names drawn 9% wider than the layout allowed, so columns ran together and one name vanished. A reader's view at 721–980 printing one county's words over another's | Names laid out at the size they print. Pins as badges. A reader's view shows the tools it still gives. Narrow windows make room |
+| 3 | 22 + 20 | Panels at 721–1100 squeezing the map to 12% with names over names. The phone card covering the urgent line | A 0.22 floor for maps beside a panel, framing what the panel is about. An intro timed off the ink's front. A reader's view without the owner's to-dos |
+| 4 | 20 + 17 | On a real laptop window (1440 × 790) the first map opened as counts on blank land. A lens seal landing on a border | The first map snaps to where names show. Seals only where they stand wholly on their own county. The intro's seal as a closing press |
+
+**Decisions the critics made without a ruling** (listed for the operator in [../STATUS.md](../STATUS.md)):
+- Pins are badges, on a logo's corner or in place of the mark, not tailed pins leaning into the next column.
+- Live is one blue, the dot included. It was green.
+- The resting amber glow is gone.
+- The prices card's shares bar is gone, along with the double rim on known prices.
+- A reader's line is "For X" live or not, never "Read by".
+- In a reader's view, a sealed county shows the tools whose names and prices that reader still gets.
+- A reader's or an area's panel shrinks the map to fit, with a floor, instead of sliding it off the screen.
+- Lines between two items in one county aren't drawn.
+- The owner's to-dos are hidden in a reader's view.
+- The "Sample" chip is gone; the folded card says it in words.
+
+**Audits.** Two Opus reviews read the diff cold, one for the core, host and CLI, one for the Studio (`<QA>/rounds/locus/AUDIT-*.md`). The core audit found the rename itself clean, but three real problems:
+- The launch plan deployed before claiming the npm name.
+- Plain self-host mode on a public domain is an open host.
+- The Docker image couldn't write its own data folder.
+
+All three were fixed, along with settings that now fail safe and a local reader that rides through a redeploy.
+
+**Not verified.** A real person, real Safari, a real phone, Windows, a screen reader. A Docker build (there's no Docker on this machine; Railway's first build will be the first). The hosted mode in public.
+
+**Worst things left.**
+- The prices view still has touching marks in Rings, and names that sit above some discs and below others.
+- Neighbouring county names sit a few pixels off a shared baseline.
+- On the phone, a few counts touch a border.
+- Black one-colour logos in the card and panels aren't recoloured for dark mode, though they are on the map.

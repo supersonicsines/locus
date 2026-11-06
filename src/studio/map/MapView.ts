@@ -1049,6 +1049,8 @@ export class MapView {
     for (const n of this.nodes) {
       if (this.sealedOff(n)) continue
       if (n.alpha < 0.05) continue
+      // What isn't drawn doesn't answer the pointer: not up yet in the intro, or held back with its name beside a panel.
+      if (n.appear <= 0 || (this.underPanel.has(n.piece.id) && n.piece.id !== this.selected)) continue
       const [wx, wy] = this.displayPos(n)
       const [x, y] = this.toScreen(wx, wy)
       let r = n.piece.kind === 'service' ? tileSize(k) / 2 + 3 : Math.max(10, iconSize(k) / 2 + 2)
@@ -1082,13 +1084,15 @@ export class MapView {
     for (const l of this.labels) {
       if (l.alpha < 0.5 || l.align !== 'left') continue
       const n = this.byId.get(l.id)
-      if (!n || n.alpha < 0.05 || this.sealedOff(n)) continue
+      if (!n || n.alpha < 0.05 || this.sealedOff(n) || n.appear <= 0 || (this.underPanel.has(n.piece.id) && n.piece.id !== this.selected)) continue
       const [wx, wy] = this.labelAnchor(n)
       const [x, y] = this.toScreen(wx, wy)
       const left = x + l.x
       const top = y + l.y - 11
       const lines = (l.lines?.length ?? 1) + (l.sub ? 1 : 0)
-      if (sx >= left - 4 && sx <= left + this.labelFor(n.piece.title, font).width + 4 && sy >= top && sy <= top + lines * leading + 3) return n
+      // As wide as the lines it was set in, so a name that broke onto two lines doesn't claim its neighbour's click.
+      const wide = l.lines ? Math.max(...l.lines.map((line) => this.measure(line, font))) : this.labelFor(n.piece.title, font).width
+      if (sx >= left - 4 && sx <= left + wide + 4 && sy >= top && sy <= top + lines * leading + 3) return n
     }
     return null
   }
@@ -1372,6 +1376,7 @@ export class MapView {
       const unit = e.deltaMode === 1 ? 16 : 1
       this.cam.x -= (e.deltaX || e.deltaY) * unit
       if (!e.shiftKey) this.cam.y -= e.deltaY * unit
+      this.cb.cameraChanged(this.cam.k, this.fitK)
     } else {
       // Scrolling zooms, about the point under the pointer, as on a map. A mouse wheel moves in notches, so the zoom eases between them and that point stays put the whole way.
       const px = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1
@@ -1857,7 +1862,7 @@ export class MapView {
 
     // Zoomed out, what stands alone is what stands. Everything else has gathered into a line.
     const stands = (n: Node) => !overview || n.inOverview || n.piece.id === focus || !!neighbours?.has(n.piece.id) || !!this.highlight?.has(n.piece.id)
-    const settled = (n: Node): [number, number] => this.toScreen(overview && n.inOverview ? n.ovx : n.tx, overview && n.inOverview ? n.ovy : n.ty)
+    const settled = (n: Node): [number, number] => this.toScreen(overview && n.inOverview ? n.ovx : n.tx, (overview && n.inOverview ? n.ovy : n.ty) - this.sealLift(n))
 
     // Symbols are obstacles too: a label must never sit on top of another piece.
     const tile = tileSize(k)
@@ -3204,7 +3209,8 @@ export class MapView {
       const ground = this.groundOf(t.gate)
       if (ground !== p.land) {
         // In the intro a county sealed to everyone is plain land while the wave passes, and turns sealed as its seal is pressed: sealing is the closing beat, not the opening one.
-        ctx.globalAlpha = this.data.sealedToAll.has(t.gate) && !this.lensActive ? this.sealPressed() : 1
+        // In a reader's view the sealed ground fades in with the hatching below, as one thing, rather than snapping on first.
+        ctx.globalAlpha = this.lensActive ? (this.pendingSeal.has(t.gate) ? 1 : 0) : this.data.sealedToAll.has(t.gate) ? this.sealPressed() : 1
         ctx.fillStyle = ground
         ctx.fill(t.outer)
         ctx.globalAlpha = 1
@@ -3299,10 +3305,11 @@ export class MapView {
     // A few things picked out together, such as two that contradict each other, show what joins them. A whole area picked out is a place, not a question about its routes.
     if (!focus && this.highlight && this.highlight.size > 4) return
     // On a phone, a line to something off the screen or under the header leads nowhere you can see. The sheet lists what it's linked to.
+    const covers = this.w > 720 ? [] : this.cb.covers()
     const shown = (n: Node) => {
       if (this.w > 720) return true
       const [x, y] = this.toScreen(...this.displayPos(n))
-      return x > 0 && x < this.w && y > 0 && y < this.h && !this.cb.covers().some((c) => x > c.left && x < c.right && y > c.top && y < c.bottom)
+      return x > 0 && x < this.w && y > 0 && y < this.h && !covers.some((c) => x > c.left && x < c.right && y > c.top && y < c.bottom)
     }
     for (const l of this.data.links) {
       if (focus && !this.highlight && l.from !== focus && l.to !== focus) continue
@@ -3310,9 +3317,9 @@ export class MapView {
       const a = this.byId.get(l.from)
       const b = this.byId.get(l.to)
       if (!a || !b) continue
-      if (!shown(a) || !shown(b)) continue
       // Within one county a line runs down its own columns of names. The ring and the panel's "Linked to" already pair them, so only lines between counties are drawn.
       if (a.piece.gate === b.piece.gate) continue
+      if (!shown(a) || !shown(b)) continue
       const sealedA = this.seal.get(a.piece.gate) ?? 0
       const sealedB = this.seal.get(b.piece.gate) ?? 0
       const fade = (1 - sealedA) * (1 - sealedB)
@@ -3831,9 +3838,11 @@ export class MapView {
       // A row of logos with no room for them all ends with how many more.
       for (const d of this.districts) {
         if (!d.more || d.hidden) continue
-        const a = money * landing * gathered * (1 - this.sealOf(d.gate))
+        // Tools a reader still gets through a seal are counted as they're shown, a step back and lifted with them.
+        const through = this.lensActive && d.def.id === 'tools' && this.data.pricesReadable.has(d.gate)
+        const a = money * landing * gathered * (through ? 1 - 0.28 * this.sealOf(d.gate) : 1 - this.sealOf(d.gate))
         if (a < 0.01) continue
-        const [mx, my] = this.toScreen(d.more.x, d.more.y)
+        const [mx, my] = this.toScreen(d.more.x, d.more.y - (through ? (20 / DESIGN_K) * this.sealOf(d.gate) : 0))
         ctx.globalAlpha = a
         ctx.textAlign = 'center'
         ctx.fillText(`+${d.more.n}`, mx, my + 4)
@@ -3921,6 +3930,7 @@ export class MapView {
   private drawGateLabels(now: number) {
     const ctx = this.ctx
     const p = this.palette!
+    const throughGates = new Set(this.lensActive ? this.nodes.filter((m) => this.throughSeal(m)).map((m) => m.piece.gate) : [])
     const size = this.gateLabelSize()
     ctx.textBaseline = 'alphabetic'
     ctx.textAlign = 'left'
@@ -4028,7 +4038,7 @@ export class MapView {
             return t.onLand(wx, wy) && this.gateAt(wx, wy) === t.gate
           })
         }
-        const shows = this.nodes.some((m) => m.piece.gate === t.gate && this.throughSeal(m))
+        const shows = throughGates.has(t.gate)
         const cx = shows ? (t.minX + t.maxX) / 2 : (t.holds.minX + t.holds.maxX) / 2
         const cy = shows ? t.holds.maxY + (t.maxY - t.holds.maxY) * 0.4 : (t.holds.minY + t.holds.maxY) / 2
         const [mx, middle] = this.toScreen(cx, cy)

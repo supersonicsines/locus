@@ -111,7 +111,18 @@ export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
           <Icon name="plus" size={14} />
         </button>
         {/* The way back, said in words, only once you've left it. */}
-        {!fitted && <button className="zoom-whole" onClick={() => map.current?.fit()}>Whole map</button>}
+        {!fitted && (
+          <button
+            className="zoom-whole"
+            onClick={(e) => {
+              // It goes once the map is whole, so focus moves to its neighbour first rather than falling to the top of the page.
+              ;(e.currentTarget.parentElement?.querySelector('.icon-btn[aria-label="Zoom in"]') as HTMLElement | null)?.focus()
+              map.current?.fit()
+            }}
+          >
+            Whole map
+          </button>
+        )}
       </div>
     </div>
   )

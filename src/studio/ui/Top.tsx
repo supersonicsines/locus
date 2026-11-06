@@ -78,10 +78,12 @@ export function useFitTop() {
       return e.getBoundingClientRect().height > line * 1.5
     }
     const overlap = (a: DOMRect, b: DOMRect, gap = 8) => a.right + gap > b.left && b.right + gap > a.left && a.top < b.bottom && b.top < a.bottom
+    let rightW = ''
     const problems = () => {
       const right = bar.querySelector('.top-right')
-      // A card folded to its heading shares the top of the screen with the price, so its width is what the price leaves it.
-      if (right) root.style.setProperty('--top-right-w', `${Math.ceil(right.getBoundingClientRect().width)}px`)
+      // A card folded to its heading shares the top of the screen with the price, so its width is what the price leaves it. Written only when it changes.
+      const w = right ? `${Math.ceil(right.getBoundingClientRect().width)}px` : ''
+      if (w && w !== rightW) root.style.setProperty('--top-right-w', (rightW = w))
       const status = bar.querySelector('.status')
       // The status itself, never its slot: the needs list opens inside the slot, and measuring that would shorten the line you just pressed.
       const statusCut = [...bar.querySelectorAll('.status, .status > span, .status-open, .status b, .status .quiet, .lens-still')].some(cut)
@@ -97,6 +99,7 @@ export function useFitTop() {
       const sharesRow = !!status && !!right && overlap(status.getBoundingClientRect(), right.getBoundingClientRect(), 1e4)
       return { status: statusCut || (sharesRow && priceCut), cost: cardCut || priceCut || (sharesRow && statusCut) }
     }
+    // A line that comes out as it was leaves its classes as they were, and the map's observer lets that pass as nothing moved.
     const fit = () => {
       for (const s of FIT_STEPS) bar.classList.remove(s.name)
       let now = problems()
@@ -113,13 +116,24 @@ export function useFitTop() {
     sized.observe(document.body)
     const changed = new MutationObserver(fit)
     changed.observe(bar, { childList: true, subtree: true, characterData: true })
+    // The card matters when it opens or folds, not when a row inside it lights up under the pointer.
     const card = document.querySelector('.left')
-    if (card) changed.observe(card, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class'] })
+    const folds = new MutationObserver((records) => {
+      if (records.some((r) => r.target === card && r.oldValue !== (r.target as Element).className)) fit()
+    })
+    if (card) {
+      folds.observe(card, { attributes: true, attributeFilter: ['class'], attributeOldValue: true })
+      changed.observe(card, { childList: true, subtree: true, characterData: true })
+    }
     document.fonts?.addEventListener('loadingdone', fit)
+    // The cards slide in on first sight, and a line measured mid-slide is measured in the wrong place.
+    document.addEventListener('animationend', fit)
     return () => {
       sized.disconnect()
       changed.disconnect()
+      folds.disconnect()
       document.fonts?.removeEventListener('loadingdone', fit)
+      document.removeEventListener('animationend', fit)
     }
   }, [])
 }

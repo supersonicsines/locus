@@ -1,7 +1,6 @@
 // Top left: the company, and who can read its map. Pick a reader and the map shows what they see.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { pending } from '../../core/status.ts'
 import type { Password } from '../../core/types.ts'
 import { askFit, copy, createPassword, loadSample, newMap, setTheme, siteAddress, switchVault, tidyMap, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
@@ -97,8 +96,9 @@ function ReaderRow({ pw, index, live, picked }: { pw: Password; index: number; l
   const on = lens === pw.id
   const count = gates.filter((g) => pw.gates.includes(g.id)).length
   // Until you update, what you closed is still readable, so the row counts it: the map may never say a reader reads less than they do.
-  const still = vault ? (pending(vault).exposures.find((e) => e.who === pw.name && e.gates?.length && !e.message.includes('through the host'))?.gates ?? []) : []
-  const reads = count + gates.filter((g) => still.includes(g.id) && !pw.gates.includes(g.id)).length
+  // From what was published for this password, by its id, as the lens works it out, so it's cheap on every keystroke and never confused by a reader of the same name.
+  const before = vault?.published?.passwords[pw.id] ?? []
+  const reads = count + gates.filter((g) => before.includes(g.id) && !pw.gates.includes(g.id)).length
 
   const pick = () => {
     if (on) setState({ lens: null, panel: panel === 'share' ? null : panel, agentView: false })
@@ -110,7 +110,7 @@ function ReaderRow({ pw, index, live, picked }: { pw: Password; index: number; l
 
   return (
     <div className={`reader ${on ? 'is-on' : ''}`}>
-      <button className="reader-row" aria-expanded={on} onClick={pick}>
+      <button className="reader-row" aria-expanded={on} onClick={pick} aria-label={`${pw.name}, reads ${reads} of ${plural(gates.length, 'area')}${reads > count ? `, ${count} after you update` : ''}`}>
         <ReaderMark name={pw.name} index={index} size={22} />
         <span className="reader-name">{pw.name}</span>
         <span className="reader-count" title={reads > count ? `${reads} of ${plural(gates.length, 'area')} until you update, then ${count}` : count ? `${count} of ${plural(gates.length, 'area')}` : undefined}>
@@ -262,6 +262,7 @@ export function Left() {
   // In a narrow window the open card stands over the map's west, so the map moves over beside it rather than under it.
   useEffect(() => {
     setState({ cardOpen: openOnPhone })
+    return () => setState({ cardOpen: false })
   }, [openOnPhone])
 
   return (
