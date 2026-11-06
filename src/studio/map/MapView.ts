@@ -1334,10 +1334,13 @@ export class MapView {
 
   private clampZoom(k: number) {
     // Far past the whole map, where the company is a speck with its name beside it. What's on the land gives way as it goes (see far()), so nothing lands on anything.
-    // Never so far that the island is a speck: at least 120 px on its shorter side, which on a phone comes before a tenth of the whole map does.
+    // Out to the island with the company's name under it, and no further: at least 120 px on its shorter side, so it's never a speck,
+    // but always far enough to reach that form, which takes a land span under 240 px. Without land, a tenth of the whole map.
     const b = this.landBox()
     const side = b ? Math.min(b.maxX - b.minX, b.maxY - b.minY) : 0
-    const floor = Math.max(MIN_K, Math.min(this.fitK, this.overlayK) / OUT_PAST_FIT, side > 0 ? 120 / side : 0)
+    const spanW = b ? Math.max(b.maxX - b.minX, (b.maxY - b.minY) * 1.4) : 0
+    const island = side > 0 ? Math.min(120 / side, 230 / spanW) : 0
+    const floor = Math.max(MIN_K, island || Math.min(this.fitK, this.overlayK) / OUT_PAST_FIT)
     return clamp(k, floor, MAX_K)
   }
 
@@ -3653,14 +3656,15 @@ export class MapView {
   }
 
   /**
-   * Clips out what floats over the map, with a margin: each card grown by 10 px, any edge within 40 px of the window's taken to the
+   * Clips out what floats over the map: each card, any edge within 40 px of the window's taken to the
    * window, and the gap between two cards side by side, if it's under 40 px, bridged over the height they share, so there's no
    * strip between the top line's chips for scraps of words to show in. Cards are never merged into one block: what's beside a tall
    * card and below a short one is map.
    */
   private clipChrome() {
     const near = 40
-    const rects = this.cb.overlays().map((o) => ({ l: o.left - 10, t: o.top - 10, r: o.right + 10, b: o.bottom + 10 }))
+    // Exactly the cards: words reach right up to a card's edge and go under it, so no word is cut in the open.
+    const rects = this.cb.overlays().map((o) => ({ l: o.left, t: o.top, r: o.right, b: o.bottom }))
     for (const r of rects) {
       if (r.l < near) r.l = -1
       if (r.t < near) r.t = -1

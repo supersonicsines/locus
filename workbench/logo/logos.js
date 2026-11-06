@@ -1,11 +1,11 @@
 /*
   Locus marks: one engine, five variants, one squircle.
 
-  Cycle 2. Every mark is authored as curves: rings, offsets and coasts built from a few nodes each
-  and joined with centripetal Catmull-Rom into cubic Béziers, or from lines and arcs. The geometry is
-  a function of time, so the same drawing gives the still file (small and editable), the loop and
-  the intro. The traced engine of cycle 1 (marching squares over a height field) is kept at the
-  bottom of this file for sketching; no mark uses it now.
+  Every mark is authored as curves: rings, coasts and borders built from a few nodes each and joined
+  with centripetal Catmull-Rom into cubic Béziers, or from lines, arcs and ellipses. The geometry is a
+  function of time, so the same drawing gives the still file (small and editable), the loop and the
+  intro. Marching squares (traceLevelGrid, traceLevel) are kept for sketching new terrain; no mark
+  uses them.
 
   A frame is a plain tree of SVG descriptors: { el, ...attributes, kids }. Colours are '@keys' into
   the variant's palette, and ids are local, prefixed per instance. The page patches live SVGs from
@@ -14,13 +14,18 @@
 
   Time. A variant loops over `period` seconds and draws a frame from t in [0, 1).
   - A variant with `flow` (seconds per contour interval) moves by flowing: its time only runs while
-    motion is on, and when motion goes off it finishes the interval and settles on the still.
+    motion is on, and when motion goes off it stops within about a second and settles on the still.
   - Any other variant blends: `amp` (0..1) scales how far it strays from the still.
-  - `live` (0..1) follows the motion switch too, eased; Tide's sea turns blue with it.
+  - `live` is the going-live moment, played once (flood, hold, ebb), apart from motion.
   - `p` is the one-shot intro's progress, and 1 means the intro is over.
 
-  Size. A mark draws itself per tier (L for the large mark, then M 96, S 48, XS 32, XXS 16), so a
-  small one can drop contours and thicken its lines. PX is pixels per unit at each tier's size.
+  Size. A mark draws itself per size band (L from 160 px, M from 72, S from 40, XS from 24, XXS
+  below; a variant may move a band's edge with `bounds`), so a small one can drop contours and
+  thicken its lines. Below L, strokes and dots hold their pixel weight across a whole band (see REF
+  and specAt), so no mark gets lighter or heavier as it crosses into the next band.
+
+  Options. A variant may offer the operator open calls as `options` (Summit's seal); they reach the
+  frame as `opts`, and the download carries them.
 */
 
 const TAU = Math.PI * 2
@@ -223,6 +228,37 @@ export const TIERS = ['L', 'M', 'S', 'XS', 'XXS']
 const SMALL = new Set(['S', 'XS', 'XXS'])
 export const tierFor = (size) => (size >= 160 ? 'L' : size >= 72 ? 'M' : size >= 40 ? 'S' : size >= 24 ? 'XS' : 'XXS')
 
+/**
+ * Size bands. Each band's drawing is made at its reference size (REF); a variant may move a band's
+ * lower edge with `bounds`. Below L, strokes, dots and dashes hold their pixel weight across the whole
+ * band: at size s they are drawn REF / s times as thick in units, so nothing gets lighter or heavier
+ * as it crosses into the next band.
+ */
+export const REF = { L: 280, M: 96, S: 48, XS: 32, XXS: 16 }
+export const BOUNDS = { L: 160, M: 72, S: 40, XS: 24 }
+export function tierOf(v, size) {
+  const b = v.bounds ? { ...BOUNDS, ...v.bounds } : BOUNDS
+  return size >= b.L ? 'L' : size >= b.M ? 'M' : size >= b.S ? 'S' : size >= b.XS ? 'XS' : 'XXS'
+}
+/** A tier's spec with its weights scaled by k (a dash pattern scales each of its lengths). */
+export function specAt(v, tier, k = 1) {
+  const base = v.spec[tier]
+  if (Math.abs(k - 1) < 1e-6) return base
+  const cache = (v._specAt ||= new Map())
+  const key = tier + ':' + R4(k)
+  let sp = cache.get(key)
+  if (!sp) {
+    sp = { ...base }
+    for (const w of v.weights || []) {
+      const x = sp[w]
+      if (typeof x === 'number') sp[w] = x * k
+      else if (typeof x === 'string' && x) sp[w] = x.split(/\s+/).map((n) => R(+n * k)).join(' ')
+    }
+    cache.set(key, sp)
+  }
+  return sp
+}
+
 /* ---------- islands ---------- */
 
 /**
@@ -231,13 +267,13 @@ export const tierFor = (size) => (size >= 160 ? 'L' : size >= 72 ? 'M' : size >=
  * scales both, so contours nearer the summit can be rounder.
  */
 export function island({ a, b, tilt, lobes, dents = [] }) {
-  return (th, soft = 1) => {
+  return (th, soft = 1, dk = 1) => {
     const u = th - tilt
     const e = (a * b) / Math.hypot(b * Math.cos(u), a * Math.sin(u))
     let w = 0
     for (const [amp, k, ph] of lobes) w += amp * Math.cos(k * th + ph)
     let r = e * (1 + soft * w)
-    for (const [depth, at, width] of dents) r -= soft * depth * Math.exp(-((wrap(th - at) / width) ** 2))
+    for (const [depth, at, width] of dents) r -= dk * soft * depth * Math.exp(-((wrap(th - at) / width) ** 2))
     return r
   }
 }
@@ -343,29 +379,54 @@ export function resample(pts, spacing, minN = 10) {
 
 /* ======================================================================
    The five variants
+
+   Each variant's `spec` is drawn per size band. Below L, a band's strokes and dots are set for the
+   band's reference size (REF) and keep their pixel weight across the whole band: `weights` names
+   the spec keys that scale so. `bounds` moves a band's lower edge for one variant.
    ====================================================================== */
+
+/** The going-live moment, e seconds in: flood 1.1 s, hold 0.6 s, ebb 1.2 s. Reduced motion cross-fades. */
+export const LIVE_DUR = 2.9
+export function liveMoment(e, reduced) {
+  if (reduced) {
+    const o = smooth(0, 0.2, e) * (1 - smooth(1.4, 1.6, e))
+    return { k: 1, o, ink: o, done: e >= 1.6 }
+  }
+  const k = e < 1.1 ? INOUT(e / 1.1) : e < 1.7 ? 1 : INOUT(1 - (e - 1.7) / 1.2)
+  const ink = smooth(0, 0.25, e) * (1 - smooth(2.5, 2.9, e))
+  return { k, o: 1, ink, done: e >= 2.9 }
+}
+const NOT_LIVE = { k: 0, o: 0, ink: 0 }
+const o3 = (v) => R(v * 1000) / 1000
 
 /* 1. Summit: one hill whose contours run forever into a single still point. */
 const SW = (3 * Math.PI) / 4 // south-west, on screen
 const summit = {
   id: 'summit',
   name: 'Summit',
+  means: 'Locus is the one place that everything on your company’s map leads to.',
   idea: 'One hill whose contours run forever into a single still point.',
   period: 14,
   flow: 3.5,
   introDur: 1.3,
+  // Two calls left to the operator, as switches: going live on this tile, and the point as the seal.
+  live: true,
+  liveDur: LIVE_DUR,
+  moment: liveMoment,
+  options: ['seal'],
   palettes: {
-    light: { ground: '#fcfdfd', edge: 'rgba(21,25,30,0.12)', line: '#15191e', dot: '#15191e' },
-    dark: { ground: '#1a212a', edge: 'rgba(232,230,223,0.14)', edgeS: 'rgba(232,230,223,0.18)', line: '#e8e6df', dot: '#e8e6df' },
+    light: { ground: '#fcfdfd', edge: 'rgba(21,25,30,0.12)', line: '#15191e', dot: '#15191e', live: '#c4daee', seal: '#d63c27', sealMark: 'rgba(251,236,231,0.92)' },
+    dark: { ground: '#1a212a', edge: 'rgba(232,230,223,0.14)', edgeS: 'rgba(232,230,223,0.18)', line: '#e8e6df', dot: '#e8e6df', live: '#143049', seal: '#ea5a44', sealMark: 'rgba(251,236,231,0.92)' },
   },
   // n rings in the still; dot radius; r0 where a ring ends at the dot; grow: how far a ring at λ = 1
   // reaches on the steep north-east face (the south-west face reaches about twice as far); tri: how
   // three-cornered the rings are; lean: how much longer the gentle side is. 16 and 32 px are one
   // drawing, and 48 px is two rings of the same shape.
+  weights: ['sw', 'dot'],
   spec: {
-    L: { n: 4, dot: 3.6, sw: 0.72, r0: 5.4, grow: 22.5, dent: 0.11, tri: 0.07 },
-    M: { n: 3, dot: 5, sw: 1.3, r0: 7.5, grow: 25, dent: 0.1, tri: 0.07 },
-    S: { n: 2, dot: 7, sw: 2.6, r0: 10.5, grow: 28, dent: 0.06, tri: 0.2, lean: 1.5 },
+    L: { n: 4, dot: 3.6, sw: 0.72, r0: 5.4, grow: 22.5, dent: 0.11, tri: 0.07, blue: true, seal: true },
+    M: { n: 3, dot: 5, sw: 1.3, r0: 7.5, grow: 25, dent: 0.1, tri: 0.07, blue: true, seal: true },
+    S: { n: 2, dot: 7, sw: 2.6, r0: 10.5, grow: 28, dent: 0.06, tri: 0.2, lean: 1.5, blue: true },
     XS: { n: 1, dot: 9.5, sw: 6, r0: 12, grow: 33, dent: 0, tri: 0.26, lean: 1.6 },
     XXS: { n: 1, dot: 12, sw: 8.6, r0: 13, grow: 33, dent: 0, tri: 0.26, lean: 1.6 },
   },
@@ -396,18 +457,27 @@ const summit = {
     }
     return (cache[tier] = [50 - (x0 + x1) / 2, 50 - (y0 + y1) / 2])
   },
-  frame({ t, p, tier }) {
-    const sp = this.spec[tier]
+  frame({ t, p, tier, sp, live, opts }) {
     const N = sp.n
     const P = this.origin(tier)
     const s = p * this.introDur
+    const seal = opts.seal && sp.seal
+    const sealR = sp.dot * 1.7
     // One contour interval per `flow` seconds: every ring moves one place in towards the point.
     const phi = p < 1 ? 0 : ((t * this.period) / this.flow) % 1
     const kids = []
+    // Going live, as an option: the paper beyond the hill floods blue out from its outermost ring and
+    // ebbs. The hill stays paper, as Tide's land does.
+    const lv = sp.blue && live ? live : NOT_LIVE
+    const on = lv.k > 0.001 && lv.o > 0
+    kids.push({ el: 'path', d: on ? curve(this.ring(P, sp, lerp(N / (N + 1), 4.5, lv.k))) : 'M0 0', fill: '@live', opacity: o3(on ? lv.o : 0) })
+    kids.push({ el: 'path', d: on ? curve(this.ring(P, sp, N / (N + 1))) : 'M0 0', fill: '@ground', opacity: on ? 1 : 0 })
     for (let j = 0; j <= N; j++) {
       const lam = 1 - (j + phi) / (N + 1)
       // Born at the rim over the first 15% of its travel, gone over the last 15%, as it reaches the point.
       let op = smooth(1, 0.85, lam) * smooth(0, 0.15, lam)
+      // With the seal, a ring is gone before it reaches the wax.
+      if (seal) op *= smooth(sealR + 1, sealR + 3.5, sp.r0 + lam * sp.grow * 0.93)
       let draw = {}
       if (p < 1) {
         if (j === 0) op = 0
@@ -416,7 +486,7 @@ const summit = {
           draw = drawOn(step(s, 0.25 + 0.12 * k, 0.75 + 0.12 * k), (k * 25) / 360)
         }
       }
-      kids.push({ el: 'path', d: curve(this.ring(P, sp, lam)), fill: 'none', stroke: '@line', 'stroke-width': sp.sw, 'stroke-linecap': 'round', opacity: R(op * 1000) / 1000, ...draw })
+      kids.push({ el: 'path', d: curve(this.ring(P, sp, lam)), fill: 'none', stroke: '@line', 'stroke-width': R(sp.sw * 1000) / 1000, 'stroke-linecap': 'round', opacity: o3(op), ...draw })
     }
     // The point is pressed first: 0.6 → 1.08 → 1 over 0.28 s.
     let sc = 1
@@ -426,101 +496,108 @@ const summit = {
       sc = k < 0.6 ? lerp(0.6, 1.08, OUT(k / 0.6)) : lerp(1.08, 1, INOUT((k - 0.6) / 0.4))
       o = clamp(s / 0.1)
     }
-    kids.push({ el: 'circle', cx: R(P[0]), cy: R(P[1]), r: R(sp.dot * sc * 100) / 100, fill: '@dot', opacity: o })
+    if (seal) {
+      // The point as the map's wax seal: a vermilion disc with its paper L, as an option.
+      const r = sealR
+      const L = `M${R(-0.2 * r)} ${R(-0.42 * r)}L${R(-0.2 * r)} ${R(0.36 * r)}L${R(0.3 * r)} ${R(0.36 * r)}`
+      kids.push({
+        el: 'g', transform: `translate(${R(P[0])} ${R(P[1])}) scale(${R(sc * 1000) / 1000})`, opacity: o,
+        kids: [
+          { el: 'circle', r: R(r), fill: '@seal' },
+          { el: 'path', d: L, fill: 'none', stroke: '@sealMark', 'stroke-width': R(0.17 * r), 'stroke-linejoin': 'miter' },
+        ],
+      })
+    } else kids.push({ el: 'circle', cx: R(P[0]), cy: R(P[1]), r: R(sp.dot * sc * 100) / 100, fill: '@dot', opacity: o })
     return { kids }
   },
 }
 
 /* 2. Tide: an island and its islet in a still grey sea. Going live floods it blue, once, and it ebbs. */
 const TIDE_EASE = cubicBezier(0.33, 1, 0.68, 1)
-const NOT_LIVE = { k: 0, o: 0, ink: 0 }
 const tide = {
   id: 'tide',
   name: 'Tide',
+  means: 'Locus is your company as land. When a copy goes live, the sea floods blue for a moment.',
   idea: 'An island and its islet in a still grey sea. Going live floods it blue for a moment, then it ebbs.',
   period: 12,
   introDur: 1.2,
   live: true,
+  liveDur: LIVE_DUR,
+  moment: liveMoment,
   palettes: {
-    light: { ground: '#d5dce2', edge: 'rgba(21,25,30,0.14)', live: '#c4daee', land: '#fcfdfd', line: '#15191e', coast: 'rgba(21,25,30,0.45)', under: 'rgba(21,25,30,0.2)', water: '#3b78b8' },
-    dark: { ground: '#202833', edge: 'rgba(232,230,223,0.14)', edgeS: 'rgba(232,230,223,0.18)', live: '#143049', land: '#e8e6df', line: '#15191e', coast: 'rgba(21,25,30,0.45)', under: 'rgba(232,230,223,0.2)', water: '#7fb0e0' },
+    light: { ground: '#d5dce2', edge: 'rgba(21,25,30,0.14)', live: '#c4daee', land: '#fcfdfd', line: '#15191e', coast: 'rgba(21,25,30,0.45)', coastS: 'rgba(21,25,30,0.8)', under: 'rgba(21,25,30,0.2)', water: '#3b78b8' },
+    dark: { ground: '#202833', edge: 'rgba(232,230,223,0.14)', edgeS: 'rgba(232,230,223,0.18)', live: '#143049', land: '#e8e6df', line: '#15191e', coast: 'rgba(21,25,30,0.45)', coastS: 'rgba(21,25,30,0.8)', under: 'rgba(232,230,223,0.2)', water: '#7fb0e0' },
   },
   // Contours as λ: 0 at the summit, 1 the still coast. `depth` adds the lines under the sea (λ 1.13 round
-  // the island, a ring round the islet). The islet grows as the tile shrinks, and keeps its own sea.
-  // Only 48 px and up ever turn blue.
-  // at: where the island's centre sits, from C; I: the islet's centre. Its sea stays at least 1.5 px wide.
+  // the island, a ring round the islet). The islet keeps its own sea at every size; ab is its two
+  // semi-axes. Only 48 px and up ever turn blue. The south-west inlet is drawn only where it reads.
+  // at: where the island's centre sits, from C; I: the islet's centre.
+  weights: ['sw', 'coast'],
   spec: {
-    L: { lines: [0.4, 0.75], depth: true, sw: 0.5, coast: 0.55, isle: 1, scale: 0.92, at: [0, 0], I: [83, 40], blue: true },
-    M: { lines: [0.55], depth: true, sw: 1.1, coast: 1.1, isle: 1.1, scale: 0.92, at: [0, 0], I: [83, 40], blue: true },
-    S: { lines: [], depth: false, sw: 0, coast: 2.1, isle: 1.35, scale: 0.92, at: [-1, 0], I: [84, 40], blue: true },
-    XS: { lines: [], depth: false, sw: 0, coast: 3.1, isle: 1.8, scale: 0.86, at: [-3, 1], I: [83, 39], blue: false },
-    XXS: { lines: [], depth: false, sw: 0, coast: 6.2, isle: 2.4, scale: 0.8, at: [-3, 2], I: [83, 38], blue: false },
+    L: { lines: [0.4, 0.75], depth: true, sw: 0.5, coast: 0.55, ink: '@coast', ab: [7, 3.5], scale: 0.92, at: [0, 0], I: [83, 40], blue: true, inlet: 1 },
+    M: { lines: [0.55], depth: true, sw: 1.1, coast: 1.1, ink: '@coast', ab: [7.7, 3.85], scale: 0.92, at: [0, 0], I: [83, 40], blue: true, inlet: 1 },
+    S: { lines: [], depth: false, sw: 0, coast: 2.1, ink: '@coast', ab: [9.4, 4.7], scale: 0.9, at: [-1, 0], I: [84, 40], blue: true, inlet: 0 },
+    // At 32 and 16 px the islet is a sliver: a rounder one makes the pair a thought bubble.
+    XS: { lines: [], depth: false, sw: 0, coast: 3.44, ink: '@coastS', ab: [14, 5], scale: 0.82, at: [-4, 1], I: [83, 40], blue: false, inlet: 0 },
+    XXS: { lines: [], depth: false, sw: 0, coast: 6.88, ink: '@coastS', ab: [17, 6], scale: 0.74, at: [-6, 2], I: [82.5, 40], blue: false, inlet: 0 },
   },
   C: [43, 53],
   S: [40, 50],
-  coast: island({ a: 30, b: 23, tilt: -0.26, lobes: [[0.05, 2, 0.6], [0.045, 3, 2.2], [0.035, 5, 0.9], [0.018, 7, 2.8]], dents: [[5, SW, 0.3]] }),
-  // The islet is a lower hill, twice as long as it is wide, lying along the island's east coast. It
-  // floods at half the island's height.
-  isletR: (th) => {
-    const u = th - 1.22
-    return ((7 * 3.5) / Math.hypot(3.5 * Math.cos(u), 7 * Math.sin(u))) * (1 + 0.05 * Math.cos(3 * th + 2))
-  },
-  /** The island's contour at λ, as sixteen nodes. */
+  coast: island({ a: 30, b: 23, tilt: -0.26, lobes: [[0.05, 2, 0.6], [0.045, 3, 2.2], [0.035, 5, 0.9], [0.018, 7, 2.8]], dents: [[8, SW, 0.22]] }),
+  /** The island's contour at λ, as sixteen nodes (twenty-four where the inlet is drawn). */
   contour(lam, sp) {
     const [cx, cy] = this.C
     const [sx, sy] = this.S
     const [ox, oy] = sp.at
     const soft = Math.min(1, lam) ** 1.3
-    return around(cx, cy, 16, 0.2, (th) => this.coast(th, soft) * sp.scale).map(([x, y]) => [ox + sx + lam * (x - sx), oy + sy + lam * (y - sy)])
+    return around(cx, cy, sp.inlet ? 24 : 16, 0.2, (th) => this.coast(th, soft, sp.inlet) * sp.scale).map(([x, y]) => [ox + sx + lam * (x - sx), oy + sy + lam * (y - sy)])
   },
+  /** The islet: a lower hill lying along the island's east coast, a long oval. It floods at half the island's height. */
   islet(mu, sp) {
-    return around(sp.I[0], sp.I[1], 10, 1.22, (th) => mu * sp.isle * this.isletR(th))
-  },
-  /** The going-live moment, e seconds in: flood 1.1 s, hold 0.6 s, ebb 1.2 s. Reduced motion cross-fades. */
-  moment(e, reduced) {
-    if (reduced) {
-      const o = smooth(0, 0.2, e) * (1 - smooth(1.4, 1.6, e))
-      return { k: 1, o, ink: o, done: e >= 1.6 }
+    const [a, b] = sp.ab
+    const r = (th) => {
+      const u = th - 1.22
+      return ((a * b) / Math.hypot(b * Math.cos(u), a * Math.sin(u))) * (1 + 0.05 * Math.cos(3 * th + 2))
     }
-    const k = e < 1.1 ? INOUT(e / 1.1) : e < 1.7 ? 1 : INOUT(1 - (e - 1.7) / 1.2)
-    const ink = smooth(0, 0.25, e) * (1 - smooth(2.5, 2.9, e))
-    return { k, o: 1, ink, done: e >= 2.9 }
+    return around(sp.I[0], sp.I[1], 10, 1.22, (th) => mu * r(th))
   },
-  liveDur: 2.9,
-  frame({ t, amp, p, tier, live }) {
-    const sp = this.spec[tier]
+  frame({ t, amp, p, sp, live }) {
     const s = p * this.introDur
     const lv = sp.blue && live ? live : NOT_LIVE
-    const o = (v) => R(v * 1000) / 1000
     // The coast, as λ: the still coast is 1. On the intro the sea drains from the summit down.
     const ls = p < 1 ? TIDE_EASE(p) : 1 - 0.15 * amp * wave(t)
     const mu = 1 - (1 - ls) / 0.5 // the islet's coast on the same sea
     // How far each contour has surfaced: crossed over 0.25 s on the intro, or over a small band of tide.
-    // A contour the coast is crossing melts into it, so the two never print side by side.
+    // A contour the coast is crossing melts into it, in weight and in ink, so the two never print side by side.
     const up = (c) => (p < 1 ? clamp((s - reach(TIDE_EASE, c, this.introDur)) / 0.25) : smooth(-0.02, 0.02, ls - c))
-    const melt = (c) => (p < 1 ? 1 : smooth(0.02, 0.12, Math.abs(ls - c)))
-    const lines = sp.lines.map((c) => ({ d: curve(this.contour(c, sp)), k: up(c), m: melt(c) }))
+    // Its weight melts over a band of 0.2, and its ink over a wider one, so at high tide no second coast prints.
+    const melt = (c) => (p < 1 ? 1 : smooth(0.02, 0.2, Math.abs(ls - c)))
+    const fade = (c) => (p < 1 ? 1 : smooth(0.05, 0.3, Math.abs(ls - c)))
+    const line = (c, at = c, ring = null) => ({ d: curve(ring || this.contour(c, sp)), k: up(at), m: melt(at), f: fade(at) })
+    const lines = sp.lines.map((c) => line(c))
     if (sp.depth) {
-      lines.push({ d: curve(this.contour(1.13, sp)), k: up(1.13), m: melt(1.13) })
-      lines.push({ d: curve(this.islet(1.25, sp)), k: up(1.125), m: melt(1.125) })
+      lines.push(line(1.13))
+      lines.push(line(1.25, 1.125, this.islet(1.25, sp)))
     }
     const under = []
     const over = []
-    for (const { d, k: kc, m } of lines) {
-      under.push({ el: 'path', d, stroke: '@under', 'stroke-width': sp.sw, opacity: o((1 - kc) * m * (1 - lv.ink)) })
-      under.push({ el: 'path', d, stroke: '@water', 'stroke-width': sp.sw, opacity: o(0.5 * (1 - kc) * m * lv.ink) })
-      over.push({ el: 'path', d, stroke: '@line', 'stroke-width': sp.sw, opacity: o(0.45 * kc * m) })
+    for (const { d, k: kc, m, f } of lines) {
+      const w = R(sp.sw * m * 1000) / 1000
+      under.push({ el: 'path', d, stroke: '@under', 'stroke-width': w, opacity: o3((1 - kc) * f * (1 - lv.ink)) })
+      under.push({ el: 'path', d, stroke: '@water', 'stroke-width': w, opacity: o3(0.5 * (1 - kc) * f * lv.ink) })
+      over.push({ el: 'path', d, stroke: '@line', 'stroke-width': w, opacity: o3(0.45 * kc * f) })
     }
     const coast = ls > 0.01 ? curve(this.contour(ls, sp)) : 'M0 0'
     const isle = mu > 0.02 ? curve(this.islet(mu, sp)) : 'M0 0'
     const flood = lv.k > 0.001 && lv.o > 0 ? curve(this.contour(lerp(Math.max(ls, 0.01), 3.4, lv.k), sp)) : 'M0 0'
+    const cw = R(sp.coast * 1000) / 1000
     return {
       kids: [
-        { el: 'path', d: flood, fill: '@live', opacity: o(lv.k > 0.001 ? lv.o : 0) },
+        { el: 'path', d: flood, fill: '@live', opacity: o3(lv.k > 0.001 ? lv.o : 0) },
         { el: 'g', fill: 'none', kids: under },
         { el: 'path', d: coast + isle, fill: '@land' },
-        { el: 'path', d: coast + isle, fill: 'none', stroke: '@coast', 'stroke-width': sp.coast, 'stroke-linejoin': 'round', opacity: o(1 - lv.ink) },
-        { el: 'path', d: coast + isle, fill: 'none', stroke: '@water', 'stroke-width': sp.coast, 'stroke-linejoin': 'round', opacity: o(0.85 * lv.ink) },
+        { el: 'path', d: coast + isle, fill: 'none', stroke: sp.ink, 'stroke-width': cw, 'stroke-linejoin': 'round', opacity: o3(1 - lv.ink) },
+        { el: 'path', d: coast + isle, fill: 'none', stroke: '@water', 'stroke-width': cw, 'stroke-linejoin': 'round', opacity: o3(0.85 * lv.ink) },
         { el: 'g', fill: 'none', kids: over },
       ],
     }
@@ -528,9 +605,11 @@ const tide = {
 }
 
 /* 3. Counties: three counties of one island, one of them sealed. Only the open land moves. */
+const COUNTY_LOBES = [[0.035, 3, 1.2], [0.025, 2, 2.4]]
 const counties = {
   id: 'counties',
   name: 'Counties',
+  means: 'Locus splits your company into areas, and seals the ones a reader can’t open.',
   idea: 'Three counties of one island, one sealed. The open land’s contours run inland and stop at the seal.',
   period: 12,
   flow: 6,
@@ -539,49 +618,54 @@ const counties = {
     light: { ground: '#d5dce2', edge: 'none', land: '#fcfdfd', line: '#15191e', seal: '#d63c27', tint: '#fbe9e4', solid: '#f0b2a5' },
     dark: { ground: '#232c37', edge: 'rgba(232,230,223,0.14)', edgeS: 'rgba(232,230,223,0.18)', land: '#e8e6df', line: '#15191e', seal: '#ea5a44', tint: '#f3d6cf', solid: '#e9a093' },
   },
-  // n open contours in the still. `legs` are the borders drawn dashed in ink once the intro is over:
+  // n open contours in the still. `show` are the borders drawn dashed in ink once the intro is over:
   // all three where there's room, only the open one below. The seal is its tint and hatch, with
-  // vermilion only along its own coast (`edge`).
+  // vermilion only along its own coast (`edge`). legs: each border's angle from the junction; bay:
+  // the north-west bay [depth, angle, width]. Below 28 px it is the 16 px drawing, with no border.
+  weights: ['csw', 'coast', 'hsw', 'bsw', 'edge', 'dash'],
+  bounds: { XS: 28 },
   spec: {
-    L: { n: 2, csw: 0.55, coast: 0.55, hatch: 2.3, hsw: 0.42, hop: 0.55, dash: '2.6 1.6', bsw: 0.65, legs: [0, 1, 2], edge: 0.55 },
-    M: { n: 1, csw: 1.15, coast: 1.1, hatch: 3.4, hsw: 0.95, hop: 0.55, dash: '4.4 2.8', bsw: 1.2, legs: [0, 1, 2], edge: 1.1 },
-    S: { n: 0, csw: 0, coast: 2.1, hatch: 5.2, hsw: 1.6, hop: 0.7, dash: '5.5 4', bsw: 2.1, legs: [2], edge: 2.1, fill: '@solid' },
-    XS: { n: 0, csw: 0, coast: 3.1, hatch: 6.5, hsw: 3.1, hop: 0.85, dash: '6.25 4.7', bsw: 3.1, legs: [2], edge: 3.1, fill: '@solid' },
-    XXS: { n: 0, csw: 0, coast: 6.2, hatch: 0, dash: '', bsw: 0, legs: [], edge: 6.2, fill: '@seal' },
+    L: { n: 2, csw: 0.55, coast: 0.55, hatch: 2.3, hsw: 0.42, hop: 0.55, dash: '2.6 1.6', bsw: 0.65, show: [0, 1, 2], edge: 0.55, legs: [-1.25, 0.95, 2.75], bay: [5, 3.6, 0.32] },
+    M: { n: 1, csw: 1.15, coast: 1.1, hatch: 3.4, hsw: 0.95, hop: 0.55, dash: '4.4 2.8', bsw: 1.2, show: [0, 1, 2], edge: 1.1, legs: [-1.25, 0.95, 2.75], bay: [5, 3.6, 0.32] },
+    S: { n: 0, csw: 0, coast: 2.1, hatch: 5.2, hsw: 1.6, hop: 0.7, dash: '5.5 4', bsw: 2.1, show: [2], edge: 2.1, fill: '@solid', legs: [-1.25, 0.95, 1.9], bay: [5, 3.6, 0.32] },
+    XS: { n: 0, csw: 0, coast: 3.1, hatch: 6.5, hsw: 3.1, hop: 0.85, dash: '6.25 4.7', bsw: 3.1, show: [2], edge: 3.1, fill: '@solid', legs: [-1.1, 0.8, 1.9], bay: [10, 3.6, 0.5] },
+    XXS: { n: 0, csw: 0, coast: 6.2, hatch: 0, dash: '', bsw: 0, show: [], edge: 6.2, fill: '@seal', legs: [-1.1, 0.8, 2.2], bay: [12, 3.6, 0.55] },
   },
   C: [50, 51],
   S: [40, 58],
   J: [61, 44],
-  // A longer island, its long axis rising to the north-east, one bay on the west.
-  coast: island({ a: 41, b: 27, tilt: -0.5, lobes: [[0.035, 3, 1.2], [0.025, 2, 2.4]], dents: [[5, 3.6, 0.32]] }),
-  // The legs of the Y, as angles from the junction. The sealed county is the east end, from leg 0
-  // clockwise to leg 1, about a quarter of the land.
-  legs: [-1.25, 0.95, 2.75],
+  /** Per tier: the island (a longer one, its long axis rising to the north-east) and its borders. */
+  geo(tier) {
+    const cache = (this._geo ||= {})
+    if (cache[tier]) return cache[tier]
+    const sp = this.spec[tier]
+    return (cache[tier] = { coast: island({ a: 41, b: 27, tilt: -0.5, lobes: COUNTY_LOBES, dents: [sp.bay] }), legs: sp.legs })
+  },
   /** A leg's angle at distance r from the junction: a gentle wander on two periods that never repeat. */
-  legAngle(i, r) {
+  legAngle(g, i, r) {
     const ph = [0.4, 2.1, 4.0][i]
     const m = (1.3 * Math.sin((TAU * r) / 26 + ph) + 0.55 * Math.sin((TAU * r) / 11.3 + 2.3 * ph)) * smooth(0, 8, r)
-    return this.legs[i] + m / Math.max(r, 10)
+    return g.legs[i] + m / Math.max(r, 10)
   },
-  inLand(x, y) {
+  inLand(g, x, y) {
     const [cx, cy] = this.C
-    return Math.hypot(x - cx, y - cy) < this.coast(Math.atan2(y - cy, x - cx))
+    return Math.hypot(x - cx, y - cy) < g.coast(Math.atan2(y - cy, x - cx))
   },
-  inSealed(x, y) {
+  inSealed(g, x, y) {
     const [jx, jy] = this.J
     const r = Math.hypot(x - jx, y - jy)
     const a = Math.atan2(y - jy, x - jx)
-    return a > this.legAngle(0, r) && a < this.legAngle(1, r)
+    return a > this.legAngle(g, 0, r) && a < this.legAngle(g, 1, r)
   },
   /** Leg i's points, from the junction to exactly where it meets the coast. */
-  leg(i) {
+  leg(g, i) {
     const [jx, jy] = this.J
-    const at = (r) => [jx + r * Math.cos(this.legAngle(i, r)), jy + r * Math.sin(this.legAngle(i, r))]
+    const at = (r) => [jx + r * Math.cos(this.legAngle(g, i, r)), jy + r * Math.sin(this.legAngle(g, i, r))]
     let lo = 0
     let hi = 90
     for (let k = 0; k < 40; k++) {
       const m = (lo + hi) / 2
-      if (this.inLand(...at(m))) lo = m
+      if (this.inLand(g, ...at(m))) lo = m
       else hi = m
     }
     const pts = []
@@ -590,7 +674,7 @@ const counties = {
     return pts
   },
   /** The coast as nodes from one point on it to another, clockwise round the island's centre. */
-  arc(from, to) {
+  arc(g, from, to) {
     const [cx, cy] = this.C
     const a = Math.atan2(from[1] - cy, from[0] - cx)
     let b = Math.atan2(to[1] - cy, to[0] - cx)
@@ -598,22 +682,22 @@ const counties = {
     const pts = [from]
     const stepA = TAU / 32
     for (let th = Math.ceil(a / stepA + 0.2) * stepA; th < b - 0.2 * stepA; th += stepA) {
-      const r = this.coast(th)
+      const r = g.coast(th)
       pts.push([cx + r * Math.cos(th), cy + r * Math.sin(th)])
     }
     pts.push(to)
     return pts
   },
-  coastPts(lam = 1) {
+  coastPts(g, lam = 1) {
     const [cx, cy] = this.C
     const [sx, sy] = this.S
-    return around(cx, cy, 32, 0, (th) => this.coast(th, Math.min(1, lam) ** 1.3)).map(([x, y]) => [sx + lam * (x - sx), sy + lam * (y - sy)])
+    return around(cx, cy, 32, 0, (th) => g.coast(th, Math.min(1, lam) ** 1.3)).map(([x, y]) => [sx + lam * (x - sx), sy + lam * (y - sy)])
   },
   /** Diagonal hatch inside the sealed county, as segments. */
-  hatch(gap) {
+  hatch(g, gap) {
     const u = [Math.SQRT1_2, -Math.SQRT1_2]
     const nrm = [Math.SQRT1_2, Math.SQRT1_2]
-    const inside = (x, y) => this.inLand(x, y) && this.inSealed(x, y)
+    const inside = (x, y) => this.inLand(g, x, y) && this.inSealed(g, x, y)
     const segs = []
     for (let c = -76; c <= 76; c += gap) {
       const ox = 50 + c * nrm[0]
@@ -631,17 +715,20 @@ const counties = {
     }
     return segs
   },
-  /** The parts that never move, built once. */
+  /** The parts that never move, built once per tier. */
   fixed(tier) {
     const cache = (this._fixed ||= {})
     if (cache[tier]) return cache[tier]
     const sp = this.spec[tier]
-    const legs = [0, 1, 2].map((i) => this.leg(i))
+    const g = this.geo(tier)
+    const legs = [0, 1, 2].map((i) => this.leg(g, i))
     const endA = legs[0][legs[0].length - 1]
     const endB = legs[1][legs[1].length - 1]
-    const shore = this.arc(endA, endB)
+    const shore = this.arc(g, endA, endB)
     const county = curve(legs[0], false) + curve(shore, false, false) + curve(legs[1].slice().reverse(), false, false) + 'Z'
-    return (cache[tier] = { legs, county, shore: curve(shore, false), coast: curve(this.coastPts()), hatch: sp.hatch ? this.hatch(sp.hatch) : [] })
+    // The open land, for the contours: they never enter the seal, not even while the intro writes them.
+    const open = curve(legs[1], false) + curve(this.arc(g, endB, endA), false, false) + curve(legs[0].slice().reverse(), false, false) + 'Z'
+    return (cache[tier] = { g, legs, county, open, shore: curve(shore, false), coast: curve(this.coastPts(g)), hatch: sp.hatch ? this.hatch(g, sp.hatch) : [] })
   },
   /** A leg written out from the junction to fraction k of its length. */
   partial(pts, k) {
@@ -660,57 +747,54 @@ const counties = {
     }
     return out.length > 1 ? out : [pts[0], pts[0]]
   },
-  frame({ t, p, tier }) {
-    const sp = this.spec[tier]
+  frame({ t, p, tier, sp }) {
     const fx = this.fixed(tier)
     const s = p * this.introDur
     const intro = p < 1
-    const o = (v) => R(v * 1000) / 1000
     // The open land's contours run inland from the coast, one interval every 6 s, and die out at λ 0.2.
-    // They pass under the sealed county, so they visibly run into the seal and stop.
     const phi = intro ? 0 : ((t * this.period) / this.flow) % 1
     const gap = 0.8 / (sp.n + 1)
     const contours = []
     for (let j = 0; j <= sp.n && sp.n; j++) {
       const lam = 1 - gap * (j + phi)
-      // Hidden until it is clear of the coast, so the coast never doubles; gone by λ 0.2.
-      let op = smooth(0.9, 0.8, lam) * smooth(0.2, 0.32, lam)
+      // Hidden until it is well clear of the coast, so the coast never doubles; gone by λ 0.2.
+      let op = smooth(0.85, 0.72, lam) * smooth(0.2, 0.32, lam)
       let draw = {}
       if (intro) {
         if (j === 0) op = 0
         else draw = drawOn(step(s, 0.55, 0.95))
       }
-      contours.push({ el: 'path', d: curve(this.coastPts(lam)), opacity: o(op), ...draw })
+      contours.push({ el: 'path', d: curve(this.coastPts(fx.g, lam)), opacity: o3(op), ...draw })
     }
     // While the intro writes the coast and the seal's shore, their own pathLength is 1 so a dash can measure them.
     const len1 = intro ? { pathLength: 1 } : {}
     // The seal arrives as one hard wipe from the junction, across the county to the far coast.
-    const wipe = intro ? lerp(-4, 50, step(s, 0.95, 1.3, INOUT)) : null
+    const wipe = intro ? lerp(-4, 50, step(s, 1.05, 1.3, INOUT)) : null
     const sealKids = [{ el: 'use', href: '#county', fill: sp.fill || '@tint' }]
-    if (fx.hatch.length) sealKids.push({ el: 'path', d: fx.hatch.map(([a, b]) => `M${pt(a)}L${pt(b)}`).join(''), fill: 'none', stroke: '@seal', 'stroke-width': sp.hsw, opacity: sp.hop, 'clip-path': 'url(#sealed)' })
-    const kids = [{ el: 'use', href: '#coast', fill: '@land', opacity: intro ? o(step(s, 0.3, 0.6, INOUT)) : 1 }]
-    if (contours.length) kids.push({ el: 'g', fill: 'none', stroke: '@line', 'stroke-width': sp.csw, 'stroke-opacity': 0.45, 'clip-path': 'url(#land)', kids: contours })
+    if (fx.hatch.length) sealKids.push({ el: 'path', d: fx.hatch.map(([a, b]) => `M${pt(a)}L${pt(b)}`).join(''), fill: 'none', stroke: '@seal', 'stroke-width': R(sp.hsw * 1000) / 1000, opacity: sp.hop, 'clip-path': 'url(#sealed)' })
+    const kids = [{ el: 'use', href: '#coast', fill: '@land', opacity: intro ? o3(step(s, 0.3, 0.6, INOUT)) : 1 }]
+    if (contours.length) kids.push({ el: 'g', fill: 'none', stroke: '@line', 'stroke-width': R(sp.csw * 1000) / 1000, 'stroke-opacity': 0.45, 'clip-path': 'url(#open)', kids: contours })
     kids.push(intro ? { el: 'g', 'clip-path': 'url(#wipe)', kids: sealKids } : { el: 'g', kids: sealKids })
-    if (sp.coast) kids.push({ el: 'use', href: '#coast', fill: 'none', stroke: '@line', 'stroke-width': sp.coast, 'stroke-linejoin': 'round', opacity: 0.45, ...(intro ? drawOn(step(s, 0, 0.45)) : {}) })
+    if (sp.coast) kids.push({ el: 'use', href: '#coast', fill: 'none', stroke: '@line', 'stroke-width': R(sp.coast * 1000) / 1000, 'stroke-linejoin': 'round', opacity: 0.45, ...(intro ? drawOn(step(s, 0, 0.45)) : {}) })
     // The Y, dashed ink: written out from the junction on the intro, and kept.
-    if (sp.bsw && sp.legs.length) {
+    if (sp.bsw && sp.show.length) {
       const k = intro ? step(s, 0.45, 0.85) : 1
       kids.push({
-        el: 'g', fill: 'none', stroke: '@line', 'stroke-width': sp.bsw, 'stroke-linecap': 'round', opacity: 0.9,
+        el: 'g', fill: 'none', stroke: '@line', 'stroke-width': R(sp.bsw * 1000) / 1000, 'stroke-linecap': 'round', opacity: 0.9,
         ...(sp.dash ? { 'stroke-dasharray': sp.dash } : {}),
-        kids: sp.legs.map((i) => ({ el: 'path', d: curve(this.partial(fx.legs[i], k), false) })),
+        kids: sp.show.map((i) => ({ el: 'path', d: curve(this.partial(fx.legs[i], k), false) })),
       })
     }
     // Vermilion only on sealed land: along the sealed county's own coast, written last.
-    if (sp.edge) kids.push({ el: 'use', href: '#shore', fill: 'none', stroke: '@seal', 'stroke-width': sp.edge, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...(intro ? drawOn(step(s, 1.3, 1.55)) : {}) })
+    if (sp.edge) kids.push({ el: 'use', href: '#shore', fill: 'none', stroke: '@seal', 'stroke-width': R(sp.edge * 1000) / 1000, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...(intro ? drawOn(step(s, 1.3, 1.55)) : {}) })
     const [jx, jy] = this.J
-    const deg = R(((((this.legs[0] + this.legs[1]) / 2) * 180) / Math.PI))
+    const deg = R((((fx.g.legs[0] + fx.g.legs[1]) / 2) * 180) / Math.PI)
     return {
       defs: [
         { el: 'path', id: 'coast', d: fx.coast, ...len1 },
         { el: 'path', id: 'county', d: fx.county },
         { el: 'path', id: 'shore', d: fx.shore, ...len1 },
-        { el: 'clipPath', id: 'land', kids: [{ el: 'use', href: '#coast' }] },
+        { el: 'clipPath', id: 'open', kids: [{ el: 'path', d: fx.open }] },
         { el: 'clipPath', id: 'sealed', kids: [{ el: 'use', href: '#county' }] },
         ...(intro ? [{ el: 'clipPath', id: 'wipe', kids: [{ el: 'rect', x: -200, y: -200, width: R(200 + wipe), height: 400, transform: `translate(${jx} ${jy}) rotate(${deg})` }] }] : []),
       ],
@@ -719,137 +803,11 @@ const counties = {
   },
 }
 
-/* 4. Spur: the seal's L as a ridge, steep at its summit and broadening as it falls. */
-const spur = {
-  id: 'spur',
-  name: 'Spur',
-  idea: 'The seal’s L as a ridge: steep at its summit, broadening as it falls. Contours are born at the top and run down it.',
-  period: 9,
-  flow: 3,
-  introDur: 1.1,
-  palettes: {
-    light: { ground: '#15191e', edge: 'none', line: '#eef1f3' },
-    dark: { ground: '#1a212a', edge: 'rgba(232,230,223,0.14)', edgeS: 'rgba(232,230,223,0.18)', line: '#e8e6df' },
-  },
-  // One height field along the crest A → C → B: h = H(s) · exp(−d² / σ(s)²), with H falling from 1 at the
-  // summit to 0.55 at the foot's end and σ widening from 7 to 13. `levels` are the still's contours, from
-  // the top; `index` is drawn at twice the weight. The crest is drawn only where there's room for it.
-  // span: how wide the outermost contour is drawn, so each size fills its tile.
-  spec: {
-    L: { levels: [0.82, 0.62, 0.42], index: 0.62, crest: true, sw: 0.72, d: 0.55, node: 2.2, span: 60 },
-    M: { levels: [0.82, 0.62, 0.42], index: 0.62, crest: true, sw: 1.3, d: 0.8, node: 3, span: 62 },
-    S: { levels: [0.8, 0.44], index: 0, crest: false, sw: 2.6, d: 1, node: 3.5, span: 66 },
-    XS: { levels: [0.8, 0.42], index: 0, crest: false, sw: 4, d: 1.2, node: 4, span: 70 },
-    XXS: { levels: [0.84, 0.4], index: 0, crest: false, sw: 7.2, d: 1.4, node: 5, span: 72 },
-  },
-  A: [37, 24],
-  C: [37, 68],
-  B: [67, 68],
-  height(x, y) {
-    const [ax, ay] = this.A
-    const [cx, cy] = this.C
-    const bx = this.B[0]
-    const lenV = cy - ay
-    const lenH = bx - cx
-    const total = lenV + lenH
-    const tv = clamp((y - ay) / lenV)
-    const dv = Math.hypot(x - ax, y - (ay + tv * lenV))
-    const th = clamp((x - cx) / lenH)
-    const dh = Math.hypot(x - (cx + th * lenH), y - cy)
-    // A soft nearest point, so the inner corner rounds off instead of creasing.
-    const k = 2.5
-    const wv = Math.exp(-dv / k)
-    const wh = Math.exp(-dh / k)
-    const d = Math.max(0, -k * Math.log(wv + wh + 1e-12))
-    const s = (wv * ((tv * lenV) / total) + wh * ((lenV + th * lenH) / total)) / (wv + wh + 1e-12)
-    const H = 1 - 0.45 * s
-    const sg = 7 + 6 * s
-    return H * Math.exp(-(d * d) / (sg * sg))
-  },
-  /** Per size: how the field is placed in the tile, and the field sampled once (it never changes). */
-  grid(tier) {
-    const cache = (this._grid ||= {})
-    if (cache[tier]) return cache[tier]
-    const sp = this.spec[tier]
-    const sample = (z, c) => {
-      const d = sp.d
-      const x0 = -2
-      const y0 = -2
-      const nx = Math.ceil(104 / d) + 1
-      const F = new Float32Array(nx * nx)
-      for (let j = 0; j < nx; j++)
-        for (let i = 0; i < nx; i++) {
-          const X = x0 + i * d
-          const Y = y0 + j * d
-          F[j * nx + i] = this.height(c[0] + (X - 50) / z, c[1] + (Y - 50) / z)
-        }
-      return { F, nx, x0, y0, d }
-    }
-    // Fit: the outermost still contour, centred, `span` units across.
-    const g0 = sample(1, [50, 50])
-    const last = sp.levels[sp.levels.length - 1] - 0.05
-    const loops = traceLevelGrid(g0.F, g0.nx, g0.nx, g0.x0, g0.y0, g0.d, last)
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
-    for (const l of loops) for (const [x, y] of l) {
-      x0 = Math.min(x0, x)
-      x1 = Math.max(x1, x)
-      y0 = Math.min(y0, y)
-      y1 = Math.max(y1, y)
-    }
-    const z = sp.span / Math.max(x1 - x0, y1 - y0)
-    const c = [(x0 + x1) / 2, (y0 + y1) / 2]
-    const map = (q) => [50 + z * (q[0] - c[0]), 50 + z * (q[1] - c[1])]
-    return (cache[tier] = { ...sample(z, c), map })
-  },
-  contour(tier, level) {
-    const sp = this.spec[tier]
-    const g = this.grid(tier)
-    if (level >= 0.999) return ''
-    let d = ''
-    for (const loop of traceLevelGrid(g.F, g.nx, g.nx, g.x0, g.y0, g.d, level)) d += curve(resample(loop, sp.node, 8).pts)
-    return d
-  },
-  frame({ t, p, tier }) {
-    const sp = this.spec[tier]
-    const g = this.grid(tier)
-    const s = p * this.introDur
-    const L = sp.levels
-    const n = L.length
-    const top = L[0]
-    const st = n > 1 ? L[0] - L[1] : 0.3
-    const last = L[n - 1]
-    const phi = p < 1 ? 0 : ((t * this.period) / this.flow) % 1
-    const born = (lv) => smooth(1.0, 0.92, lv)
-    const dies = (lv) => smooth(last - 0.6 * st, last - 0.1 * st, lv)
-    const weight = (lv) => (sp.index ? sp.sw * (1 + Math.exp(-(((lv - sp.index) / (0.6 * st)) ** 2))) : sp.sw)
-    const kids = []
-    if (sp.crest) {
-      const crest = `M${pt(g.map(this.A))}L${pt(g.map(this.C))}L${pt(g.map(this.B))}`
-      kids.push({ el: 'path', d: crest, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', ...(p < 1 ? drawOn(step(s, 0, 0.5, INOUT)) : {}) })
-    }
-    for (let j = 0; j <= n; j++) {
-      let lv = top + st - st * (j + phi)
-      let op = born(lv) * dies(lv)
-      if (p < 1) {
-        // The intro: each still contour unfolds out of the one above it, 0.35 s each, 0.12 s apart.
-        if (j === 0) op = 0
-        else {
-          const from = j === 1 ? 1 : L[j - 2]
-          const k = step(s, 0.45 + 0.12 * (j - 1), 0.8 + 0.12 * (j - 1))
-          lv = lerp(from, L[j - 1], k)
-          op = k > 0 ? born(lv) : 0
-        }
-      }
-      kids.push({ el: 'path', d: op > 0.001 ? this.contour(tier, lv) || 'M0 0' : 'M0 0', 'stroke-width': R(weight(lv) * 100) / 100, opacity: R(op * 1000) / 1000 })
-    }
-    return { kids: [{ el: 'g', fill: 'none', stroke: '@line', 'stroke-width': sp.sw, kids }] }
-  },
-}
-
-/* 5. Col: a summit, a lower knoll and the pass between them, marked with the pass sign. */
+/* 4. Col: a summit, a lower knoll and the pass between them, marked with the pass sign. */
 const col = {
   id: 'col',
   name: 'Col',
+  means: 'Locus is the pass: the one way through, where your company and an agent meet.',
   idea: 'A summit, a lower knoll and the pass between them, marked as hiking maps mark a col: )(.',
   period: 14,
   introDur: 1.4,
@@ -860,14 +818,18 @@ const col = {
   // One height field and one contour interval: `ks` are steps of `h` above (+) or below (−) the col's
   // height. Above it a contour rings one summit; below it, it rings both. `index` is drawn at `iw`.
   // The pass sign )( (arc radius, distance from the col to each arc's crown, half its sweep) is drawn
-  // at the index's weight, from 72 px up. Below that the mark is the index and the point, one line
-  // round its point. span: how wide the outermost contour is drawn, so each size fills its tile.
+  // at the index's weight, from 64 px up (the middle band has one summit ring fewer than L, so it
+  // doesn't clog). Below that the mark is one line round its point, with a dent
+  // under the col (`dent`, in units) so its base is never flat. span: how wide the outermost contour
+  // is drawn, so each size fills its tile.
+  weights: ['sw', 'iw', 'dot'],
+  bounds: { M: 64 },
   spec: {
     L: { ks: [2.5, 1.5, 0.5, -0.5, -1.5], index: -1.5, sw: 0.6, iw: 1.2, arc: 8, gap: 3.2, sweep: 0.6, dot: 1.6, span: 68, hb: 0.62 },
-    M: { ks: [1.5, 0.5, -0.5, -1.5], index: -1.5, sw: 1.15, iw: 2.3, arc: 8, gap: 3.3, sweep: 0.6, dot: 2.2, span: 68, hb: 0.62 },
-    S: { ks: [-1.5], index: -1.5, sw: 5.2, iw: 5.2, arc: 0, dot: 4.6, sb: 14, hb: 0.72, span: 74 },
-    XS: { ks: [-3.5], index: -3.5, sw: 5.8, iw: 5.8, arc: 0, dot: 6.4, sb: 14, hb: 0.72, span: 74 },
-    XXS: { ks: [-3.5], index: -3.5, sw: 8.6, iw: 8.6, arc: 0, dot: 10.5, sb: 14, hb: 0.72, span: 74 },
+    M: { ks: [1.5, -0.5, -1.5], index: -1.5, sw: 1.25, iw: 2.4, arc: 8, gap: 3.6, sweep: 0.6, dot: 2.4, span: 70, hb: 0.62 },
+    S: { ks: [-1.5], index: -1.5, sw: 5.2, iw: 5.2, arc: 0, dot: 4.6, sb: 14, hb: 0.72, span: 74, dent: 3 },
+    XS: { ks: [-3.5], index: -3.5, sw: 5.8, iw: 5.8, arc: 0, dot: 6.4, sb: 14, hb: 0.72, span: 74, dent: 3 },
+    XXS: { ks: [-3.5], index: -3.5, sw: 8.6, iw: 8.6, arc: 0, dot: 10.5, sb: 14, hb: 0.72, span: 74, dent: 3 },
   },
   // On a shallow axis, about 21°, so no size reads as a chain link.
   A: [33, 44],
@@ -882,7 +844,7 @@ const col = {
     return (x, y) => ha * Math.exp(-((x - ax) ** 2 + (y - ay) ** 2) / a2) + hb * Math.exp(-((x - bx) ** 2 + (y - by) ** 2) / b2)
   },
   /** A contour as n nodes round a centre: along each ray, the first place the field falls below the level. */
-  ring(F, c, level, n, a0) {
+  ring(F, c, level, n, a0, dent = null) {
     return around(c[0], c[1], n, a0, (a) => {
       const ux = Math.cos(a)
       const uy = Math.sin(a)
@@ -895,7 +857,7 @@ const col = {
         if (F(c[0] + m * ux, c[1] + m * uy) >= level) lo = m
         else hi = m
       }
-      return lo
+      return dent ? lo - dent.depth * Math.exp(-((wrap(a - dent.at) / 0.42) ** 2)) : lo
     })
   },
   /** The whole drawing at one moment, in field coordinates: the col, its height, and each contour. */
@@ -921,6 +883,8 @@ const col = {
     const c = [ax + kc * u[0], ay + kc * u[1]]
     const fc = along(kc)
     const rings = []
+    // The dent sits on the south side, straight under the col.
+    const dent = sp.dent ? { depth: sp.dent, at: ua + Math.PI / 2 } : null
     for (const k of sp.ks) {
       const level = fc + this.h * k
       if (k > 0) {
@@ -931,7 +895,7 @@ const col = {
           // A ring too small to read fades out rather than popping.
           rings.push({ k, pts, op: smooth(2.5, 4, mean) })
         }
-      } else rings.push({ k, pts: this.ring(F, c, level, 24, ua + Math.PI / 2), op: 1 })
+      } else rings.push({ k, pts: this.ring(F, c, level, dent ? 32 : 24, ua + Math.PI / 2, dent), op: 1 })
     }
     return { c, ua, rings }
   },
@@ -954,8 +918,7 @@ const col = {
     const cy = (y0 + y1) / 2
     return (cache[tier] = { z, map: (q) => [50 + z * (q[0] - cx), 50 + z * (q[1] - cy)] })
   },
-  frame({ t, amp, p, tier }) {
-    const sp = this.spec[tier]
+  frame({ t, amp, p, tier, sp }) {
     const s = p * this.introDur
     const intro = p < 1
     const { z, map } = this.fit(tier)
@@ -965,20 +928,20 @@ const col = {
     const n = sp.ks.length
     rings.forEach(({ k, pts, op }) => {
       const i = sp.ks.indexOf(k)
-      const w = k === sp.index ? sp.iw : sp.sw
+      const w = R((k === sp.index ? sp.iw : sp.sw) * 1000) / 1000
       // Written from the col side, the outermost first, 0.4 s each, 0.06 s apart: 0.45–1.09 s in all.
       const draw = intro ? drawBoth(step(s, 0.45 + 0.06 * (n - 1 - i), 0.85 + 0.06 * (n - 1 - i))) : {}
-      lines.push({ el: 'path', d: curve(pts.map(map)), 'stroke-width': w, opacity: R(op * 1000) / 1000, ...draw })
+      lines.push({ el: 'path', d: curve(pts.map(map)), 'stroke-width': w, opacity: o3(op), ...draw })
     })
     const kids = [{ el: 'g', fill: 'none', stroke: '@line', 'stroke-linecap': 'round', kids: lines }]
-    // The point. On the intro it is the sight: a ring that closes on the col from the tile's corners,
+    // The point. On the intro it is the sight: a ring that closes on the col from inside the tile,
     // fading in as it starts, and fills to become the point.
     if (intro) {
       const k = step(s, 0, 0.5, INOUT)
       const fillK = smooth(0.4, 0.46, s)
       const thin = 1 - smooth(0.44, 0.5, s)
-      kids.push({ el: 'circle', cx: R(c[0]), cy: R(c[1]), r: R(lerp(60, sp.dot, k)), fill: '@mark', 'fill-opacity': R(fillK * 1000) / 1000, stroke: '@mark', 'stroke-width': R(Math.max(sp.sw, 0.9) * thin * 1000) / 1000, opacity: R(clamp(s / 0.12) * 1000) / 1000 })
-    } else kids.push({ el: 'circle', cx: R(c[0]), cy: R(c[1]), r: sp.dot, fill: '@mark' })
+      kids.push({ el: 'circle', cx: R(c[0]), cy: R(c[1]), r: R(lerp(34, sp.dot, k)), fill: '@mark', 'fill-opacity': o3(fillK), stroke: '@mark', 'stroke-width': o3(Math.max(sp.sw, 0.9) * thin), opacity: o3(clamp(s / 0.12)) })
+    } else kids.push({ el: 'circle', cx: R(c[0]), cy: R(c[1]), r: R(sp.dot * 1000) / 1000, fill: '@mark' })
     // The pass sign )(: two arcs with their backs to each other across the col, pressed last.
     if (sp.arc) {
       const arcAt = (side) => {
@@ -989,7 +952,7 @@ const col = {
       }
       const m = intro ? press(s - 1.1) : { s: 1, o: 1 }
       kids.push({
-        el: 'path', d: arcAt(-1) + arcAt(1), fill: 'none', stroke: '@mark', 'stroke-width': R((sp.iw / z) * 1000) / 1000, 'stroke-linecap': 'round', opacity: m.o,
+        el: 'path', d: arcAt(-1) + arcAt(1), fill: 'none', stroke: '@mark', 'stroke-width': o3(sp.iw / z), 'stroke-linecap': 'round', opacity: m.o,
         transform: `translate(${R(c[0])} ${R(c[1])}) rotate(${R((ua * 1800) / Math.PI) / 10}) scale(${R(z * m.s * 1000) / 1000})`,
       })
     }
@@ -997,7 +960,117 @@ const col = {
   },
 }
 
-export const VARIANTS = [summit, tide, counties, spur, col]
+/* 5. Inset: the tile's own outline laid on a coast, as an atlas marks an inset. */
+const inset = {
+  id: 'inset',
+  name: 'Inset',
+  means: 'Locus is the close-up: one place on the map, shown in the detail you choose to share.',
+  idea: 'The tile’s own outline laid on a coast, as an atlas marks an inset: the place, shown in detail.',
+  period: 16,
+  introDur: 1.4,
+  palettes: {
+    light: { ground: '#d5dce2', groundS: '#c9d1da', edge: 'rgba(21,25,30,0.14)', land: '#fcfdfd', coast: 'rgba(21,25,30,0.55)', coastS: '#15191e', frame: '#15191e', line: '#15191e' },
+    dark: { ground: '#202833', edge: 'rgba(232,230,223,0.14)', edgeS: 'rgba(232,230,223,0.18)', land: '#e8e6df', coast: 'rgba(232,230,223,0.5)', coastS: 'rgba(232,230,223,0.85)', frame: '#15191e', line: '#15191e' },
+  },
+  // frame: the inset's size in units; frameW its stroke, always heavier than the coast's. Inside the
+  // frame, at L and M only, the land's contours (`levels` of one hill) and its point. Below that the
+  // frame is empty: a dot in a small rounded square reads as a stop button.
+  weights: ['coastW', 'frameW', 'sw', 'dot'],
+  spec: {
+    L: { frame: 30, frameW: 1.1, coastW: 0.49, ink: '@coast', levels: [0.2, 0.45, 0.7], sw: 0.7, dot: 2.2, nodes: 76, crinkle: 1 },
+    M: { frame: 30, frameW: 1.667, coastW: 0.91, ink: '@coast', levels: [0.3, 0.6], sw: 0.9, dot: 3, nodes: 44, crinkle: 0 },
+    S: { frame: 28, frameW: 2.917, coastW: 2.083, ink: '@coastS', levels: [], sw: 0, dot: 0, nodes: 32, crinkle: 0 },
+    XS: { frame: 28, frameW: 4.22, coastW: 3.125, ink: '@coastS', levels: [], sw: 0, dot: 0, nodes: 32, crinkle: 0 },
+    XXS: { frame: 30, frameW: 6.56, coastW: 6.25, ink: '@coastS', levels: [], sw: 0, dot: 0, nodes: 28, crinkle: 0, ground: '@groundS' },
+  },
+  // The land is the south-west, a great curve of coast round (−4, 104), running off the left and
+  // bottom edges. The frame sits on the land: at least 6.7 units from the coast at every moment of
+  // the drift, and 17 from the tile's edge. The hill stands south-west of the frame's centre, its
+  // outer rings running off the frame, so the frame crops a slope rather than framing a lens. Its
+  // point, 0.4 units north-east of the hill's centre, sits 4.4 units off the frame's centre and at
+  // most 8.7 as the land moves, at least 6 units inside the frame's stroke.
+  O: [-4, 104],
+  F: [32, 68],
+  hillAt: [-4, 3],
+  coastR(a, crinkle) {
+    // The last term pulls the coast in where it meets the bottom edge, so the corner holds a patch of sea.
+    return 86 - 4.2 * Math.sin(7 * a + 0.4) - 2.2 * Math.sin(17 * a + 1.3) - crinkle * 0.8 * Math.sin(41 * a) - 6 * Math.exp(-(((a + 0.05) / 0.25) ** 2))
+  },
+  coastPts(sp, off) {
+    const [ox, oy] = this.O
+    const pts = []
+    const a0 = -1.78
+    const a1 = 0.16
+    for (let i = 0; i <= sp.nodes; i++) {
+      const a = lerp(a0, a1, i / sp.nodes)
+      const r = this.coastR(a, sp.crinkle)
+      pts.push([ox + off[0] + r * Math.cos(a), oy + off[1] + r * Math.sin(a)])
+    }
+    return pts
+  },
+  /** An ellipse as two arcs, from the end of its long axis: small, exact and editable. */
+  ellipse(c, rx, ry, rot) {
+    const ux = Math.cos(rot)
+    const uy = Math.sin(rot)
+    const p0 = [c[0] + rx * ux, c[1] + rx * uy]
+    const p1 = [c[0] - rx * ux, c[1] - rx * uy]
+    const deg = R((rot * 180) / Math.PI)
+    const a = `${R(rx)} ${R(ry)} ${deg} 1 1`
+    return `M${pt(p0)}A${a} ${pt(p1)}A${a} ${pt(p0)}Z`
+  },
+  frame({ t, amp, p, sp }) {
+    const s = p * this.introDur
+    const intro = p < 1
+    // The land drifts under the still frame along a small ellipse, as the product's map pans under its view.
+    const off = [3.5 * amp * Math.sin(TAU * t), 2.5 * amp * Math.cos(TAU * t)]
+    const pts = this.coastPts(sp, off)
+    const coast = curve(pts, false)
+    const last = pts[pts.length - 1]
+    const land = coast + `L${R(last[0])} 140L-40 140L-40 ${R(pts[0][1])}Z`
+    const [fx, fy] = this.F
+    const S = sp.frame / 100
+    const frameT = (k) => `translate(${R(fx)} ${R(fy)}) scale(${R(S * k * 1e4) / 1e4}) translate(-50 -50)`
+    const kids = [{ el: 'path', d: land, fill: '@land', opacity: intro ? o3(step(s, 0.3, 0.55, INOUT)) : 1 }]
+    const defs = []
+    // Inside the frame, and only there, the land's detail: one hill's contours and its point.
+    if (sp.levels.length) {
+      const H = [fx + this.hillAt[0] + off[0], fy + this.hillAt[1] + off[1]]
+      const rings = sp.levels.map((l, i) => {
+        const q = Math.sqrt(-Math.log(l))
+        // The intro brings them up outward from the point, 0.08 s apart, after the point is pressed. They
+        // fade in place: written on, all from one angle, they read as a spiral.
+        const k = sp.levels.length - 1 - i
+        const op = intro ? step(s, 0.9 + 0.08 * k, 1.24 + 0.08 * k) : 1
+        return { el: 'path', d: this.ellipse(H, 16 * q, 12 * q, -0.5), opacity: o3(op) }
+      })
+      defs.push({ el: 'clipPath', id: 'inset', kids: [{ el: 'use', href: '#tile', transform: frameT(1) }] })
+      const m = intro ? summitPress(s - 0.85) : { s: 1, o: 1 }
+      kids.push({
+        el: 'g', 'clip-path': 'url(#inset)',
+        kids: [
+          { el: 'g', fill: 'none', stroke: '@line', 'stroke-opacity': 0.5, 'stroke-width': o3(sp.sw), kids: rings },
+          { el: 'circle', cx: R(H[0] + 0.4), cy: R(H[1] - 0.4), r: o3(sp.dot * m.s), fill: '@line', opacity: o3(m.o) },
+        ],
+      })
+    }
+    kids.push({ el: 'path', d: coast, fill: 'none', stroke: sp.ink, 'stroke-width': o3(sp.coastW), 'stroke-linejoin': 'round', ...(intro ? { pathLength: 1, ...drawOn(step(s, 0, 0.5, TIDE_EASE)) } : {}) })
+    // The frame: the tile's own outline, solid, never filled, always on the land. Placed, then still.
+    const k = intro ? step(s, 0.55, 0.85) : 1
+    const sc = lerp(1.15, 1, k)
+    kids.push({ el: 'use', href: '#tile', transform: frameT(sc), fill: 'none', stroke: '@frame', 'stroke-width': o3(sp.frameW / (S * sc)), opacity: o3(intro ? k : 1) })
+    // At 16 px on light the sea is a step deeper, so the coast reads as a coast and not as a page.
+    return { defs, kids, ground: sp.ground }
+  },
+}
+
+/** Summit's press: 0.6 → 1.08 → 1 over 0.28 s, s seconds since it began. */
+function summitPress(s) {
+  if (s <= 0) return { s: 0.6, o: 0 }
+  const k = s / 0.28
+  return { s: k >= 1 ? 1 : k < 0.6 ? lerp(0.6, 1.08, OUT(k / 0.6)) : lerp(1.08, 1, INOUT((k - 0.6) / 0.4)), o: clamp(s / 0.1) }
+}
+
+export const VARIANTS = [summit, tide, counties, col, inset]
 
 /* ======================================================================
    Drawing: one tree, patched into live SVGs or written out as a file
@@ -1024,11 +1097,15 @@ function signature(kids) {
 }
 
 /** The whole drawing for one frame: the squircle, the variant inside it, and the squircle's edge. */
-export function compose(v, { t = 0, amp = 0, p = 1, live = 0, tier = 'L', fade = 0 } = {}) {
-  let out = v.frame({ t, amp, p, live, tier, px: PX[tier] })
+export function compose(v, { t = 0, amp = 0, p = 1, live = 0, tier, size, fade = 0, opts = {} } = {}) {
+  tier ||= size ? tierOf(v, size) : 'L'
+  size ||= REF[tier]
+  const k = tier === 'L' ? 1 : REF[tier] / size
+  const sp = specAt(v, tier, k)
+  let out = v.frame({ t, amp, p, live, tier, sp, opts })
   // A flowing mark switched off far from its still stops, then cross-fades to the still.
   if (fade > 0) {
-    const still = v.frame({ t: 0, amp: 0, p, live, tier, px: PX[tier] })
+    const still = v.frame({ t: 0, amp: 0, p, live, tier, sp, opts })
     out = { ...out, kids: [{ el: 'g', opacity: R4(1 - fade), kids: out.kids }, { el: 'g', opacity: R4(fade), kids: still.kids }] }
   }
   const edge = SMALL.has(tier) ? '@edgeS' : '@edge'
@@ -1036,7 +1113,7 @@ export function compose(v, { t = 0, amp = 0, p = 1, live = 0, tier = 'L', fade =
   return [
     { el: 'defs', kids: [{ el: 'path', id: 'tile', d: SQUIRCLE }, { el: 'clipPath', id: 'sq', kids: [{ el: 'use', href: '#tile' }] }, ...(out.defs || [])] },
     { el: 'use', href: '#tile', fill: out.ground || '@ground' },
-    { el: 'g', 'clip-path': 'url(#sq)', kids: [...out.kids, { el: 'use', href: '#tile', fill: 'none', stroke: edge, 'stroke-width': R(2 / PX[tier]) }] },
+    { el: 'g', 'clip-path': 'url(#sq)', kids: [...out.kids, { el: 'use', href: '#tile', fill: 'none', stroke: edge, 'stroke-width': R(200 / size) }] },
   ]
 }
 
@@ -1100,10 +1177,10 @@ export class Mount {
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
 /** The still form as a standalone file: hidden layers and empty groups left out, one idea per line. */
-export function svgFile(v, theme = 'light', size = 1024) {
+export function svgFile(v, theme = 'light', size = 1024, opts = {}) {
   const pal = { edgeS: v.palettes[theme].edge, groundS: v.palettes[theme].ground, ...v.palettes[theme] }
   const uid = v.id
-  const tier = size >= 160 ? 'L' : tierFor(size)
+  const tier = tierOf(v, size)
   const ser = (n, depth) => {
     if (n.opacity === 0 || n.opacity === '0') return ''
     if (n.el === 'g' && !n.kids?.length) return ''
@@ -1117,7 +1194,7 @@ export function svgFile(v, theme = 'light', size = 1024) {
     const inner = (n.kids || []).map((k) => ser(k, depth + 1)).join('')
     return inner ? `${pad}<${n.el}${a}>${inner}${pad}</${n.el}>` : `${pad}<${n.el}${a}/>`
   }
-  const kids = compose(v, { tier })
+  const kids = compose(v, { tier, size, opts })
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">${kids.map((k) => ser(k, 1)).join('')}\n</svg>\n`
 }
 
@@ -1138,6 +1215,7 @@ export class Card {
     this.fade = null // flow variants switched off far from a still: 0..1 into the cross-fade
     this.liveAt = null // live variants: when the going-live moment started (it may wait for the intro)
     this.lv = null
+    this.opts = {} // the operator's options, such as Summit's seal
     this.motion = false
     this.introAt = null
     this.p = 1
@@ -1148,7 +1226,7 @@ export class Card {
   }
   add(svg, size, theme) {
     const m = new Mount(svg, this.v.palettes[theme], `${this.v.name} mark`)
-    this.mounts.push({ m, tier: tierFor(size) })
+    this.mounts.push({ m, tier: tierOf(this.v, size), size })
     return m
   }
   /** Play the going-live moment once, after the intro if one is running. */
@@ -1166,8 +1244,8 @@ export class Card {
   }
   render() {
     const cache = {}
-    const st = { t: (this.time / this.v.period) % 1, amp: this.amp, p: this.p, live: this.lv, fade: this.fade == null ? 0 : ease3(this.fade) }
-    for (const { m, tier } of this.mounts) m.draw((cache[tier] ||= compose(this.v, { ...st, tier })))
+    const st = { t: (this.time / this.v.period) % 1, amp: this.amp, p: this.p, live: this.lv, fade: this.fade == null ? 0 : ease3(this.fade), opts: this.opts }
+    for (const { m, tier, size } of this.mounts) m.draw((cache[size] ||= compose(this.v, { ...st, tier, size })))
   }
   /** Advance by dt seconds. Returns whether it still needs frames. */
   step(dt, now) {

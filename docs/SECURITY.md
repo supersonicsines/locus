@@ -67,7 +67,7 @@ Gate names, password names, company name, pieces, links, prices and readers' lay
 
 ## Running a public host
 
-- On any public domain, run hosted mode (`--hosted`), even for a host that's yours alone (then with `--max-accounts 1`). Plain self-host mode has no account cap and no proof of work, and it takes 200 MB per map, so on a public domain anyone could claim names and fill the disk. [LAUNCH.md](LAUNCH.md) has the settings for Railway.
+- On any public domain, run hosted mode (`--hosted`), even for a host that's yours alone (then with `--max-accounts 1`). Plain self-host mode has no account cap and no proof of work, and it takes 200 MB per map, so on a public domain anyone could claim names and fill the disk. [SELF-HOSTING.md](SELF-HOSTING.md) has the settings, including for Railway.
 - Put it behind HTTPS and pass `--trust-proxy`. Passwords over plain HTTP are refused when the proxy reports them.
 - Set `--proxy-hops` to the number of proxies you run in front (2 for Cloudflare and Caddy). Limits are per address, and only entries your own proxies added to `X-Forwarded-For` are believed. If this is wrong, one client can look like many.
 - A remote read decrypts and may search a whole map, so each map is limited to 240 reads a minute in hosted mode. A large free account can still cost real CPU within that.

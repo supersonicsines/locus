@@ -459,7 +459,7 @@ const COUNTIES_WIDE: County[] = [
     tools: [
       { id: 'anthropic', letter: 'A', name: 'Anthropic', x: 432, y: 114, price: 1180, disc: [392, 138] },
       { id: 'vercel', letter: 'V', name: 'Vercel', x: 432, y: 134, price: 148, disc: [432, 116] },
-      { id: 'sentry', letter: 'S', name: 'Sentry', x: 432, y: 154, price: 58, disc: [442, 156] },
+      { id: 'sentry', letter: 'S', name: 'Sentry', x: 432, y: 154, price: 58, disc: [442, 150] },
     ],
   },
   {

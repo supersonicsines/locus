@@ -1,14 +1,20 @@
 # Where things stand
 
-Last updated 2026-11-06, at the end of the Locus pass. Read this before picking the project up again.
+Last updated 2026-11-07, at the end of the board pass. Read this before picking the project up again.
 
 ## State
 
-- v1 is built. After it came a polish programme (seven QA rounds, two sweeps, a design pass), then the **Locus pass**: the rename from Vadere, one monospace face (Spline Sans Mono), larger chrome with more room, scroll to zoom, a load intro, and four rounds of critique by two Opus critics each, with fixes and fresh screenshots every round. Then two code audits, whose findings were fixed. The full record is [design/qa-rounds.md](design/qa-rounds.md).
-- `npm test` passes 140 of 140 and `npm run typecheck` is clean.
+- v1 is built. After it came a polish programme (seven QA rounds, two sweeps, a design pass), then the **Locus pass** (the rename, one face, larger chrome, a load intro, four critique rounds, two audits), then the **board pass**:
+  - **Navigation like Miro or Figma.** Two fingers pan, a pinch zooms anywhere on the page, a mouse wheel's notches glide, a throw coasts, the arrows pan. Zoom runs in proportion from an island with the company's name to eight times closer, and the map changes in kind across it. Names are placed from the map and the zoom alone, so a pan never moves them.
+  - **A website and onboarding**: `/` home, `/start` (five or six steps with motion graphics), `/example`, `/map`, with Back, Forward and a way home from the map.
+  - **Sign in with Google**, optional per host.
+  - **What an open-source project needs**: a self-hosting guide, a Compose file with Caddy, contributing notes, a code of conduct, templates, CI, Dependabot and a changelog.
+  - **Five candidate logos** in a workbench.
+  - Three critique passes on the map, three on the website, and five on the logo, each by Opus critics, with fixes and fresh screenshots each time. The record is [design/qa-rounds.md](design/qa-rounds.md).
+- `npm test` passes 158 of 158 and `npm run typecheck` is clean.
 - Git is local only. There's no remote, nothing has been pushed, and the package isn't on npm.
-- No demo is running. To see it, run `npm run build && npm start` and open http://localhost:4747, then choose **See an example**.
-- [LAUNCH.md](LAUNCH.md) is the plan for going public on Railway.
+- To see it: `npm run build && npm start`, then http://localhost:4747. To see sign-in without a Google client: `npm run preview:google` (port 4760). The logos: `npm run workbench` (port 4800).
+- [LAUNCH.md](LAUNCH.md) is the plan for going public on Railway; [SELF-HOSTING.md](SELF-HOSTING.md) is the guide for everyone else.
 
 ## Decisions waiting on the operator
 
@@ -16,7 +22,12 @@ Agents made each of these changes without a ruling. The recommendation is theirs
 
 | Question | Now | Recommendation |
 | --- | --- | --- |
-| **The npm name** | `locus-harness` (set once as `PACKAGE` in `src/core/agent.ts`); the command is `locus`. `locus` on npm belongs to someone else | Claim it before anything public points at it ([LAUNCH.md](LAUNCH.md), step 1). Get a trademark check on "Locus" too: it's a common name, and there are mapping products called Locus |
+| **The logo** | A placeholder in `src/studio/site/Mark.tsx`, the only place the mark is drawn | Five finals in `workbench/logo/` (`npm run workbench`), summed up in [workbench/logo/SUMMARY.md](../workbench/logo/SUMMARY.md). The designer and the last critic recommend Summit; Col is the more ownable alternative. Then export the favicon and icons from the workbench |
+| **Trackpad scrolling pans** (you asked for scroll to zoom in the Locus pass) | Two fingers pan and a pinch zooms, as in Miro and Figma; a mouse wheel still zooms; ⌘ or ctrl and scroll zooms on anything | Keep. Every critic who drove it called this the source of "not buttery". `wheelKind` in `MapView.ts` is where it's decided |
+| **Sign in with Google** on the public host | Off unless `LOCUS_GOOGLE_CLIENT_ID` and `LOCUS_GOOGLE_CLIENT_SECRET` are set. With hosted mode, it replaces proof of work for claiming an address | Turn it on for the public host, after a Google Cloud OAuth client and consent screen ([SELF-HOSTING.md](SELF-HOSTING.md)). Google's branding review may want the button checked |
+| **The repository's address** | `REPO_URL = ''` in `src/studio/site/frame.tsx`; the site hides its source links until it's set | Set it when the GitHub repo exists |
+| **Served docs as plain text** | `/docs/SECURITY.md`, `SELF-HOSTING.md` and `PRD-QA.md` are served as plain Markdown text | Fine for now; link to GitHub's rendering once `REPO_URL` is set |
+| **The npm name** | `locus-harness` (set once as `PACKAGE` in `src/core/agent.ts`); the command is `locus`. `locus` on npm belongs to someone else | Claim it before anything public points at it ([LAUNCH.md](LAUNCH.md), step 1). The home page and onboarding show `npx -y locus-harness …`, which fails until then. Get a trademark check on "Locus" too: it's a common name, and there are mapping products called Locus |
 | The face | Spline Sans Mono for everything | Keep |
 | The map as one country with dashed county borders, or as separate islands | One country | Keep |
 | Land drawn as a plain fill with no coast line | Plain fill | Keep |
@@ -43,21 +54,29 @@ Also open:
 - **The domain.**
 - **Logos.** 111 logos come from companies' own sites with no licence (`node --experimental-strip-types scripts/build-logos.mjs --strip-official` removes them, with no downloads). There's also the svgl copyright line, and a trademark review before going public.
 - **Donation target** for the free hosted mode. The slot exists; the address doesn't.
-- **GitHub.** Where it lives, and when.
-- **Abuse.** Take legal advice before opening a free hosted instance to the public. See [SECURITY.md](SECURITY.md). For a host that's yours alone, run hosted mode with one account ([LAUNCH.md](LAUNCH.md)).
+- **GitHub.** Where it lives, and when. Once it exists: set `REPO_URL`, turn on private vulnerability reporting (SECURITY.md and the code of conduct send reports there), and let the CI and Dependabot files in `.github/` run. CI builds the Docker image, which has never been built on this machine.
+- **Abuse.** Take legal advice before opening a free hosted instance to the public. See [SECURITY.md](SECURITY.md). For a host that's yours alone, run hosted mode with one account ([SELF-HOSTING.md](SELF-HOSTING.md)).
 
 ## Never verified
 
 - A real person using it without help. This is the test that matters most, and no agent can stand in for it.
-- Real Safari, a real phone, Windows, or a screen reader. Playwright's WebKit and Firefox passed in the polish programme, as did a touch emulation at 390 wide and a real Chrome. The Locus pass was judged in Chrome only.
+- Real Safari, a real phone, Windows, or a screen reader. Playwright's WebKit and Firefox passed in the polish programme, as did a touch emulation at 390 wide and a real Chrome. The Locus pass and the board pass were judged in Chrome only.
 - A real Claude run in the browser with a key. The browser path is tested against a mock. The prompts and schemas were tested with real Claude through `claude -p`.
 - Claude Code or Claude.ai reading a hosted address over the internet, and the hosted mode in public.
-- A Docker build. There's no Docker on the machine that did this work, so Railway's first build will be the first.
+- A Docker build. There's no Docker on the machine that did this work. The CI in `.github/workflows/ci.yml` builds and starts the image, so the first push will be the first build.
+- **Real Google sign-in.** It was built and tested against a stand-in Google only. The redirect URI, the consent screen and a real ID token are unchecked.
+- **Real trackpads and mice.** Wheel routing was tested with synthetic events in Chrome. How a real Mac mouse, a Windows touchpad, a high-resolution mouse and Firefox are classified (`wheelKind`) is unverified, as is Safari's pinch (its gesture events were built in the page) and an iPhone's.
+- 120 Hz. Every frame measurement in the board pass ran at 60 Hz or below.
 - A professional security audit. Two adversarial reviews by AI agents have been done, and their findings fixed: [PRD-QA.md](PRD-QA.md), and the Locus pass's audits in [design/qa-rounds.md](design/qa-rounds.md).
 
 ## Known faults left
 
-The last section of [design/qa-rounds.md](design/qa-rounds.md) lists them. The worst:
+The last sections of [design/qa-rounds.md](design/qa-rounds.md) list them. The worst:
+
+- Zoomed out to the gathered form, some county names stand over the sea or on a border, and while things gather each line's icon passes over its own first letter.
+- In a reader's view, Engineering's seal is drawn as a small dot beside its long name rather than full size.
+- Carta's logo is a blank tile in dark mode, and Vercel's price disc touches Anthropic's.
+- The website's graphics pick a phone or laptop layout when first drawn; a rotation redraws them, a slow resize across 720 px may not.
 
 - In the prices view, Rings still has touching marks, and some disc names sit above their disc while the rest sit below.
 - Neighbouring county names sit a few pixels off a shared baseline.
@@ -70,4 +89,4 @@ Locus was called Vadere until 2026-11-05. A browser that used the old build kept
 
 ## The QA harness
 
-The scripts, the screenshots of every round, and the agents' read logs and defect lists are in `qa/` in this folder. It's kept out of git on purpose (several GB, with absolute paths and working notes), so it exists only on the machine that ran it. `qa/README.md` says how to run it. The Locus pass is in `qa/rounds/locus/`.
+The scripts, the screenshots of every round, and the agents' read logs and defect lists are in `qa/` in this folder. It's kept out of git on purpose (several GB, with absolute paths and working notes), so it exists only on the machine that ran it. `qa/README.md` says how to run it. The Locus pass is in `qa/rounds/locus/`; the board pass in `qa/rounds/nav/` (map and website), `qa/rounds/logo/` (the logo), `qa/rounds/site/` (the website's own iterations) and `qa/rounds/canvas/` (measurements).

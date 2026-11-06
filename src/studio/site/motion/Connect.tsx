@@ -3,7 +3,7 @@
 
 import { Fragment } from 'react'
 import { PACKAGE } from '../../../core/agent.ts'
-import { $, $$, enter, Plate, Sea, track, useMotion, useNarrow, useSvgId, type Key } from './kit.tsx'
+import { $, $$, EASE, enter, Plate, Sea, track, useMotion, useNarrow, useSvgId, type Key } from './kit.tsx'
 
 const CYCLE = 7600
 const OUT = 6400
@@ -49,13 +49,19 @@ const LAYOUTS = {
     card: { x: 12, y: 136, w: 456, h: 160 },
     readFont: 13.5,
     readStep: 18,
+    // The host's own words, wrapped to a phone, not a paraphrase. The card scrolls to the end once it has been read.
     reads: [
       { text: 'Meridian', head: true },
       { text: "You are reading this company's map through" },
-      { text: 'Locus, as the reader "Claude Code".' },
-      { text: '3 other areas are closed to this reader.' },
+      { text: 'Locus, as the reader "Claude Code". It opens:' },
+      { text: 'Brand, Product, Engineering. 3 other areas' },
+      { text: 'are closed to this reader.' },
       { text: 'Always follow', head: true },
       { lead: '• Voice is plain and warm.', text: '' },
+      { text: 'Where things live', head: true },
+      { lead: '• Linear:', text: ' Where product and engineering' },
+      { text: '  work is tracked.' },
+      { text: '  MCP server: https://mcp.linear.app/mcp' },
     ] as Read[],
   },
 }
@@ -69,6 +75,18 @@ export function ConnectMotion() {
   const X = T.x + (L.font === 10 ? 30 : 32)
   const lastY = L.lineY + (L.lines.length - 1) * L.step
   const endX = X + L.lines[L.lines.length - 1].length * cw
+
+  // Each line's place, with a little room before each heading, as the text has a blank line there.
+  const readY = L.reads.reduce<number[]>((ys, r, i) => [...ys, i === 0 ? 0 : ys[i - 1] + L.readStep + (r.head ? L.readStep * 0.35 : 0)], [])
+  const C = L.card
+  const label = L.readFont === 13.5 ? 13.5 : 8.6
+  const headY = C.y + label * 1.9
+  const hairY = C.y + label * 2.6
+  const firstY = hairY + L.readFont * 1.6
+  // What doesn't fit the card is scrolled into view once it's been read. On a laptop it all fits, and nothing moves.
+  const scroll = Math.max(0, Math.ceil(firstY + readY[readY.length - 1] - (C.y + C.h - 10)))
+  const SCROLL_AT = 3200
+  const bodyClip = useSvgId('card')
 
   const ref = useMotion<SVGSVGElement>((root) => {
     const parts: (Animation | null)[] = []
@@ -102,16 +120,25 @@ export function ConnectMotion() {
     // Then the map, as this agent reads it, in reading order.
     parts.push(enter($(root, '[data-reads]'), CYCLE, CARD_IN, 560, { opacity: 0, transform: 'translate(0px, 14px)' }, OUT))
     $$(root, '[data-read]').forEach((el, i) => parts.push(enter(el, CYCLE, CARD_IN + 260 + i * 110, 380, { opacity: 0, transform: 'translate(0px, 3px)' }, OUT)))
+    if (scroll) {
+      const up = `translateY(${-scroll}px)`
+      parts.push(
+        track(
+          $(root, '[data-scroll]'),
+          [
+            { at: 0, transform: 'translateY(0px)' },
+            { at: SCROLL_AT, transform: 'translateY(0px)', ease: EASE },
+            { at: SCROLL_AT + 450, transform: up },
+            { at: CYCLE - 1, transform: up, ease: 'step-end' },
+            { at: CYCLE, transform: 'translateY(0px)' },
+          ],
+          CYCLE,
+        ),
+      )
+    }
     return parts
-  }, { rebuild: narrow ? 'n' : 'w' })
-
-  // Each line's place, with a little room before each heading, as the text has a blank line there.
-  const readY = L.reads.reduce<number[]>((ys, r, i) => [...ys, i === 0 ? 0 : ys[i - 1] + L.readStep + (r.head ? L.readStep * 0.35 : 0)], [])
-  const C = L.card
-  const label = L.readFont === 13.5 ? 13.5 : 8.6
-  const headY = C.y + label * 1.9
-  const hairY = C.y + label * 2.6
-  const firstY = hairY + L.readFont * 1.6
+    // Waiting to be seen, it shows the command already pasted, never an empty terminal.
+  }, { rest: 900, rebuild: narrow ? 'n' : 'w' })
 
   return (
     <Plate reff={ref} name="connect" label="One command, pasted into a terminal, adds the map to Claude Code. Then the card shows what Claude Code reads: which areas are open to it, which are closed, the rules it must follow, and which tool's server to use.">
@@ -162,6 +189,12 @@ export function ConnectMotion() {
           as Claude Code
         </text>
         <line className="mg-hair" x1={C.x} x2={C.x + C.w} y1={hairY} y2={hairY} />
+        <clipPath id={bodyClip}>
+          <rect x={C.x} y={hairY + 1} width={C.w} height={C.y + C.h - hairY - 2} />
+        </clipPath>
+        <g clipPath={`url(#${bodyClip})`}>
+        {/* At rest it's scrolled to the end, so a still shows where things live. */}
+        <g data-scroll="" style={scroll ? { transform: `translateY(${-scroll}px)` } : undefined}>
         {L.reads.map((r, i) => (
           <text key={i} data-read={i} x={C.x + 14} y={firstY + readY[i]} fontSize={r.head && i === 0 ? L.readFont * 1.12 : L.readFont} fontWeight={r.head ? 600 : 400} className={r.head ? undefined : 'mg-read'} xmlSpace="preserve">
             {r.lead ? (
@@ -174,6 +207,8 @@ export function ConnectMotion() {
             )}
           </text>
         ))}
+        </g>
+        </g>
       </g>
     </Plate>
   )

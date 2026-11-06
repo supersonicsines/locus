@@ -1090,6 +1090,16 @@ a.btn {
   font-weight: 400;
 }
 
+.mg .mg-company {
+  fill: var(--soft);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  paint-order: stroke;
+  stroke: var(--land);
+  stroke-width: 8;
+  stroke-linejoin: round;
+}
+
 .mg .mg-cipher {
   fill: color-mix(in srgb, var(--ink) 72%, transparent);
 }
@@ -1138,6 +1148,13 @@ a.btn {
 }
 
 /* Narrower windows. */
+
+/* Between a phone and a laptop the words keep a comfortable measure under their graphic. */
+@media (min-width: 721px) and (max-width: 1100px) {
+  .start-text {
+    max-width: 64ch;
+  }
+}
 
 /* One column from here down, so a graphic is never squeezed beside its words. */
 @media (max-width: 1100px) {
@@ -1205,6 +1222,12 @@ a.btn {
   .start-plate {
     width: auto;
     max-width: none;
+  }
+  /* Two to a row, so no link is left alone on the last. */
+  .site-foot-links {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    column-gap: 24px;
   }
   .hero-actions {
     margin-top: 28px;

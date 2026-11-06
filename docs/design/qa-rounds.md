@@ -1301,3 +1301,25 @@ All three were fixed, along with settings that now fail safe and a local reader 
 - Neighbouring county names sit a few pixels off a shared baseline.
 - On the phone, a few counts touch a border.
 - Black one-colour logos in the card and panels aren't recoloured for dark mode, though they are on the map.
+
+## The board pass: navigation like a board, a website, sign-in, and a logo
+
+The operator, after the Locus pass: a logo, a squircle with a minimalist topographic map in a basic colour scheme, in five variations with smooth motion that can be toggled, in its own workbench, over about five cycles of critique. The website, because from the example there was no way back to the home page. Scrolling that's buttery and responsive like Miro, zoom that's almost infinite, and things that scale in a way that's functional and aesthetic, with three Opus passes. An onboarding that accepts Google accounts, with motion graphics about the features Locus has. And a repository and docs that suit an open-source project people deploy securely themselves.
+
+**What measuring found first.** The map already drew at 120 fps with under 1 ms of drawing a frame. What felt rough was the input: a trackpad's scroll eased behind the fingers, names re-laid themselves 140 ms after you stopped, the zoom hit walls at 0.8× and 3.5×, and zooming out pulled the map back to the middle. So the work was on the input and on what the map shows at each scale, not on drawing speed. Scripts and numbers: `<QA>/rounds/canvas/`.
+
+**The map, three passes** (`<QA>/rounds/nav/p1`–`p3`, MAP lens; 21, 18 and 14 findings):
+
+| Pass | The worst thing it found | What changed |
+| --- | --- | --- |
+| 1 | A trackpad's two-finger scroll zoomed, picking zoom or pan per event, and a flick zoomed 2.5×; names were worked out again from the camera 14 times a second, so they flipped and reworded as you panned | Wheel routing as Miro and Figma do it, decided once per gesture. Placement from the map and the zoom alone, never on a pan. Three discrete far forms on a clock. Type capped while the land grows. The opened item stays on screen |
+| 2 | Any item whose words touched a card vanished, so opening an item blanked its column; a pinch over a card zoomed the whole page | Words run under the cards. A pinch anywhere zooms the map, Safari's gestures included. ⌘ with a notch glides. Headings stay by their columns |
+| 3 | On your own map, close in, a drag across an item's words picked the item up and filed it in another area; scraps of words in the gutters round the cards | Only a mark is a handle. Words and marks clipped out of the cards' margins. The area you're in said in the zoom pill. Pins with prices on. ⌘ + − 0 zoom the map, not the page |
+
+**The website, three passes** (`<QA>/rounds/nav/p3`–`p5`, SITE lens; 24, 16 and 12 findings). The first found the hero showing no product, the last onboarding steps hidden on laptop windows, graphics unreadable on a phone, and docs the site mentioned but didn't serve. The second found a regression of the map's (the margin clip had merged the card and the top line into one blank band). The last called the site and onboarding finished as design, with two things blocked on the operator: npm and the repository's address.
+
+**The logo, five cycles** (`<QA>/rounds/logo/c1`–`c5`). The marks went from traced height fields (46–103 KB) to a few hand-weighted curves (2–9 KB). Every cycle tested the small sizes against a sheet of familiar glyphs: bullseye, radio button, pie chart, emoticon, chain link, cloud, checkbox. Spur, an L made of contours, never stopped reading as a letter, and after the designer tried thirteen other fifth ideas and the fourth critic forty-five, it was replaced by Inset. Vermilion appears only where it means sealed, and live blue only as a moment. The five finals and the recommendation are in `workbench/logo/SUMMARY.md`.
+
+**Sign in with Google** was built by an agent and read in full by the orchestrator: authorization code flow with PKCE, state and nonce in a signed short-lived cookie, the ID token's claims checked, a session cookie signed with HMAC, only a keyed hash of Google's id ever written to disk, sign-out guarded against other sites, and nothing at an address's own domain. 16 tests. Never run against real Google.
+
+**Not verified.** Real Google; real trackpads, mice and Safari; an iPhone; 120 Hz; a Docker build; a real person.

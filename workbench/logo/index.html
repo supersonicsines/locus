@@ -23,7 +23,7 @@
       <header class="top">
         <div>
           <h1>Locus mark</h1>
-          <p>Five marks in one squircle. Each is drawn from a few curves, the same ones that move, and redrawn rather than shrunk at every size.</p>
+          <p>Five marks in one squircle. Each is drawn from a few curves, the same ones that move, and redrawn at every size, with its lines holding their weight in pixels from one size to the next.</p>
         </div>
         <div class="tools">
           <button class="chip" id="motion-all" role="switch" aria-checked="false">Motion <span class="switch"></span></button>
@@ -71,8 +71,8 @@
       const host = document.getElementById('cards')
       const time = clock(cards)
 
-      function download(v, theme) {
-        const blob = new Blob([svgFile(v, theme)], { type: 'image/svg+xml' })
+      function download(v, theme, opts = {}) {
+        const blob = new Blob([svgFile(v, theme, 1024, opts)], { type: 'image/svg+xml' })
         const a = el('a', { href: URL.createObjectURL(blob), download: `locus-${v.id}${theme === 'dark' ? '-dark' : ''}.svg` })
         a.click()
         setTimeout(() => URL.revokeObjectURL(a.href), 1000)
@@ -94,6 +94,16 @@
         const live = v.live
           ? el('button', { class: 'btn', 'aria-label': `Go live, for ${v.name}`, html: `${icon.live}Go live`, onclick: () => { card.goLive(); time.wake() } })
           : null
+        // An open call for the operator, as a switch: Summit's point as the map's wax seal.
+        const seal = v.options?.includes('seal')
+          ? el('button', { class: 'btn toggle', role: 'switch', 'aria-checked': 'false', 'aria-label': `Seal, for ${v.name}`, title: 'The point as the map’s wax seal, from 72 px up' }, 'Seal ', el('span', { class: 'switch' }))
+          : null
+        if (seal)
+          seal.addEventListener('click', () => {
+            card.opts = { ...card.opts, seal: !card.opts.seal }
+            seal.setAttribute('aria-checked', String(!!card.opts.seal))
+            card.render()
+          })
 
         const plates = ['light', 'dark'].map((theme) => {
           const s = svg(280)
@@ -129,13 +139,15 @@
           el('header', { class: 'card-head' },
             el('div', {},
               el('h2', {}, el('span', { class: 'num' }, String(i + 1).padStart(2, '0')), v.name),
+              el('p', { class: 'means' }, v.means),
               el('p', { class: 'idea' }, v.idea)),
             el('div', { class: 'card-tools' },
               motion,
               el('button', { class: 'btn', html: `${icon.intro}Intro`, onclick: () => { card.playIntro(); time.wake() } }),
               ...(live ? [live] : []),
-              el('button', { class: 'btn', html: `${icon.down}SVG`, title: 'Download the still mark', onclick: () => download(v, 'light') }),
-              el('button', { class: 'btn', html: `${icon.down}Dark`, title: 'Download the still mark for dark grounds', onclick: () => download(v, 'dark') }))),
+              ...(seal ? [seal] : []),
+              el('button', { class: 'btn', html: `${icon.down}SVG`, title: 'Download the still mark', onclick: () => download(v, 'light', card.opts) }),
+              el('button', { class: 'btn', html: `${icon.down}Dark`, title: 'Download the still mark for dark grounds', onclick: () => download(v, 'dark', card.opts) }))),
           el('div', { class: 'card-body' }, ...plates, el('div', { class: 'ladder' }, ...rungs, tabs)))
         host.append(article)
         card.el = article
@@ -195,9 +207,16 @@
       const pick = (id) => (id ? cards.filter((c) => c.v.id === id) : cards)
       Object.assign(window, {
         __variants: () => VARIANTS.map((v) => ({ id: v.id, name: v.name, period: v.period, flow: v.flow || 0, live: !!v.live, liveDur: v.liveDur || 0, introDur: v.introDur })),
+        // An operator option on one card, for the shots: __setOpts('summit', { seal: true }).
+        __setOpts(id, opts) {
+          for (const c of pick(id)) {
+            c.opts = opts
+            c.render()
+          }
+        },
         __still() {
           time.freeze(true)
-          for (const c of cards) Object.assign(c, { introAt: null, p: 1, ramp: 0, spd: 0, fade: null, liveAt: null, lv: null, time: 0 }), c.render()
+          for (const c of cards) Object.assign(c, { introAt: null, p: 1, ramp: 0, spd: 0, fade: null, liveAt: null, lv: null, time: 0, opts: {} }), c.render()
         },
         // Loop time in seconds, at full motion. Live stays as it is.
         __setTime(seconds, id) {

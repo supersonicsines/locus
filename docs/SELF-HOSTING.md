@@ -10,7 +10,7 @@ Running your own is also the strongest way to use it: the page that decrypts you
 | --- | --- |
 | To try it, or to keep a map on your own machine | [On your computer](#on-your-computer) |
 | Your own host on a domain, on a server you control | [With Docker Compose and Caddy](#with-docker-compose-and-caddy) |
-| Your own host on a domain, with nothing to maintain | [Railway](LAUNCH.md) |
+| Your own host on a domain, with nothing to maintain | [On Railway](#on-railway) |
 
 Whichever you pick, read [Before it's public](#before-its-public).
 
@@ -49,6 +49,30 @@ For a Linux server with Docker, a domain, and ports 80 and 443 open.
 `docker compose up -d` without the profile runs Locus alone at `http://localhost:4747`, reachable only from that machine.
 
 Behind a proxy of your own instead of Caddy, run the image with `LOCUS_TRUST_PROXY=1` and `LOCUS_PROXY_HOPS` set to the number of proxies in front of it, terminate HTTPS at the proxy, and send both the domain and its wildcard to port 4747.
+
+## On Railway
+
+Railway builds the repo's `Dockerfile` and runs it with a volume, so there's no server to maintain. One service, one volume, two domains.
+
+1. **Create a project** from your fork of the repo (or `railway init` and `railway up` from a clone). Railway finds the `Dockerfile`.
+2. **Attach a volume** with the mount path `/data`.
+3. **Set the variables:**
+
+   | Variable | Value |
+   | --- | --- |
+   | `RAILWAY_RUN_UID` | `0` (Railway mounts volumes as root) |
+   | `LOCUS_DOMAIN` | `example.com` |
+   | `LOCUS_HOSTED` | `1` |
+   | `LOCUS_MAX_ACCOUNTS` | `1` for a host that's yours alone |
+   | `LOCUS_TRUST_PROXY` | `1` |
+   | `LOCUS_PROXY_HOPS` | `1` |
+   | `LOCUS_ABUSE_CONTACT` | an inbox you read, if others will use it |
+
+4. **Settings:** healthcheck path `/api/info`, restart On failure, and serverless off.
+5. **Domains:** add `example.com` and `*.example.com` as custom domains, and create the DNS records Railway shows you (the wildcard needs its TXT record and the `_acme-challenge` CNAME). Use DNS only, not a CDN that decrypts.
+6. **Check it:** `curl -s https://example.com/api/info` should say `"mode": "hosted"` and an address starting `https://`.
+
+Each redeploy drops requests for a few seconds while the volume moves to the new deployment, so deploy at quiet times, and turn on Railway's volume backups.
 
 ## Before it's public
 

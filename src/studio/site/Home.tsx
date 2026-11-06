@@ -119,7 +119,7 @@ export function Home() {
           <div className="hero-text">
           <h1 id="hero-title">A map of your company that any agent can read.</h1>
           <p className="lede">
-            Your brand book, contracts, specs and invoices become one map. Each reader gets a password that opens only the areas you choose, and the map is encrypted before it leaves your browser.
+            Your brand book, contracts, specs and invoices become one map. Each reader gets a password that opens only the areas you choose, and the map is encrypted before it leaves your{'\u00a0'}browser.
           </p>
           <div className="hero-actions">
             {hasOwn && (

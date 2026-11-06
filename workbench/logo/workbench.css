@@ -233,6 +233,14 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.card-head .means {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ink);
+  max-width: 62ch;
+}
+
 .card-head .idea {
   margin: 4px 0 0;
   color: var(--soft);

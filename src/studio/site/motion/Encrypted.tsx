@@ -30,7 +30,8 @@ const LAYOUTS = {
     live: { x: 22, y: 179, w: 150, h: 20, font: 8.6 },
     term: { x: 12, y: 210, w: 456, h: 80 },
     font: 9,
-    says: ['  Areas:        6, names sealed', '  Readers:      3, names sealed', '  Plaintext:    none of the data format appears in the ciphertext'],
+    // As `locus verify` prints them, word for word, so whoever runs it sees the same lines.
+    says: ['  Gates:        6, names sealed', '  Passwords:    3, names sealed', '  Plaintext:    none of the data format appears in the ciphertext'],
     sayFont: 8.4,
     sayStep: 13,
   },
@@ -153,6 +154,8 @@ export function EncryptedMotion() {
     )
     // The line goes once the bundle has reached the host, so it never lingers where the bundle no longer is.
     parts.push(enter($(root, '[data-path]'), CYCLE, 1450, 300, { opacity: 0 }, 2200, { to: { opacity: 1 }, fade: 300 }))
+    // On a phone the island has no county names, so as the bundle lifts off it's named as the map's furthest view names it.
+    parts.push(enter($(root, '[data-company]'), CYCLE, 1400, 300, { opacity: 0 }, OUT, { to: { opacity: 1 }, fade: 450 }))
     // The host holds it, and can't read a word of it.
     $$(root, '[data-held]').forEach((el, i) => parts.push(enter(el, CYCLE, 2550 + i * 95, 380, { opacity: 0, transform: 'translate(0px, 3px)' }, OUT)))
     // Live: the sea turns blue, and the address says so.
@@ -183,6 +186,11 @@ export function EncryptedMotion() {
       </text>
       <g transform={`translate(${I.x} ${I.y}) scale(${I.k})`}>
         <Island look={WIDE} names={L.names} items={false} tools={false} nameSize={17} />
+        {!L.names && (
+          <text className="mg-company" data-company="" x={240} y={180} fontSize={13.5 / I.k} textAnchor="middle">
+            Meridian
+          </text>
+        )}
         {CONTENT.map((c) => (
           <g key={c.id} transform={`translate(${c.x} ${c.y})`}>
             <rect className="mg-content o" data-content={c.id} x={0} y={-3.5} width={c.w} height={7} rx={3.5} data-off="" />

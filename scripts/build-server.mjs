@@ -37,10 +37,11 @@ for (const name of ['react', 'react-dom', 'scheduler', 'pdfjs-dist', 'fflate', '
 console.log('Copied licences to', out)
 
 // The website links to these, so every host serves the version of them that it runs, as plain text, whether or not the repository is public.
-// They link to each other, and all four are here, so those links resolve. A link to anything else (the README, docs/design/…) points at
+// They link to each other, and all three are here, so those links resolve. A link to anything else (the README, docs/design/…) points at
 // the repository once its address is set, in REPO_URL in src/studio/site/frame.tsx, and is left as written until then.
 const docs = 'dist/studio/docs'
-const served = ['SECURITY.md', 'SELF-HOSTING.md', 'LAUNCH.md', 'PRD-QA.md']
+// The launch plan is the operator's own; self-hosters have their own Railway section in SELF-HOSTING.md.
+const served = ['SECURITY.md', 'SELF-HOSTING.md', 'PRD-QA.md']
 const repo = readFileSync('src/studio/site/frame.tsx', 'utf8').match(/export const REPO_URL: string = '([^']*)'/)?.[1] ?? ''
 mkdirSync(docs, { recursive: true })
 for (const f of served) {
@@ -54,4 +55,4 @@ for (const f of served) {
   }
   writeFileSync(join(docs, f), text)
 }
-console.log('Copied the security policy, the self-hosting guide, the launch plan and the security review to', docs)
+console.log('Copied the security policy, the self-hosting guide and the security review to', docs)

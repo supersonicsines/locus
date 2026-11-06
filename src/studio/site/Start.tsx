@@ -2,7 +2,7 @@
 // can sign you in with Google), then your first map. Each step is in the address (?step=), so Back and Forward walk through them, and a
 // return from Google lands on the step after the account.
 
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type DragEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type DragEvent, type ReactNode } from 'react'
 import { newMap, signInWithGoogle, signOut } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
 import { SiteHeader, ThemeButton, useSitePage } from './frame.tsx'
@@ -18,7 +18,7 @@ interface Step {
   /** For the dots, and for a screen reader. */
   name: string
   title: string
-  body?: string
+  body?: ReactNode
   graphic?: ComponentType
 }
 
@@ -48,7 +48,11 @@ const ALL: Step[] = [
     id: 'encrypted',
     name: 'Encryption',
     title: 'Encrypted on your device.',
-    body: 'Your map is sealed in this browser before it goes live, so the host stores only ciphertext. Anyone can check that with locus verify.',
+    body: (
+      <>
+        Your map is sealed in this browser before it goes live, so the host stores only ciphertext. Anyone can check that with <code>locus verify</code>.
+      </>
+    ),
     graphic: EncryptedMotion,
   },
   { id: 'account', name: 'Your account', title: 'Keep your maps with you.' },

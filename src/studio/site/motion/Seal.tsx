@@ -126,7 +126,7 @@ export function SealMotion() {
     const at = (x: number, y: number) => `translate(${x}px, ${y}px)`
     const [a, b] = presses
     // It comes in over an area this reader can read, so it never looks as if it pressed the one that was closed already.
-    const start = look.narrow ? ([296, 164] as const) : ([292, 160] as const)
+    const start = look.narrow ? ([120, 150] as const) : ([292, 160] as const)
     parts.push(
       track(
         $(root, '[data-pointer]'),

@@ -58,7 +58,21 @@ export function MapFormsMotion({ hero = false }: { hero?: boolean }) {
         CYCLE,
       ),
     )
-    // Once read, the files are put to one side.
+    // Once read, the files are put to one side. On a phone, where the plate runs to the screen's edge, they go instead: by then the map says it all.
+    if (look.narrow)
+      parts.push(
+        track(
+          $(root, '[data-files]'),
+          [
+            { at: 0, opacity: 1 },
+            { at: 2950, opacity: 1, ease: 'ease-in-out' },
+            { at: 3600, opacity: 0 },
+            { at: CYCLE - 1, opacity: 0, ease: 'step-end' },
+            { at: CYCLE, opacity: 1 },
+          ],
+          CYCLE,
+        ),
+      )
     const stack = `translate(${STACK.x}px, ${STACK.y}px) scale(${k})`
     parts.push(
       track(
@@ -130,7 +144,7 @@ export function MapFormsMotion({ hero = false }: { hero?: boolean }) {
           </text>
         </g>
       </g>
-      <g data-files="" style={{ transform: `translate(${PILE.x}px, ${PILE.y}px) scale(${PILE.k})` }}>
+      <g data-files="" data-off={look.narrow ? '' : undefined} style={{ transform: `translate(${PILE.x}px, ${PILE.y}px) scale(${PILE.k})` }}>
         {FILES.map((f, i) => (
           <g key={f.name} transform={`translate(${f.dx} ${f.dy}) rotate(${f.rot} ${CARD.w / 2} ${CARD.h / 2})`}>
             <g data-file={i}>
