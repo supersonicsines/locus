@@ -52,11 +52,12 @@ function Forms({ long, short }: { long: string; short: string }) {
 const FIT_STEPS: { name: string; frees: 'cost' | 'status' }[] = [
   { name: 'fit-1', frees: 'cost' }, // "on tools"
   { name: 'fit-2', frees: 'status' }, // the marks spelled out become a count, and the lens's hint goes
-  { name: 'fit-3', frees: 'cost' }, // the other currencies
+  { name: 'fit-3', frees: 'cost' }, // "a month" becomes "/mo", before any of the bill goes
   { name: 'fit-4', frees: 'status' }, // the short form of the sentence, so the count of what else is waiting can stay
   { name: 'fit-5', frees: 'status' }, // "and 3 more" and the summary
-  { name: 'fit-6', frees: 'cost' }, // "a month" becomes "/mo"
+  { name: 'fit-6', frees: 'cost' }, // the other currencies, leaving a + to say there are some
   { name: 'fit-7', frees: 'cost' }, // the folded card's "Sample ·", which its own menu still says
+  { name: 'fit-8', frees: 'cost' }, // the folded card's search, which ⌘K and the open card still have
 ]
 
 /**
@@ -171,7 +172,9 @@ export function StatusLine() {
         <div key="lens-now" className="status panel is-now is-lens" role="alert">
           <NeedMark level="now" />
           <b className="lens-still" title={still}><Forms long={still} short={still.replace(/ until you update$/, '')} /></b>
-          <button className="status-done" onClick={done}>Done</button>
+          {/* The sentence ends "until you update", so the button beside it is Update. Leaving the lens is a quiet × after it. */}
+          <button className="status-do go-live" aria-busy={publishing} disabled={publishing} onClick={() => void publishAndSay()}>{publishing ? 'Updating' : 'Update'}</button>
+          <button className="status-x icon-btn" aria-label={`Stop seeing the map as ${lensPw.name}`} title="Stop seeing the map as them (Esc)" onClick={done}><Icon name="close" size={13} /></button>
         </div>
       )
     }
@@ -218,7 +221,7 @@ export function StatusLine() {
     return (
       // Its own key, or React reuses the focused Done button as this Update button, and a second Enter on Done would publish.
       <div key="now" className="status panel is-now" role="alert">
-        <button className={`status-open ${rest > 0 && rest === others.length ? 'has-parts' : ''}`} onClick={open} aria-expanded={expanded}>
+        <button className={`status-open ${rest > 0 && rest === others.length ? 'has-parts' : ''} ${rest > 0 ? 'has-more' : ''}`} onClick={open} aria-expanded={expanded}>
           <span className="status-head">
             <NeedMark level="now" />
             <b title={headline}><Forms long={headline} short={worst.kind === 'exposure' ? headline.replace(/ until you update$/, '') : SHORT[worst.kind]?.(same.length) ?? headline} /></b>
@@ -299,7 +302,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
           const firstQuiet = levelOf(n.kind) === 'look' && (i === 0 || levelOf(list[i - 1].kind) !== 'look')
           return (
             <Fragment key={n.id}>
-            {firstQuiet && <p className="need-group">Worth a look when you have a minute.{dotted ? ` ${dots === 1 ? 'A dot on the map marks it' : `${dots} dots on the map mark these`}.` : ''}</p>}
+            {firstQuiet && <p className="need-group">Worth a look when you have a minute.{dotted ? ' The dots on the map mark them.' : ''}</p>}
             <div
               className={`need is-${levelOf(n.kind)} ${n.pieces.length || gateOf(n) ? 'clickable' : ''}`}
               onMouseEnter={() => n.pieces.length && setState({ highlight: new Set(n.pieces) })}
@@ -320,6 +323,8 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
             </Fragment>
           )
         })}
+        {/* On a phone the list covers the screen, so it needs its own way out at its foot. */}
+        <button className="btn btn-paper needs-close" onClick={() => setState({ panel: null, highlight: null })}>Close</button>
       </div>
     </>
   )
@@ -414,6 +419,7 @@ export function TopRight() {
               <span className="cost-figure">
                 {total.approx ? '≈' : ''}{total.main}
                 {total.others.length > 0 && <span className="cost-others"> + {total.others.join(' + ')}</span>}
+                {total.others.length > 0 && <span className="cost-more" aria-hidden="true">+</span>}
               </span>
               <span className="cost-per"><span className="per-long">a {period}<span className="optional"> on tools</span></span><span className="per-short">/{period === 'year' ? 'yr' : 'mo'}</span></span>
             </>

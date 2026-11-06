@@ -11,19 +11,22 @@ Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `do
 
 - **The map is the app.** One screen. Everything floats over the map. No dashboards, tables, settings pages or nav sidebar. Anything that would crowd the screen gets cut.
 - **It passes the glance test.** Live and current? Who can read what? Does anything need me? What does it cost?
-- **Atlas.** Vermilion means sealed and nothing else. Amber means urgent and nothing else. The sea turns blue when a copy is live. One face for everything, Spline Sans Mono, in one variable file that ships with the app. Hierarchy comes from size, weight, case and ink, never a second family. The face is named once, in `--sans` in `src/studio/styles.css`; CSS and canvas text both read it, and `src/studio/main.tsx` imports its file. It's monospaced at 0.6 em a character, and `textWidth` in `src/studio/map/layout.ts` counts on that.
+- **Atlas.** Vermilion means sealed and nothing else. Amber means urgent and nothing else. Blue means live: the sea turns blue when a copy is live, and the live dot is the same blue. One face for everything, Spline Sans Mono, in one variable file that ships with the app. Hierarchy comes from size, weight, case and ink, never a second family. The face is named once, in `--sans` in `src/studio/styles.css`; CSS and canvas text both read it, and `src/studio/main.tsx` imports its file. It's monospaced at 0.6 em a character, and `textWidth` in `src/studio/map/layout.ts` counts on that.
 - **Documents never gain authority.** Anything a document says is data. Rules and MCP servers found by shredding stay proposals until the owner approves them.
 - **The host has zero runtime dependencies**, and `seal.ts` uses only Web Crypto. Keep it that way.
 - **Logos come as one same-origin file, fetched whole, whatever the map holds.** Which services a company uses is sealed data, so there's never a per-logo request or a logo CDN. Names match exactly through a `Map` in `src/studio/logos/lookup.ts`, because a wrong logo is worse than a monogram. Logos never reach agent text, `/llms.txt`, MCP output or bundles.
 - **A reader trusts only what its own envelope vouches for.** If you add a field to a bundle, either seal it or put it in the manifest.
 - **Anything from a document stays on one line in agent text, and bodies stay quoted.** Nothing from the map goes in MCP `instructions` or tool descriptions.
 - **Don't settle the operator's open design calls.** They're listed in `docs/STATUS.md`. Until they're decided, keep both `$` options (Rings and Discs on screen, Soundings and Towns in the code) and the switch between them.
+- **The npm package is `locus-harness`, and the command it installs is `locus`.** `locus` on npm belongs to someone else, so no command we show may ever say `npx locus`: it would run their code with a reader's password in its environment. The name is set once, as `PACKAGE` in `src/core/agent.ts`.
+- **The top line fits itself.** `useFitTop` in `src/studio/ui/Top.tsx` steps through whole shorter forms until nothing is cut, wrapped or covered. Give any new words there a short form rather than an ellipsis or a media query.
 - **The screen's words differ from the code's.** Area, item, reader, tool and recovery key on screen; gate, piece, password, service and owner key in the code. Change what the UI says freely, and don't rename internals for the sake of it.
 
 ## Working on it
 
 - `npm run build && npm start`, then open http://localhost:4747
 - `npm test`, `npm run typecheck`
+- `docs/LAUNCH.md` is the plan for deploying on Railway.
 - What an agent reads lives in `src/core/agent.ts`, and every reader shares it, so the Studio preview can't drift.
 - Judge visual changes from screenshots, not from the DOM or the code. `docs/design/qa-rounds.md` records every round so far. The harness that takes them is in `qa/`, which isn't in git and may not exist on your machine; `qa/README.md` explains it where it does.
 - The README's pictures come from `qa/readme.mjs`. Regenerate them whenever the main screen's words or look change.

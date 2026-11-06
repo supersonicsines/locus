@@ -20,7 +20,7 @@ Their existing habits guide how the app behaves. We don't copy either product; w
 
 | They already know | So in Locus |
 | --- | --- |
-| Figma's canvas: pan, zoom, floating panels | The map behaves the same way |
+| Figma's canvas and any online map: pan, zoom, floating panels | The map behaves the same way: scroll zooms about the pointer, drag pans, and the panels float over it |
 | Figma's layers panel | The list of who can read the map, top left over the map |
 | Figma's Dev Mode switch, top right | The cost button sits in the same place, and spreads prices over the map |
 | Share in both products | A reader's password and setup open from their row on the left |
@@ -179,6 +179,8 @@ Each password has a switch, **Remote access**, that makes the host refuse the la
 **Type.** One face, Spline Sans Mono, for everything: the company name, county names, item titles and bodies, interface text, numbers, passwords and what an agent sees. It's a monospace with drawn, warm curves rather than a terminal's, so the map reads like a surveyor's chart. Hierarchy comes from size, weight, case and ink. The font ships with the app.
 
 **The one memorable moment:** flipping a gate closed on a password. The county seals, its land turns vermilion-pink and its edge wears the colour, the wax mark lands, and the links crossing into it fade. Everything else stays quiet so that this moment lands.
+
+**Arriving.** The first map a page shows is inked in from the middle of what's on it, with a soft front. Each county's name rises into place behind the wave, then what's on the land, then the cards slide in from their edges, and the seals are pressed last, because sealing is what the map is for. It's over in about a second and a half, the map can be used throughout, and none of it runs under reduced motion. The first page's grid draws itself out from the middle, and its words come up in reading order.
 
 ## 10. The `$` switch
 

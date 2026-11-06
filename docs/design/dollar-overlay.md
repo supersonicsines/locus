@@ -18,14 +18,14 @@ The reviewing agent's vote was Rings, as the one to keep open every day. Discs w
 
 - **The switch:** top right, like Figma's Dev Mode. A password without the Money gate never sees it, and prices never reach that client.
 - **The total** is on the switch itself, for example `≈$1,240 + €120 a month`. It isn't repeated.
-- **A card**, bottom left, with a month/year switch, Rings or Discs, a scale bar of areas by share of spend, and one quiet sentence: `71% from invoices. 4 price notes`. Segments are labelled when wide enough, and hovering one lights its area. On a phone it's only the month/year switch and the sentence, because each area says its own figure.
+- **A card**, bottom left, with a month/year switch, Rings or Discs, and one quiet sentence: `71% of this is from invoices. 4 price notes`. Each area says its own figure under its name, so the bar of areas by share of spend that once sat here was removed in the Locus pass: it said nothing the map didn't. On a phone it's only the month/year switch and the sentence.
 - **Subtotals** under each area's name.
 - **Colour:** ink only. Vermilion keeps its one meaning, sealed.
-- **Three trust states:** known (invoice or typed; full ink), estimate (`≈` at reduced ink; list prices and usage), unknown (`?`). `free` is a value, not a state. The source itself goes in the peek.
+- **Three trust states:** known (invoice or typed), estimate (`≈`; list prices and usage), unknown (`–`). Every figure is in full ink: the `≈` says estimate, and grey as well only made the figures hard to read. `free` is a value, not a state. The source itself goes in the peek.
 - **To check** means something you can act on: unknown price (grouped into one entry), invoice more than 20% above list (flat plans or known seat counts only), renewal within 30 days, or a usage jump above 25% (needs two invoices). Marked with a small diamond beside the figure, and the same diamond stands beside `4 price notes`, so one explains the other.
 - **One cost per service.** Precedence: you, invoice, list. The latest invoice wins, and annual invoices become monthly.
-- **Currencies are never converted.** A map has a main currency. Shares and sizes use the main currency only. Other-currency services get the smallest mark, their own figure, and no share of the bar.
-- **Names by priority.** Every figure is always placed. Names are added where they fit: to-check items first, then by cost. Valid placements persist when zoom settles, and only changed labels crossfade. Hover names anything unnamed.
+- **Currencies are never converted.** A map has a main currency. Shares and sizes use the main currency only. Other-currency services get the smallest mark, their own figure, and no share of the main total.
+- **Names by priority.** Every figure is always placed. Names are added where they fit: to-check items first, then by cost. A figure or name that would sit on another disc goes above its own. An area with no prices says `No prices yet`. Valid placements persist when zoom settles, and only changed labels crossfade. Hover names anything unnamed.
 - **The camera stays where you put it.** If you've panned or zoomed, the toggle leaves it alone, unless no service would be in view at all. If you haven't, it eases just enough to keep every price in frame. (Changed during build: big marks otherwise spilled off screen and hid territory names.)
 - **Later:** cheaper-alternative recommendations arrive in the peek, with a mark on the map (below).
 

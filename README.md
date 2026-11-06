@@ -6,7 +6,7 @@ Drop your company's pile onto a map: brand book, contracts, specs, invoices, exp
 
 It's a harness you don't have to build, and it's encrypted so the host can't read it at rest.
 
-*Locus* is Latin for "to go". A *vade mecum* ("go with me") is the handbook you carry everywhere.
+*Locus* is Latin for "place": where something is on a map. It's the one place your agents go to learn where everything in your company is, and the rules that apply.
 
 ![The map](docs/images/map.png)
 
@@ -18,7 +18,7 @@ npm run build
 npm start
 ```
 
-Open http://localhost:4747 and choose **See an example**.
+Open http://localhost:4747 and choose **See an example**. Scroll to zoom, drag to move, and click anything to open it.
 
 ## What it does
 
@@ -36,7 +36,7 @@ Open http://localhost:4747 and choose **See an example**.
 
 ## Connect an agent
 
-Pick a reader, then **Connect this reader** (**How to connect them** before you go live), and you get these, filled in for that password. Locus isn't on npm yet, so until it is, use `node dist/cli.mjs` from a clone wherever these say `npx -y locus-harness`.
+Pick a reader, then **Connect this reader** (**How to connect them** before you go live), and you get these, filled in for that password. The npm package is `locus-harness`, because `locus` on npm is someone else's; the command it installs is `locus`. It isn't published yet, so until it is, use `node dist/cli.mjs` from a clone wherever these say `npx -y locus-harness`.
 
 ```sh
 # Claude Code. Decrypts on your machine, so the host never sees the password.
@@ -74,7 +74,7 @@ locus verify <address>   # show what the host really holds, and test a password
 locus admin list         # accounts on this host
 ```
 
-Passwords come from `--key` or `LOCUS_KEY`.
+Passwords come from `--key` or `LOCUS_KEY`. Run it as `npx -y locus-harness <command>`, or install it with `npm i -g locus-harness`.
 
 ## Run your own
 
@@ -86,7 +86,9 @@ locus serve --domain yourdomain.com --trust-proxy --proxy-hops 1 --data /var/lib
 
 Point `*.yourdomain.com` and `yourdomain.com` at it, behind anything that terminates HTTPS. Wildcard certificates need a DNS challenge: Caddy with a DNS plugin, or Cloudflare in front, both work. Without wildcard DNS, every address also works at `/s/<name>/`.
 
-Or with Docker: `docker build -t locus . && docker run -p 4747:4747 -v locus:/data locus`.
+Or with Docker: `docker build -t locus . && docker run -p 4747:4747 -v locus:/data locus`. Every flag can also be an environment variable, such as `LOCUS_DOMAIN` or `LOCUS_TRUST_PROXY=1`.
+
+To deploy on Railway, follow [docs/LAUNCH.md](docs/LAUNCH.md): one service, one volume, two domains.
 
 ### The free hosted mode
 
@@ -109,10 +111,10 @@ npm run typecheck
 - `src/cli`: the `locus` command.
 - `src/studio`: the map. A static React app, drawn on one canvas.
 
-Start with [docs/STATUS.md](docs/STATUS.md) for where things stand and what's still to decide, then [docs/PRD.md](docs/PRD.md). [docs/PRD-QA.md](docs/PRD-QA.md) records what an adversarial read found, [docs/design/dollar-overlay.md](docs/design/dollar-overlay.md) how the `$` switch was designed, and [docs/design/qa-rounds.md](docs/design/qa-rounds.md) every round of visual QA.
+Start with [docs/STATUS.md](docs/STATUS.md) for where things stand and what's still to decide, then [docs/PRD.md](docs/PRD.md). [docs/LAUNCH.md](docs/LAUNCH.md) is the plan for going public on Railway. [docs/PRD-QA.md](docs/PRD-QA.md) records what an adversarial read found, [docs/design/dollar-overlay.md](docs/design/dollar-overlay.md) how the `$` switch was designed, and [docs/design/qa-rounds.md](docs/design/qa-rounds.md) every round of visual QA.
 
 ## License
 
-Locus's code is MIT. The fonts and the service logos that ship with it are not: see [NOTICE.md](NOTICE.md).
+Locus's code is MIT. The font and the service logos that ship with it are not: see [NOTICE.md](NOTICE.md).
 
 Logos are trademarks of their owners and aren't covered by the MIT licence. They're shown to identify the services a company uses, and no endorsement is implied.

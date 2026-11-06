@@ -26,7 +26,7 @@ function CompanyMenu({ close, done }: { close: () => void; done: () => void }) {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, zIndex: 29 }} onClick={close} />
-      <div className="menu panel" style={{ top: 53, left: 0, right: 0 }} role="menu">
+      <div className="menu panel company-menu" style={{ top: 58, left: 0, right: 0 }} role="menu">
         {!view && vault && (
           <>
             <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'rename' } }))}>

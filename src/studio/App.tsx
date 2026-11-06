@@ -288,7 +288,8 @@ function PhoneLens({ map }: { map: React.RefObject<MapView | null> }) {
     <section className="lens-sheet panel" aria-label={`What ${pw.name} can read`} ref={ref}>
       <div className="lens-head">
         <ReaderMark name={pw.name} index={vault.passwords.indexOf(pw)} size={24} />
-        <span className="grow">Seeing the map as <b style={{ fontWeight: 500 }}>{pw.name}</b></span>
+        {/* The reader's own name is never the thing that's cut: the lead gives way first. */}
+        <span className="grow lens-who"><span className="lens-lead">Seeing the map as </span><b style={{ fontWeight: 500 }}>{pw.name}</b></span>
         <button className="status-done" onClick={() => setState({ lens: null, agentView: false })}>Done</button>
       </div>
       {still && (
@@ -392,6 +393,7 @@ function Locked({ name }: { name: string }) {
   if (nothing) {
     return (
       <div className="lock">
+        <div className="empty-word">Locus</div>
         <div className="lock-card">
           <div className="lock-inner">
             <img src="/favicon.svg" width="40" height="40" alt="" />
@@ -404,6 +406,8 @@ function Locked({ name }: { name: string }) {
   }
   return (
     <div className="lock">
+      {/* Whoever sent the link, this is where it took them, said as the first page says it. */}
+      <div className="empty-word">Locus</div>
       <form
         className="lock-card"
         onSubmit={(e) => {
@@ -543,6 +547,7 @@ export function App() {
       if (s.mode !== 'studio' && s.mode !== 'viewer') return
       if (e.key === '$') setState({ dollars: !s.dollars })
       else if (e.shiftKey && (e.key === '!' || e.code === 'Digit1')) map.current?.fit()
+      else if (e.key === '0') map.current?.fit()
       else if (e.key === '+' || e.key === '=') map.current?.zoomBy(1.3)
       else if (e.key === '-') map.current?.zoomBy(1 / 1.3)
     }

@@ -1,7 +1,7 @@
 // A reader's password and how to hand it over. The map beside it shows what they can see.
 
 import { useEffect, useRef, useState } from 'react'
-import { llmsTxt, PACKAGE, viewFor } from '../../core/agent.ts'
+import { costsText, llmsTxt, PACKAGE, viewFor } from '../../core/agent.ts'
 import { pending } from '../../core/status.ts'
 import type { Password } from '../../core/types.ts'
 import { changePassword, clearStatusToasts, copy, newMap, publishAndSay, replacePassword, revokePassword, siteAddress, toast, toggleGateOnPassword } from '../actions.ts'
@@ -214,7 +214,7 @@ function PasswordDetail({ pw }: { pw: Password }) {
         ))}
       </div>
       <button className="btn btn-paper" style={{ width: '100%' }} aria-pressed={agentView} onClick={() => setState({ agentView: !agentView })}>
-        {agentView ? 'Hide what they read' : 'See what they read'}
+        {agentView ? 'Hide the text they get' : 'Show the text they get'}
       </button>
 
       {(stillOpen.length > 0 || hostStill) && (
@@ -365,7 +365,10 @@ export function AgentView() {
   const pw = vault.passwords.find((p) => p.id === lens)
   if (!pw) return null
   const address = vault.site ? siteAddress(vault.site.name) : 'https://your-address'
-  const text = llmsTxt(viewFor(vault, pw), { kind: 'http', base: address })
+  // With Money open they also get every tool's name and price, at /v1/costs, so the preview says so as the map does.
+  const view = viewFor(vault, pw)
+  const costs = costsText(view)
+  const text = llmsTxt(view, { kind: 'http', base: address }) + (costs ? `\n\n# ${address}/v1/costs\n\n${costs}` : '')
   return (
     <section className="agent-view panel" aria-label={`What ${pw.name} sees`}>
       <div className="side-head">

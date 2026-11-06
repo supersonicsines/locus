@@ -46,7 +46,7 @@ function CostBlock({ piece, cost, readOnly }: { piece: Piece; cost: Cost | null;
   return (
     <>
       <div className="section-title">What it costs</div>
-      {cost && cost.amount !== null && <div className="money-big">{figure(cost, period)}{per}</div>}
+      {cost && cost.amount !== null && <div className="money-big">{figure(cost, period)}<span className="per">{per}</span></div>}
       {cost?.plan && <p className="source-note" style={{ marginTop: 0 }}>{cost.plan} plan.</p>}
       {seatNote && <p className="source-note" style={{ marginTop: 2 }}>{seatNote}</p>}
       <p className="source-note">{note}</p>
