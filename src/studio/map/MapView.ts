@@ -3862,24 +3862,26 @@ export class MapView {
         const age = landed ? (now - landed) / 340 : 1
         const land = this.reducedMotion ? 1 : EASE(clamp(age, 0, 1))
         // Beside the name, where the owner's view puts a seal too, so it's the same mark in the same place in both. Where the name leaves no room, at the end of the line under it.
-        // Only where neither has room, in the middle of the land, because there it can sit on the tools a reader still gets.
-        // It keeps to the map's scale, so a small map isn't buried under its seals.
+        // Only where neither is on the land, in the middle, and below whatever tools the reader still sees there. It keeps to the map's scale, so a small map isn't buried under its seals.
         const small = clamp(34 * Math.sqrt(this.cam.k / DESIGN_K), 22, 34)
-        const beside = this.landRoom(t, x, y - 15, y + 3) >= nameW + 14 + small
-        const noteEnd = x + this.noteWidth(note) + 10
-        const below = !beside && this.landRoom(t, x, y + 6, y + 23) >= this.noteWidth(note) + 10 + small
-        const waxSize = beside || below ? small : clamp(44 * Math.sqrt(this.cam.k / DESIGN_K), 26, 44)
-        const scale = lerp(1.55, 1, land) * lerp(1.3, 1, this.sealPressed())
-        const wax = this.waxSeal(waxSize)
-        // Where the reader still sees its tools, the middle of what's on the land is among them, so it goes below them instead.
+        const ownLand = (sx: number, sy: number, half: number) => {
+          const [a, b] = this.toWorld(sx - half, sy)
+          const [c] = this.toWorld(sx + half, sy)
+          return t.onLand(a, b) && t.onLand(c, b)
+        }
         const shows = this.nodes.some((m) => m.piece.gate === t.gate && this.throughSeal(m))
         const cx = shows ? (t.minX + t.maxX) / 2 : (t.holds.minX + t.holds.maxX) / 2
-        const cy = shows ? (t.holds.maxY + t.maxY) / 2 : (t.holds.minY + t.holds.maxY) / 2
+        const cy = shows ? t.holds.maxY + (t.maxY - t.holds.maxY) * 0.4 : (t.holds.minY + t.holds.maxY) / 2
         const [mx, middle] = this.toScreen(cx, cy)
-        // Below the name and the line under it, however little land there is to be in the middle of.
         const [, nameAt] = this.gateLabelPos(t)
-        const sx = beside ? x + nameW + 10 + waxSize / 2 : below ? noteEnd + waxSize / 2 : mx
-        const sy = beside ? y - 7 : below ? y + 12 : Math.max(middle, nameAt + 24 + waxSize / 2)
+        const spots: [number, number, number][] = [
+          [x + nameW + 10 + small / 2, y - 7, small],
+          [x + this.noteWidth(note) + 10 + small / 2, y + 12, small],
+        ]
+        const spot = spots.find(([sx, sy, size]) => ownLand(sx, sy, size / 2)) ?? [mx, Math.max(middle, nameAt + 24 + 22), clamp(44 * Math.sqrt(this.cam.k / DESIGN_K), 26, 44)]
+        const [sx, sy, waxSize] = spot
+        const scale = lerp(1.55, 1, land) * lerp(1.3, 1, this.sealPressed())
+        const wax = this.waxSeal(waxSize)
         const draw = waxSize * scale
         ctx.globalAlpha = Math.min(1, s * 2) * (landed ? land : s) * this.sealPressed()
         ctx.drawImage(wax, sx - draw / 2, sy - draw / 2, draw, draw)
