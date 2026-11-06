@@ -5,7 +5,7 @@
 // every part runs one Web Animation over the same cycle, starting when the graphic scrolls into view and pausing when it leaves.
 // Only transform and opacity move. No script or style element is written into the page, so the strict CSP holds.
 
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 export const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)'
 export const EASE_IN_OUT = 'cubic-bezier(0.65, 0, 0.35, 1)'
@@ -100,21 +100,28 @@ export function typing(cover: Element | null, cursor: Element | null, cycle: num
   return anims
 }
 
-/** Plays a graphic's parts while it's on screen. Under reduced motion it builds nothing, and the still end state shows. */
-export function useMotion<T extends Element>(build: (root: T) => (Animation | null)[]) {
+/**
+ * Plays a graphic's parts while it's on screen. Under reduced motion it builds nothing, and the still end state shows.
+ * `start` is how much of it must be in view before it plays; `rest` is the moment it waits at, so a graphic whose first frame is empty
+ * never shows as an empty box. `rebuild` changes when the graphic is drawn afresh, such as on turning a phone, and its parts are built again.
+ */
+export function useMotion<T extends Element>(build: (root: T) => (Animation | null)[], { start = 0.65, rest = 0, rebuild = '' }: { start?: number; rest?: number; rebuild?: string } = {}) {
   const ref = useRef<T>(null)
   useLayoutEffect(() => {
     const root = ref.current
     if (!root || reducedMotion() || typeof root.animate !== 'function') return
     const parts = build(root).filter((a): a is Animation => !!a)
     if (!parts.length) return
-    // Built paused at the start, so nothing runs until it's seen, and what's seen first is the beginning.
-    parts.forEach((a) => a.pause())
+    // Built paused, so nothing runs until it's seen, and what's seen first is the beginning, or the moment it rests at.
+    parts.forEach((a) => {
+      a.pause()
+      a.currentTime = rest
+    })
     // It starts once most of it is in view, so its opening beats aren't spent at the bottom edge of the window, and pauses once it's gone.
     let playing = false
     const watch = new IntersectionObserver(
       ([seen]) => {
-        if (seen.intersectionRatio >= 0.65 && !playing) {
+        if (seen.isIntersecting && seen.intersectionRatio >= start && !playing) {
           playing = true
           const t = parts[0].currentTime ?? 0
           parts.forEach((a) => {
@@ -126,16 +133,16 @@ export function useMotion<T extends Element>(build: (root: T) => (Animation | nu
           parts.forEach((a) => a.pause())
         }
       },
-      { threshold: [0, 0.65] },
+      { threshold: [0, start] },
     )
     watch.observe(root)
     return () => {
       watch.disconnect()
       parts.forEach((a) => a.cancel())
     }
-    // Built once: each graphic draws the same thing every time.
+    // Built once for each drawing: a graphic draws the same thing every time, until its look changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [rebuild])
   return ref
 }
 
@@ -451,8 +458,8 @@ const COUNTIES_WIDE: County[] = [
     ],
     tools: [
       { id: 'anthropic', letter: 'A', name: 'Anthropic', x: 432, y: 114, price: 1180, disc: [392, 138] },
-      { id: 'vercel', letter: 'V', name: 'Vercel', x: 432, y: 134, price: 148, disc: [438, 121] },
-      { id: 'sentry', letter: 'S', name: 'Sentry', x: 432, y: 154, price: 58, disc: [434, 148] },
+      { id: 'vercel', letter: 'V', name: 'Vercel', x: 432, y: 134, price: 148, disc: [432, 116] },
+      { id: 'sentry', letter: 'S', name: 'Sentry', x: 432, y: 154, price: 58, disc: [442, 156] },
     ],
   },
   {
@@ -538,9 +545,19 @@ export interface Look {
 export const WIDE: Look = { narrow: false, name: 14.5, sub: 9, subDy: 13, item: 9.2, glyph: 9, tile: 11, pointer: 1, wax: 15, counties: COUNTIES_WIDE, viewBox: `0 0 ${W} ${H}` }
 export const NARROW: Look = { narrow: true, name: 17, sub: 13.5, subDy: 16, item: 13.5, glyph: 12, tile: 16, pointer: 1.3, wax: 19, counties: COUNTIES_NARROW, viewBox: '14 4 452 292' }
 
-/** Phones get the narrow look: nothing written on a graphic is under 11 CSS pixels there. Read once, as the graphic is first drawn. */
+const NARROW_QUERY = '(max-width: 720px)'
+
+/** Phones get the narrow look: nothing written on a graphic is under 11 CSS pixels there. It follows the window, so turning a phone redraws it. */
 export function useNarrow(): boolean {
-  const [narrow] = useState(() => typeof matchMedia === 'function' && matchMedia('(max-width: 720px)').matches)
+  const [narrow, setNarrow] = useState(() => typeof matchMedia === 'function' && matchMedia(NARROW_QUERY).matches)
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return
+    const query = matchMedia(NARROW_QUERY)
+    const changed = () => setNarrow(query.matches)
+    query.addEventListener('change', changed)
+    changed()
+    return () => query.removeEventListener('change', changed)
+  }, [])
   return narrow
 }
 

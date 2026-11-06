@@ -422,3 +422,10 @@ test('a proxy asking for a certificate gets yes only for the domain and claimed 
   assert.equal(await ask('acme.example.com'), 200)
   assert.equal(await ask('ACME.example.com'), 200)
 })
+
+test("a document the host doesn't have is a 404, not the app", async () => {
+  const h = host()
+  const r = await h(new Request('http://localhost:4747/docs/NOPE.md'))
+  assert.equal(r.status, 404)
+  assert.match(r.headers.get('content-type') ?? '', /text\/plain/)
+})

@@ -22,7 +22,8 @@ export function CostsMotion() {
   const tiles = look.counties.flatMap((c) => c.tools)
   /** Where a tool's tile sits once its disc is up: on the disc's rim, so the price has the middle. */
   const rim = (t: (typeof TOOLS)[number]) => ({ x: t.disc[0], y: t.disc[1] - discRadius(t.price) })
-  const pill = look.narrow ? { x: 312, y: 8, w: 150, h: 32, big: 13.5, small: 13.5 } : { x: 336, y: 12, w: 130, h: 26, big: 10.4, small: 8.6 }
+  // On a phone it stands a gutter's width in from the edge, as the page's own words do.
+  const pill = look.narrow ? { x: 297, y: 8, w: 150, h: 32, big: 13.5, small: 13.5 } : { x: 336, y: 12, w: 130, h: 26, big: 10.4, small: 8.6 }
 
   const ref = useMotion<SVGSVGElement>((root) => {
     const parts: (Animation | null)[] = []
@@ -70,7 +71,7 @@ export function CostsMotion() {
     // Each area says what it costs.
     look.counties.forEach((c, i) => parts.push(enter($(root, `[data-area-total="${c.id}"]`), CYCLE, PRESS + 900 + i * 70, 420, { opacity: 0, transform: 'translate(0px, 3px)' }, BACK)))
     return parts
-  })
+  }, { rebuild: look.narrow ? 'n' : 'w' })
 
   return (
     <Plate reff={ref} name="costs" viewBox={look.viewBox} label="Pressing the monthly total spreads every tool's price over the map: each tool becomes a disc sized by its bill, and each area shows what it costs a month.">

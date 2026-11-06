@@ -316,7 +316,16 @@ export function Left() {
             {!readOnly && !readerCount ? (
               <span className="company-fold is-ask"><Icon name="plus" size={11} /> Add a reader</span>
             ) : (
-              <span className="company-fold">{sample && <span className="fold-sample">Sample · </span>}{readOnly ? `You can read ${plural(areaCount, 'area')}` : plural(readerCount, 'reader')}</span>
+              <span className="company-fold">
+                {/* On a phone, when the top line needs the room, the count goes first: "Sample" is what says this isn't someone's real company. */}
+                {sample && (
+                  <>
+                    <span className="fold-sample">Sample</span>
+                    <span className="fold-sep"> · </span>
+                  </>
+                )}
+                <span className="fold-count">{readOnly ? `You can read ${plural(areaCount, 'area')}` : plural(readerCount, 'reader')}</span>
+              </span>
             )}
           </span>
           <Icon name="chevron" size={14} />

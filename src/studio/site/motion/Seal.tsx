@@ -1,11 +1,18 @@
 // Who reads what. Pick a reader and the map shows what they can see; press an area and it seals: its land turns vermilion-pink, its edge
 // wears the colour, what's on it goes, the links into it fade, and the wax lands. The product's one memorable moment, so it's given room.
 
-import { $, $$, enter, EASE, EASE_IN_OUT, GLIDE, Hatches, Island, itemEnd, nameEnd, Plate, Pointer, Sea, shapeOf, swap, track, useLook, useMotion, useSvgId, Wax, type Key } from './kit.tsx'
+import { $, $$, enter, EASE, EASE_IN_OUT, GLIDE, Hatches, Island, itemEnd, nameEnd, Plate, Pointer, Sea, shapeOf, swap, Tile, track, useLook, useMotion, useSvgId, Wax, type Key } from './kit.tsx'
 
 const CYCLE = 10200
 const BACK = 8300
-const SEALED = new Set(['legal', 'money'])
+/**
+ * Claude Code's own view of the sample: it can't read People, and once Legal and Money are pressed it reads Brand, Product and
+ * Engineering, 3 of 6, as in the example and as the next graphic connects it.
+ */
+const SEALED = new Set(['legal', 'money', 'people'])
+/** Closed to this reader already, so it seals the moment the reader is picked. */
+const CLOSED = 'people'
+const LENS_AT = 560
 /** Pressed, in order, and when. The tip lands on empty land in each area. */
 const PRESS_AT = { legal: 2050, money: 3650 }
 
@@ -37,7 +44,8 @@ export function SealMotion() {
     for (const c of look.counties) {
       const can = $(root, `[data-can="${c.id}"]`)
       const press = presses.find((p) => p.id === c.id)
-      if (!press) parts.push(enter(can, CYCLE, 520, 420, { opacity: 0, transform: 'translate(0px, 3px)' }, BACK))
+      if (c.id === CLOSED) parts.push(enter($(root, `[data-cant="${c.id}"]`), CYCLE, 520, 420, { opacity: 0, transform: 'translate(0px, 3px)' }, BACK))
+      else if (!press) parts.push(enter(can, CYCLE, 520, 420, { opacity: 0, transform: 'translate(0px, 3px)' }, BACK))
       else {
         parts.push(
           track(
@@ -54,6 +62,28 @@ export function SealMotion() {
         )
         parts.push(enter($(root, `[data-cant="${c.id}"]`), CYCLE, press.at + 120, 360, { opacity: 0, transform: 'translate(0px, 0px)' }, BACK))
       }
+    }
+
+    // What the reader can't read seals as soon as they're picked, quietly: it's how things stand, not something done.
+    {
+      const t = LENS_AT
+      parts.push(swap($(root, `[data-seal="${CLOSED}"]`), CYCLE, t, 520, { opacity: 0, transform: 'scale(1.012)' }, { opacity: 1, transform: 'scale(1)' }, BACK, { backDur: 600 }))
+      parts.push(swap($(root, `[data-name="${CLOSED}"]`), CYCLE, t, 360, { opacity: 1 }, { opacity: 0 }, BACK + 100))
+      parts.push(swap($(root, `[data-name-sealed="${CLOSED}"]`), CYCLE, t, 360, { opacity: 0 }, { opacity: 1 }, BACK + 100))
+      for (const el of $$(root, `[data-county-of="${CLOSED}"]`)) parts.push(swap(el, CYCLE, t, 300, { opacity: 1 }, { opacity: 0 }, BACK + 150))
+      parts.push(
+        track(
+          $(root, `[data-wax="${CLOSED}"]`),
+          [
+            { at: 0, opacity: 0, transform: 'translate(0px, 0px) scale(1.25) rotate(0deg)' },
+            { at: t + 120, opacity: 0, transform: 'translate(0px, 0px) scale(1.25) rotate(0deg)', ease: EASE },
+            { at: t + 440, opacity: 1, transform: 'translate(0px, 0px) scale(1) rotate(0deg)' },
+            { at: BACK, opacity: 1, transform: 'translate(0px, 0px) scale(1) rotate(0deg)', ease: EASE_IN_OUT },
+            { at: BACK + 420, opacity: 0, transform: 'translate(0px, -2px) scale(1.12) rotate(0deg)' },
+          ],
+          CYCLE,
+        ),
+      )
     }
 
     // Each press seals its area.
@@ -95,7 +125,8 @@ export function SealMotion() {
     // The pointer: in, to the first area, press, to the second, press, away.
     const at = (x: number, y: number) => `translate(${x}px, ${y}px)`
     const [a, b] = presses
-    const start = look.narrow ? ([300, 282] as const) : ([292, 274] as const)
+    // It comes in over an area this reader can read, so it never looks as if it pressed the one that was closed already.
+    const start = look.narrow ? ([296, 164] as const) : ([292, 160] as const)
     parts.push(
       track(
         $(root, '[data-pointer]'),
@@ -120,18 +151,18 @@ export function SealMotion() {
     ]
     parts.push(track($(root, '[data-press]'), [{ at: 0, transform: 'scale(1)' }, ...press(a.at), ...press(b.at)], CYCLE))
     return parts
-  })
+  }, { rebuild: look.narrow ? 'n' : 'w' })
 
   // The line that says whose view this is, sized to its words.
   const pillText = look.narrow ? 13.5 : 9.4
   const pillH = look.narrow ? 32 : 26
-  const pillW = 'Seeing the map as Design contractor'.length * pillText * 0.6 + pillH + 26
+  const pillW = 'Seeing the map as Claude Code'.length * pillText * 0.6 + pillH + 26
   const pillX = 240 - pillW / 2
   const pillY = look.narrow ? 8 : 12
   const markR = pillH * 0.27
 
   return (
-    <Plate reff={ref} name="seal" viewBox={look.viewBox} label="Seeing the map as one reader. Pressing Legal and then Money seals them: each turns vermilion, what's on it goes, and a wax seal lands on it.">
+    <Plate reff={ref} name="seal" viewBox={look.viewBox} label="Seeing the map as Claude Code, which can't read People. Pressing Legal and then Money seals them too: each turns vermilion, what's on it goes, and a wax seal lands on it. Brand, Product and Engineering stay open.">
       <Hatches sealed={hatch} />
       <Sea />
       <Island
@@ -174,13 +205,13 @@ export function SealMotion() {
       <g data-pill="">
         <rect className="mg-card-shadow" x={pillX} y={pillY + 1.5} width={pillW} height={pillH} rx={9} />
         <rect className="mg-card" x={pillX} y={pillY} width={pillW} height={pillH} rx={9} />
-        <circle cx={pillX + 8 + markR} cy={pillY + pillH / 2} r={markR} className="mg-reader" />
-        <text className="mg-reader-l" x={pillX + 8 + markR} y={pillY + pillH / 2 + markR * 0.42} fontSize={markR * 1.15} textAnchor="middle">
-          D
-        </text>
+        {/* The reader's tool, as a monogram on its tile, the way the map shows a tool with no logo. */}
+        <g transform={`translate(${pillX + 8 + markR} ${pillY + pillH / 2})`}>
+          <Tile letter="C" size={markR * 2} />
+        </g>
         <text x={pillX + 16 + markR * 2} y={pillY + pillH / 2 + pillText * 0.34} fontSize={pillText}>
           <tspan className="mg-soft">Seeing the map as </tspan>
-          <tspan fontWeight={500}>Design contractor</tspan>
+          <tspan fontWeight={500}>Claude Code</tspan>
         </text>
       </g>
       <g data-pointer="" data-off="">

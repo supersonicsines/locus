@@ -68,7 +68,8 @@ function bezier(p: number[][], t: number): [number, number] {
 }
 
 export function EncryptedMotion() {
-  const L = useNarrow() ? LAYOUTS.narrow : LAYOUTS.wide
+  const narrow = useNarrow()
+  const L = narrow ? LAYOUTS.narrow : LAYOUTS.wide
   const clip = useSvgId('verify')
   const I = L.island
   const B = L.bundle
@@ -80,12 +81,12 @@ export function EncryptedMotion() {
   const cmdY = T.y + L.font * (L.font === 9 ? 2.4 : 1.85)
   const sayY = cmdY + L.sayFont * (L.font === 9 ? 2 : 1.55)
   const drop = { x: Hst.x + Hst.w / 2, y: Hst.y + Hst.h * 0.62 }
-  // The bundle's way to the host arcs above the island, never across it.
+  // The bundle's way to the host arcs above the island, never across it, and the bundle rides it: the line runs through its middle.
   const arc = [
-    [B.x, B.y - 18 * B.k],
-    [B.x + 30, 2],
-    [drop.x - 60, 2],
-    [drop.x, drop.y - 24],
+    [B.x, B.y],
+    [B.x + 20, 2],
+    [drop.x - 50, 2],
+    [drop.x, drop.y - 10],
   ]
   // Where the bundle sits, in the island's own units, for what flies into it.
   const into = { x: (B.x - I.x) / I.k, y: (B.y - I.y) / I.k }
@@ -120,7 +121,7 @@ export function EncryptedMotion() {
       // Eased along the curve, so it leaves gently and arrives gently.
       const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
       const [x, y] = bezier(arc, e)
-      flight.push({ at: 1650 + t * 850, opacity: 1, transform: at(x - B.x, y - B.y + 18 * B.k), ease: 'linear' })
+      flight.push({ at: 1650 + t * 850, opacity: 1, transform: at(x - B.x, y - B.y), ease: 'linear' })
     }
     parts.push(
       track(
@@ -150,7 +151,8 @@ export function EncryptedMotion() {
         CYCLE,
       ),
     )
-    parts.push(enter($(root, '[data-path]'), CYCLE, 1450, 300, { opacity: 0 }, 2500, { to: { opacity: 1 }, fade: 300 }))
+    // The line goes once the bundle has reached the host, so it never lingers where the bundle no longer is.
+    parts.push(enter($(root, '[data-path]'), CYCLE, 1450, 300, { opacity: 0 }, 2200, { to: { opacity: 1 }, fade: 300 }))
     // The host holds it, and can't read a word of it.
     $$(root, '[data-held]').forEach((el, i) => parts.push(enter(el, CYCLE, 2550 + i * 95, 380, { opacity: 0, transform: 'translate(0px, 3px)' }, OUT)))
     // Live: the sea turns blue, and the address says so.
@@ -162,7 +164,7 @@ export function EncryptedMotion() {
     parts.push(track($(root, '[data-typed]'), [{ at: 0, opacity: 1 }, { at: OUT, opacity: 1, ease: 'ease-in-out' }, { at: OUT + 450, opacity: 0 }, { at: CYCLE - 2, opacity: 0, ease: 'step-end' }, { at: CYCLE, opacity: 1 }], CYCLE))
     $$(root, '[data-says]').forEach((el, i) => parts.push(enter(el, CYCLE, type.at + type.dur + 380 + i * 150, 300, { opacity: 0 }, OUT, { to: { opacity: 1 }, fade: 450 })))
     return parts
-  })
+  }, { rebuild: narrow ? 'n' : 'w' })
 
   const bw = 52
   const bh = 33

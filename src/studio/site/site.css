@@ -257,6 +257,7 @@ a.btn {
 }
 
 .hero-note {
+  text-wrap: balance;
   margin-top: 22px !important;
   color: var(--soft);
   font-size: 13px;
@@ -362,7 +363,7 @@ a.btn {
 }
 
 .facts li:last-child {
-  border-bottom: 1px solid var(--hair);
+  padding-bottom: 0;
 }
 
 /* The first feature's graphic is the hero's, so here its words and its facts stand side by side. */
@@ -595,10 +596,18 @@ a.btn {
   padding-top: 48px;
 }
 
-/* Fitted to the window's height as well, so a step and its words fit a laptop's window without scrolling. */
+/* Fitted to the window's height as well, so a step and its words fit a laptop's window without scrolling. Under its words, they need room too. */
 .start-plate {
   width: 100%;
   max-width: min(760px, calc((100dvh - 380px) * 1.6));
+}
+
+/* Beside its words, only the header and the bar need room, and it stands against them. */
+@media (min-width: 1101px) {
+  .start-plate {
+    max-width: min(760px, calc((100dvh - 230px) * 1.6));
+    justify-self: end;
+  }
 }
 
 .start-text h1 {
@@ -630,6 +639,7 @@ a.btn {
 }
 
 .step-small {
+  text-wrap: balance;
   margin-top: 14px !important;
   font-size: 13px;
   line-height: 20px;
@@ -657,6 +667,13 @@ a.btn {
   margin-left: 6px;
   color: var(--soft);
   font-size: 13px;
+}
+
+/* The way without an account is the alternative it is: a link beside Google's button, under it on a phone. */
+.site .step-device {
+  margin-left: 8px;
+  color: var(--ink);
+  font-size: 14px;
 }
 
 .drop {
@@ -1181,6 +1198,13 @@ a.btn {
     margin-top: 20px;
     font-size: 16px;
     line-height: 26px;
+    /* Filled to the measure: balancing a narrow column leaves its lines short. */
+    text-wrap: wrap;
+  }
+  /* Edge to edge, as on the home page. At the column's width, the bleed would only shift it left. */
+  .start-plate {
+    width: auto;
+    max-width: none;
   }
   .hero-actions {
     margin-top: 28px;

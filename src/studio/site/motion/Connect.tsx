@@ -22,7 +22,7 @@ const LAYOUTS = {
     lineY: 60,
     step: 16,
     prompt: true,
-    card: { x: 52, y: 134, w: 376, h: 156 },
+    card: { x: 52, y: 134, w: 376, h: 162 },
     readFont: 8.2,
     readStep: 11.4,
     reads: [
@@ -34,7 +34,9 @@ const LAYOUTS = {
       { lead: '• Voice is plain and warm.', text: ' Write like a good vet talks.' },
       { lead: '• Always "Meridian", alone.', text: '' },
       { text: 'Where things live', head: true },
-      { lead: '• HelpSync:', text: ' Support log sync. Link: helpsync.example' },
+      // A tool the team chose, with an approved server: the vendor a PDF named waits for approval, and isn't how to show this.
+      { lead: '• Linear:', text: ' Where product and engineering work is tracked.' },
+      { text: '  MCP server: https://mcp.linear.app/mcp' },
     ] as Read[],
   },
   narrow: {
@@ -59,7 +61,8 @@ const LAYOUTS = {
 }
 
 export function ConnectMotion() {
-  const L = useNarrow() ? LAYOUTS.narrow : LAYOUTS.wide
+  const narrow = useNarrow()
+  const L = narrow ? LAYOUTS.narrow : LAYOUTS.wide
   const clip = useSvgId('term')
   const T = L.term
   const cw = L.font * 0.6
@@ -100,7 +103,7 @@ export function ConnectMotion() {
     parts.push(enter($(root, '[data-reads]'), CYCLE, CARD_IN, 560, { opacity: 0, transform: 'translate(0px, 14px)' }, OUT))
     $$(root, '[data-read]').forEach((el, i) => parts.push(enter(el, CYCLE, CARD_IN + 260 + i * 110, 380, { opacity: 0, transform: 'translate(0px, 3px)' }, OUT)))
     return parts
-  })
+  }, { rebuild: narrow ? 'n' : 'w' })
 
   // Each line's place, with a little room before each heading, as the text has a blank line there.
   const readY = L.reads.reduce<number[]>((ys, r, i) => [...ys, i === 0 ? 0 : ys[i - 1] + L.readStep + (r.head ? L.readStep * 0.35 : 0)], [])
@@ -111,7 +114,7 @@ export function ConnectMotion() {
   const firstY = hairY + L.readFont * 1.6
 
   return (
-    <Plate reff={ref} name="connect" label="One command, pasted into a terminal, adds the map to Claude Code. Then the card shows what Claude Code reads: which areas are open to it, which are closed, and the rules it must follow.">
+    <Plate reff={ref} name="connect" label="One command, pasted into a terminal, adds the map to Claude Code. Then the card shows what Claude Code reads: which areas are open to it, which are closed, the rules it must follow, and which tool's server to use.">
       <defs>
         {/* A unit inside the terminal's edge, so nothing that moves in it ever touches the edge's anti-aliasing. */}
         <clipPath id={clip}>

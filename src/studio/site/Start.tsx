@@ -137,7 +137,7 @@ function Account({ next, after }: { next: () => void; after: string }) {
           <GoogleG />
           Continue with Google
         </button>
-        <button className="btn btn-paper btn-lg" onClick={next}>
+        <button className="text-btn step-device" onClick={next}>
           Continue on this device
         </button>
       </div>

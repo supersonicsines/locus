@@ -448,19 +448,23 @@ const tide = {
   // Contours as λ: 0 at the summit, 1 the still coast. `depth` adds the lines under the sea (λ 1.13 round
   // the island, a ring round the islet). The islet grows as the tile shrinks, and keeps its own sea.
   // Only 48 px and up ever turn blue.
+  // at: where the island's centre sits, from C; I: the islet's centre. Its sea stays at least 1.5 px wide.
   spec: {
-    L: { lines: [0.4, 0.75], depth: true, sw: 0.5, coast: 0.55, isle: 1, scale: 1, at: [0, 0], blue: true },
-    M: { lines: [0.55], depth: true, sw: 1.1, coast: 1.1, isle: 1, scale: 1, at: [0, 0], blue: true },
-    S: { lines: [], depth: false, sw: 0, coast: 2.1, isle: 1.5, scale: 1, at: [-1, 1], blue: true },
-    XS: { lines: [], depth: false, sw: 0, coast: 3.1, isle: 1.5, scale: 0.96, at: [-2, 2], blue: false },
-    XXS: { lines: [], depth: false, sw: 0, coast: 6.2, isle: 1.9, scale: 0.88, at: [-4, 4], isleAt: [2, -2], blue: false },
+    L: { lines: [0.4, 0.75], depth: true, sw: 0.5, coast: 0.55, isle: 1, scale: 0.92, at: [0, 0], I: [83, 40], blue: true },
+    M: { lines: [0.55], depth: true, sw: 1.1, coast: 1.1, isle: 1.1, scale: 0.92, at: [0, 0], I: [83, 40], blue: true },
+    S: { lines: [], depth: false, sw: 0, coast: 2.1, isle: 1.35, scale: 0.92, at: [-1, 0], I: [84, 40], blue: true },
+    XS: { lines: [], depth: false, sw: 0, coast: 3.1, isle: 1.8, scale: 0.86, at: [-3, 1], I: [83, 39], blue: false },
+    XXS: { lines: [], depth: false, sw: 0, coast: 6.2, isle: 2.4, scale: 0.8, at: [-3, 2], I: [83, 38], blue: false },
   },
-  C: [50, 53],
-  S: [46, 50],
+  C: [43, 53],
+  S: [40, 50],
   coast: island({ a: 30, b: 23, tilt: -0.26, lobes: [[0.05, 2, 0.6], [0.045, 3, 2.2], [0.035, 5, 0.9], [0.018, 7, 2.8]], dents: [[5, SW, 0.3]] }),
-  I: [79, 24],
-  // The islet is a lower hill: it floods at half the island's height.
-  isletR: (th) => 5.2 * (1 + 0.1 * Math.cos(2 * th + 1) + 0.05 * Math.cos(3 * th + 2)),
+  // The islet is a lower hill, twice as long as it is wide, lying along the island's east coast. It
+  // floods at half the island's height.
+  isletR: (th) => {
+    const u = th - 1.22
+    return ((7 * 3.5) / Math.hypot(3.5 * Math.cos(u), 7 * Math.sin(u))) * (1 + 0.05 * Math.cos(3 * th + 2))
+  },
   /** The island's contour at λ, as sixteen nodes. */
   contour(lam, sp) {
     const [cx, cy] = this.C
@@ -470,8 +474,7 @@ const tide = {
     return around(cx, cy, 16, 0.2, (th) => this.coast(th, soft) * sp.scale).map(([x, y]) => [ox + sx + lam * (x - sx), oy + sy + lam * (y - sy)])
   },
   islet(mu, sp) {
-    const [dx, dy] = sp.isleAt || [0, 0]
-    return around(this.I[0] + dx, this.I[1] + dy, 8, 0, (th) => mu * sp.isle * this.isletR(th))
+    return around(sp.I[0], sp.I[1], 10, 1.22, (th) => mu * sp.isle * this.isletR(th))
   },
   /** The going-live moment, e seconds in: flood 1.1 s, hold 0.6 s, ebb 1.2 s. Reduced motion cross-fades. */
   moment(e, reduced) {
@@ -542,9 +545,9 @@ const counties = {
   spec: {
     L: { n: 2, csw: 0.55, coast: 0.55, hatch: 2.3, hsw: 0.42, hop: 0.55, dash: '2.6 1.6', bsw: 0.65, legs: [0, 1, 2], edge: 0.55 },
     M: { n: 1, csw: 1.15, coast: 1.1, hatch: 3.4, hsw: 0.95, hop: 0.55, dash: '4.4 2.8', bsw: 1.2, legs: [0, 1, 2], edge: 1.1 },
-    S: { n: 0, csw: 0, coast: 0, hatch: 5.2, hsw: 1.6, hop: 0.7, dash: '5.5 4', bsw: 2.1, legs: [2], edge: 2.1, fill: '@solid' },
-    XS: { n: 0, csw: 0, coast: 0, hatch: 6.5, hsw: 3.1, hop: 0.85, dash: '6.25 4.7', bsw: 3.1, legs: [2], edge: 3.1, fill: '@solid' },
-    XXS: { n: 0, csw: 0, coast: 0, hatch: 0, dash: '', bsw: 0, legs: [], edge: 0, fill: '@seal' },
+    S: { n: 0, csw: 0, coast: 2.1, hatch: 5.2, hsw: 1.6, hop: 0.7, dash: '5.5 4', bsw: 2.1, legs: [2], edge: 2.1, fill: '@solid' },
+    XS: { n: 0, csw: 0, coast: 3.1, hatch: 6.5, hsw: 3.1, hop: 0.85, dash: '6.25 4.7', bsw: 3.1, legs: [2], edge: 3.1, fill: '@solid' },
+    XXS: { n: 0, csw: 0, coast: 6.2, hatch: 0, dash: '', bsw: 0, legs: [], edge: 6.2, fill: '@seal' },
   },
   C: [50, 51],
   S: [40, 58],
@@ -860,11 +863,11 @@ const col = {
   // at the index's weight, from 72 px up. Below that the mark is the index and the point, one line
   // round its point. span: how wide the outermost contour is drawn, so each size fills its tile.
   spec: {
-    L: { ks: [2.5, 1.5, 0.5, -0.5, -1.5], index: -1.5, sw: 0.6, iw: 1.2, arc: 8, gap: 3.2, sweep: 0.6, dot: 1.6, span: 68 },
-    M: { ks: [1.5, 0.5, -0.5, -1.5], index: -1.5, sw: 1.15, iw: 2.3, arc: 8, gap: 3.3, sweep: 0.6, dot: 2.2, span: 68 },
+    L: { ks: [2.5, 1.5, 0.5, -0.5, -1.5], index: -1.5, sw: 0.6, iw: 1.2, arc: 8, gap: 3.2, sweep: 0.6, dot: 1.6, span: 68, hb: 0.62 },
+    M: { ks: [1.5, 0.5, -0.5, -1.5], index: -1.5, sw: 1.15, iw: 2.3, arc: 8, gap: 3.3, sweep: 0.6, dot: 2.2, span: 68, hb: 0.62 },
     S: { ks: [-1.5], index: -1.5, sw: 5.2, iw: 5.2, arc: 0, dot: 4.6, sb: 14, hb: 0.72, span: 74 },
-    XS: { ks: [-1.5], index: -1.5, sw: 5.8, iw: 5.8, arc: 0, dot: 6.2, sb: 14, hb: 0.72, span: 76 },
-    XXS: { ks: [-1.5], index: -1.5, sw: 8.6, iw: 8.6, arc: 0, dot: 10, sb: 14, hb: 0.72, span: 76 },
+    XS: { ks: [-3.5], index: -3.5, sw: 5.8, iw: 5.8, arc: 0, dot: 6.4, sb: 14, hb: 0.72, span: 74 },
+    XXS: { ks: [-3.5], index: -3.5, sw: 8.6, iw: 8.6, arc: 0, dot: 10.5, sb: 14, hb: 0.72, span: 74 },
   },
   // On a shallow axis, about 21°, so no size reads as a chain link.
   A: [33, 44],

@@ -15,7 +15,8 @@ const FILES = [
 /** The rule a document proposes. It doesn't instruct anyone until it's approved. */
 const PROPOSED = { county: 'brand', item: 1 }
 
-export function MapFormsMotion() {
+/** As the hero, it plays as soon as any of it is seen, and while it waits it shows the files already stacked, never an empty sea. */
+export function MapFormsMotion({ hero = false }: { hero?: boolean }) {
   const look = useLook()
   // On a phone the files are drawn larger, so their names can be read.
   const k = look.narrow ? 1.4 : 1
@@ -109,7 +110,7 @@ export function MapFormsMotion() {
     ]
     parts.push(track($(root, '[data-ask]'), ask, CYCLE))
     return parts
-  })
+  }, { start: hero ? 0.01 : 0.65, rest: hero ? 700 : 0, rebuild: look.narrow ? 'n' : 'w' })
 
   const proposed = look.counties.find((c) => c.id === PROPOSED.county)!.items[PROPOSED.item]
   const askR = look.narrow ? 7 : 5.2

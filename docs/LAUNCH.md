@@ -22,7 +22,7 @@ From a clean clone:
 
 ```sh
 npm ci
-npm run typecheck && npm test        # 140 tests
+npm run typecheck && npm test        # 157 tests
 npm run build
 node dist/cli.mjs serve --port 4747  # open http://localhost:4747, See an example
 npm pack --dry-run                   # dist, README, LICENSE, NOTICE, licenses, SECURITY.md, and nothing else

@@ -472,10 +472,11 @@ a {
   transition: opacity 120ms ease;
 }
 
+/* Under the mark, so it never lies over the company's name beside it. */
 .home-tip {
   position: absolute;
-  left: calc(100% + 6px);
-  top: 50%;
+  left: 6px;
+  top: calc(100% + 6px);
   z-index: 2;
   padding: 3px 8px;
   border: 1px solid var(--hair);
@@ -488,7 +489,6 @@ a {
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(-50%);
   transition: opacity 100ms ease;
 }
 
@@ -4033,7 +4033,8 @@ body:has(.left.is-folded) .agent-view {
   .left:not(.is-open) .company-btn > .tag {
     display: none;
   }
-  body:has(.top-bar.fit-7) .fold-sample {
+  body:has(.top-bar.fit-7) .fold-sample ~ .fold-sep,
+  body:has(.top-bar.fit-7) .fold-sample ~ .fold-count {
     display: none;
   }
   body:has(.top-bar.fit-8) .left:not(.is-open) .left-head > .icon-btn {

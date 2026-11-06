@@ -148,7 +148,7 @@ export function Home() {
           </div>
           {/* What Locus is, shown rather than said: files in, a secret struck out, a map comes up. */}
           <div className="plate hero-plate">
-            <MapFormsMotion />
+            <MapFormsMotion hero />
           </div>
         </section>
 

@@ -260,6 +260,8 @@ export function createHandler(config: Config) {
         }
       } catch {}
     }
+    // A document that isn't here is missing, not the home page: a link to one should say so.
+    if (rel.startsWith('docs/') || rel.startsWith(`docs${sep}`)) return res('Not found.\n', 404, { 'Content-Type': 'text/plain; charset=utf-8' })
     return serveIndex()
   }
 

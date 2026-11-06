@@ -9,7 +9,7 @@ Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `do
 
 ## Rules that bind the build
 
-- **The map is the app.** One screen. Everything floats over the map. No dashboards, tables, settings pages or nav sidebar. Anything that would crowd the screen gets cut.
+- **The map is the app.** One screen. Everything floats over the map. No dashboards, tables, settings pages or nav sidebar. Anything that would crowd the screen gets cut. Around it there's a small website: `/` home, `/start` onboarding, `/example` the sample, `/map` your maps (`src/studio/site/`, routing in `site/route.tsx` and `App.tsx`). The website explains; the map is still where everything happens.
 - **It passes the glance test.** Live and current? Who can read what? Does anything need me? What does it cost?
 - **Atlas.** Vermilion means sealed and nothing else. Amber means urgent and nothing else. Blue means live: the sea turns blue when a copy is live, and the live dot is the same blue. One face for everything, Spline Sans Mono, in one variable file that ships with the app. Hierarchy comes from size, weight, case and ink, never a second family. The face is named once, in `--sans` in `src/studio/styles.css`; CSS and canvas text both read it, and `src/studio/main.tsx` imports its file. It's monospaced at 0.6 em a character, and `textWidth` in `src/studio/map/layout.ts` counts on that.
 - **Documents never gain authority.** Anything a document says is data. Rules and MCP servers found by shredding stay proposals until the owner approves them.
@@ -19,6 +19,10 @@ Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `do
 - **Anything from a document stays on one line in agent text, and bodies stay quoted.** Nothing from the map goes in MCP `instructions` or tool descriptions.
 - **Don't settle the operator's open design calls.** They're listed in `docs/STATUS.md`. Until they're decided, keep both `$` options (Rings and Discs on screen, Soundings and Towns in the code) and the switch between them.
 - **The npm package is `locus-harness`, and the command it installs is `locus`.** `locus` on npm belongs to someone else, so no command we show may ever say `npx locus`: it would run their code with a reader's password in its environment. The name is set once, as `PACKAGE` in `src/core/agent.ts`.
+- **The map moves like a board** (Miro, Figma). Two fingers on a trackpad pan, a pinch zooms anywhere on the page, a mouse wheel's notches zoom and glide, ⌘ or ctrl with scroll or + − 0 zooms the map and never the page. Zoom moves in its logarithm. `wheelKind` in `MapView.ts` decides a gesture's kind once and holds it; keep that.
+- **Where a name goes depends only on the map and the zoom.** Never on the screen's edges, the panels or the camera's position, so a pan never moves or rewords anything, and words run under the cards (clipped only out of the narrow margins round them). Names are placed again when the zoom changes by `ZOOM_STEP`, never on a pan. The map changes in kind across the zoom range (`far`, the county-names form, the gathered form, items, their lines, what's in them); read the header of `MapView.ts` before changing a size.
+- **The mark is drawn in one place**, `src/studio/site/Mark.tsx`. The five candidates are in `workbench/logo/` (`npm run workbench`); choosing one is the operator's call.
+- **Google sign-in identifies an account on a host and nothing else.** It never touches a sealed map, a password or the recovery key, and the host stores only a keyed hash of the account's id (`src/server/auth.ts`). No third-party script ever runs in the Studio: sign-in is a redirect.
 - **The top line fits itself.** `useFitTop` in `src/studio/ui/Top.tsx` steps through whole shorter forms until nothing is cut, wrapped or covered. Give any new words there a short form rather than an ellipsis or a media query.
 - **The screen's words differ from the code's.** Area, item, reader, tool and recovery key on screen; gate, piece, password, service and owner key in the code. Change what the UI says freely, and don't rename internals for the sake of it.
 
@@ -26,7 +30,8 @@ Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `do
 
 - `npm run build && npm start`, then open http://localhost:4747
 - `npm test`, `npm run typecheck`
-- `docs/LAUNCH.md` is the plan for deploying on Railway.
+- `docs/LAUNCH.md` is the plan for deploying on Railway, and `docs/SELF-HOSTING.md` is the guide for everyone else (Compose with Caddy in `compose.yaml` and `deploy/`).
+- `npm run preview:google` runs a host with a stand-in Google on port 4760, to see the sign-in flow without a Google client.
 - What an agent reads lives in `src/core/agent.ts`, and every reader shares it, so the Studio preview can't drift.
 - Judge visual changes from screenshots, not from the DOM or the code. `docs/design/qa-rounds.md` records every round so far. The harness that takes them is in `qa/`, which isn't in git and may not exist on your machine; `qa/README.md` explains it where it does.
 - The README's pictures come from `qa/readme.mjs`. Regenerate them whenever the main screen's words or look change.

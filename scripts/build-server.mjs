@@ -1,6 +1,6 @@
 // Bundles the host and CLI into one file with no runtime dependencies.
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import { build } from 'esbuild'
 
 await build({
@@ -37,7 +37,21 @@ for (const name of ['react', 'react-dom', 'scheduler', 'pdfjs-dist', 'fflate', '
 console.log('Copied licences to', out)
 
 // The website links to these, so every host serves the version of them that it runs, as plain text, whether or not the repository is public.
+// They link to each other, and all four are here, so those links resolve. A link to anything else (the README, docs/design/…) points at
+// the repository once its address is set, in REPO_URL in src/studio/site/frame.tsx, and is left as written until then.
 const docs = 'dist/studio/docs'
+const served = ['SECURITY.md', 'SELF-HOSTING.md', 'LAUNCH.md', 'PRD-QA.md']
+const repo = readFileSync('src/studio/site/frame.tsx', 'utf8').match(/export const REPO_URL: string = '([^']*)'/)?.[1] ?? ''
 mkdirSync(docs, { recursive: true })
-for (const f of ['SECURITY.md', 'SELF-HOSTING.md']) copyFileSync(join('docs', f), join(docs, f))
-console.log('Copied the security policy and the self-hosting guide to', docs)
+for (const f of served) {
+  let text = readFileSync(join('docs', f), 'utf8')
+  if (repo) {
+    text = text.replace(/\]\((?![a-z]+:|#)([^)\s]+)\)/g, (link, target) => {
+      const [path, hash] = target.split('#')
+      if (served.includes(path)) return link
+      return `](${repo}/blob/main/${posix.normalize(posix.join('docs', path))}${hash ? `#${hash}` : ''})`
+    })
+  }
+  writeFileSync(join(docs, f), text)
+}
+console.log('Copied the security policy, the self-hosting guide, the launch plan and the security review to', docs)

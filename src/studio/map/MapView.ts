@@ -3654,8 +3654,9 @@ export class MapView {
 
   /**
    * Clips out what floats over the map, with a margin: each card grown by 10 px, any edge within 40 px of the window's taken to the
-   * window, and cards side by side with less than 40 px between them joined, so the top line is one band. What's left is where words
-   * and marks are drawn.
+   * window, and the gap between two cards side by side, if it's under 40 px, bridged over the height they share, so there's no
+   * strip between the top line's chips for scraps of words to show in. Cards are never merged into one block: what's beside a tall
+   * card and below a short one is map.
    */
   private clipChrome() {
     const near = 40
@@ -3666,22 +3667,19 @@ export class MapView {
       if (this.w - r.r < near) r.r = this.w + 1
       if (this.h - r.b < near) r.b = this.h + 1
     }
-    for (let joined = true; joined; ) {
-      joined = false
-      for (let i = 0; i < rects.length && !joined; i++) {
-        for (let j = i + 1; j < rects.length && !joined; j++) {
-          const a = rects[i]
-          const b = rects[j]
-          const sameBand = a.t < b.b && b.t < a.b
-          const gap = Math.max(a.l, b.l) - Math.min(a.r, b.r)
-          if (sameBand && gap < near) {
-            rects[i] = { l: Math.min(a.l, b.l), t: Math.min(a.t, b.t), r: Math.max(a.r, b.r), b: Math.max(a.b, b.b) }
-            rects.splice(j, 1)
-            joined = true
-          }
-        }
+    const bridges: typeof rects = []
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i]
+        const b = rects[j]
+        const top = Math.max(a.t, b.t)
+        const bottom = Math.min(a.b, b.b)
+        const left = Math.min(a.r, b.r)
+        const right = Math.max(a.l, b.l)
+        if (bottom > top && right > left && right - left < near) bridges.push({ l: left - 1, t: top, r: right + 1, b: bottom })
       }
     }
+    rects.push(...bridges)
     const ctx = this.ctx
     for (const r of rects) {
       ctx.beginPath()
