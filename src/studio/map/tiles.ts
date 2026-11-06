@@ -97,7 +97,7 @@ export class TileCache {
     x.save()
     x.clip()
     // Logos are drawn for white. On dark land a white plate is the brightest thing on the map and outshouts the names, so there it's a paler grey: still the ground the mark was drawn for, a step down.
-    x.fillStyle = service.tile ?? (this.palette?.dark ? '#d3d8df' : '#ffffff')
+    x.fillStyle = service.tile ?? (this.palette?.dark ? '#bfc6cf' : '#ffffff')
     x.fillRect(0, 0, px, px)
     x.imageSmoothingEnabled = true
     x.imageSmoothingQuality = 'high'

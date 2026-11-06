@@ -51,10 +51,10 @@ function Forms({ long, short }: { long: string; short: string }) {
  */
 const FIT_STEPS: { name: string; frees: 'cost' | 'status' }[] = [
   { name: 'fit-1', frees: 'cost' }, // "on tools"
-  { name: 'fit-2', frees: 'status' }, // the marks spelled out become a count
+  { name: 'fit-2', frees: 'status' }, // the marks spelled out become a count, and the lens's hint goes
   { name: 'fit-3', frees: 'cost' }, // the other currencies
-  { name: 'fit-4', frees: 'status' }, // "and 3 more", the summary and the hint
-  { name: 'fit-5', frees: 'status' }, // the short form of the sentence
+  { name: 'fit-4', frees: 'status' }, // the short form of the sentence, so the count of what else is waiting can stay
+  { name: 'fit-5', frees: 'status' }, // "and 3 more" and the summary
   { name: 'fit-6', frees: 'cost' }, // "a month" becomes "/mo"
   { name: 'fit-7', frees: 'cost' }, // the folded card's "Sample ·", which its own menu still says
 ]
@@ -81,13 +81,16 @@ export function useFitTop() {
       // A card folded to its heading shares the top of the screen with the price, so its width is what the price leaves it.
       if (right) root.style.setProperty('--top-right-w', `${Math.ceil(right.getBoundingClientRect().width)}px`)
       const status = bar.querySelector('.status')
-      const statusCut = [...bar.querySelectorAll('.status-slot, .status, .status-open, .status b, .status .quiet, .lens-still')].some(cut)
+      // The status itself, never its slot: the needs list opens inside the slot, and measuring that would shorten the line you just pressed.
+      const statusCut = [...bar.querySelectorAll('.status, .status > span, .status-open, .status b, .status .quiet, .lens-still')].some(cut)
       const priceCut = [...bar.querySelectorAll('.top-right, .dollar-toggle')].some(cut)
-      const card = document.querySelector('.left:not(.is-open)')
+      // Folded, the card's own words must fit beside the price. Open or folded, its heading must never run under it.
+      const card = document.querySelector('.left')
       let cardCut = false
       if (card) {
-        cardCut = [...card.querySelectorAll('.company-name, .company-fold')].some(cut)
-        if (right && overlap(card.getBoundingClientRect(), right.getBoundingClientRect())) cardCut = true
+        if (!card.classList.contains('is-open')) cardCut = [...card.querySelectorAll('.company-name, .company-fold')].some(cut)
+        const head = card.querySelector('.left-head') ?? card
+        if (right && overlap(head.getBoundingClientRect(), right.getBoundingClientRect())) cardCut = true
       }
       const sharesRow = !!status && !!right && overlap(status.getBoundingClientRect(), right.getBoundingClientRect(), 1e4)
       return { status: statusCut || (sharesRow && priceCut), cost: cardCut || priceCut || (sharesRow && statusCut) }
@@ -117,6 +120,11 @@ export function useFitTop() {
       document.fonts?.removeEventListener('loadingdone', fit)
     }
   }, [])
+}
+
+/** A file's name breaks at its hyphen like any word, and "engineering-/notes.md" reads as two things. So names of files stay whole. */
+function wholeNames(text: string) {
+  return text.split(/(\S+\.(?:md|txt|pdf|docx?|csv|json|xlsx?|png|jpe?g))/i).map((part, i) => (i % 2 ? <span key={i} style={{ whiteSpace: 'nowrap' }}>{part}</span> : part))
 }
 
 /** The sentence that says this reader can still read something you've closed, if there is one. */
@@ -169,7 +177,7 @@ export function StatusLine() {
     }
     return (
       <div key="lens" className="status panel is-lens" role="status">
-        <span>Seeing the map as <b>{lensPw.name}</b>. {!reading && <span className="quiet optional">Click an area to change this.</span>}</span>
+        <span><Forms long="Seeing the map as " short="As " /><b>{lensPw.name}</b>. {!reading && <span className="quiet optional">Click an area to change this.</span>}</span>
         <button className="status-done" onClick={done}>Done</button>
       </div>
     )
@@ -257,7 +265,8 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
   // An item wears its loudest mark, so a look on something that's also waiting for approval shows a question, not a dot. Only say dots mark these where one does.
   const wears = new Map<string, string>()
   for (const n of [...list].reverse()) for (const id of n.pieces) wears.set(id, levelOf(n.kind))
-  const dotted = list.some((n) => levelOf(n.kind) === 'look' && n.pieces.some((id) => wears.get(id) === 'look'))
+  const dots = new Set(list.filter((n) => levelOf(n.kind) === 'look').flatMap((n) => n.pieces.filter((id) => wears.get(id) === 'look'))).size
+  const dotted = dots > 0
 
   // An area that's since been deleted has nowhere to go.
   const gateOf = (n: Need) => n.gates?.find((g) => vault.gates.some((x) => x.id === g))
@@ -290,7 +299,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
           const firstQuiet = levelOf(n.kind) === 'look' && (i === 0 || levelOf(list[i - 1].kind) !== 'look')
           return (
             <Fragment key={n.id}>
-            {firstQuiet && <p className="need-group">Worth a look when you have a minute.{dotted ? ' Dots on the map mark these.' : ''}</p>}
+            {firstQuiet && <p className="need-group">Worth a look when you have a minute.{dotted ? ` ${dots === 1 ? 'A dot on the map marks it' : `${dots} dots on the map mark these`}.` : ''}</p>}
             <div
               className={`need is-${levelOf(n.kind)} ${n.pieces.length || gateOf(n) ? 'clickable' : ''}`}
               onMouseEnter={() => n.pieces.length && setState({ highlight: new Set(n.pieces) })}
@@ -303,7 +312,7 @@ export function NeedsPanel({ map }: { map: React.RefObject<MapView | null> }) {
                   {service && <ServiceMark name={service} size={14} />}
                   {KIND_NAMES[n.kind]}{where && n.kind !== 'secret' ? ` in ${where}` : ''}
                 </span>
-                {n.message}
+                {wholeNames(n.message)}
                 {n.quote && <blockquote className="need-quote">{n.quote}</blockquote>}
                 <NeedActions need={n} />
               </div>

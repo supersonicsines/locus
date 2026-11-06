@@ -22,7 +22,6 @@ export function Cartouche() {
   const others = s.others.map((o) => formatMoney(o.amount * mult, o.currency))
 
   // Each gate's share, drawn like a chart's alternating scale bar.
-  const segments = s.byGate.filter((g) => g.share > 0)
 
   return (
     <div className="cartouche" role="group" aria-label="What the company spends">
@@ -54,31 +53,11 @@ export function Cartouche() {
           </div>
         </div>
 
-        <div className="scale-bar" role="img" aria-label={segments.map((g) => `${g.name} ${Math.round(g.share * 100)}%`).join(', ')}>
-          {segments.map((g, i) => (
-            <div
-              key={g.gate}
-              className={`scale-seg ${i % 2 === 0 ? 'fill' : ''}`}
-              style={{ width: `${g.share * 100}%` }}
-              title={`${g.name}: ${formatMoney(g.amount * mult, s.currency)}`}
-              onMouseEnter={() => setState({ hoverGate: g.gate })}
-              onMouseLeave={() => setState({ hoverGate: null })}
-            />
-          ))}
-        </div>
-        <div className="scale-labels" aria-hidden="true">
-          {segments.map((g) => (
-            <div key={g.gate} className="scale-label" style={{ width: `${g.share * 100}%` }}>
-              {/* Whatever fits, so an even spread of areas doesn't leave a bar with no words. */}
-              {g.share * 100 > g.name.length * 2.6 ? g.name : ''}
-            </div>
-          ))}
-        </div>
-
+        {/* Each area says its own total under its name, so a bar of their shares said nothing more. */}
         <p className="cart-note">
           {/* A phone's button has room for one currency, so the others are said here. */}
           {others.length > 0 && <span className="cart-also">Plus {others.join(' + ')} in other currencies. </span>}
-          {s.fromInvoices}% from invoices.{' '}
+          {s.fromInvoices === 100 ? 'Every price is from an invoice.' : s.fromInvoices === 0 ? 'No price is from an invoice yet.' : `${s.fromInvoices}% of this is from invoices.`}{' '}
           {notes.length > 0 && (
             <button aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
               <i className="price-mark" aria-hidden="true" />

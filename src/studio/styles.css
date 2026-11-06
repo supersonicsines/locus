@@ -4,7 +4,8 @@
 :root {
   --alert: #f5b400;
   --on-alert: #15191e;
-  --live: #1f9d63;
+  /* Live has one colour: the live sea's blue, deeper, so the dot and the sea say the same thing. */
+  --live: #3b78b8;
   --paper: #e2e6ea;
   /* A field or a key on a raised sheet. It was the sea's colour once, and it didn't deepen when the sea did. */
   --field: #eef1f3;
@@ -39,6 +40,7 @@
 }
 
 :root[data-theme='dark'] {
+  --live: #7fb0e0;
   --paper: #0e1319;
   --field: #0e1319;
   --raised: #161c24;
@@ -204,9 +206,9 @@ a {
 
 /* Not yet is an instruction, not a dead button, so its words stay easy to read. */
 .btn-ink:disabled {
-  background: var(--wash-strong);
+  background: color-mix(in srgb, var(--ink) 34%, var(--raised));
   border-color: transparent;
-  color: var(--soft);
+  color: var(--on-ink);
 }
 
 .btn-paper:disabled {
@@ -590,9 +592,18 @@ a {
 
 .reader-count {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--faint);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+}
+
+.reader-count .need-mark {
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
 }
 
 .reader-more {
@@ -715,7 +726,7 @@ a {
   right: var(--gutter);
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
   z-index: 11;
   pointer-events: none;
 }
@@ -812,8 +823,8 @@ a {
   color: var(--soft);
 }
 
-/* Amber means it needs you now and nothing else, so it stops where that sentence stops. What's left waits on the same ground as every other control. */
-.top-bar:not(.fit-2) .status.is-now:not(:has(.status-do)):has(.has-parts) {
+/* Amber means it needs you now and nothing else, so it stops where that sentence stops, whether what's left is spelled out or counted. What's left waits on the same ground as every other control. */
+.status.is-now:not(:has(.status-do)):has(.has-parts) {
   background: var(--raised);
   border-color: var(--hair);
   color: var(--ink);
@@ -821,12 +832,12 @@ a {
   box-shadow: var(--shadow);
 }
 
-.top-bar:not(.fit-2) .status.is-now:not(:has(.status-do)) .has-parts {
+.status.is-now:not(:has(.status-do)) .has-parts {
   gap: 14px;
   align-self: stretch;
 }
 
-.top-bar:not(.fit-2) .status.is-now:not(:has(.status-do)) .has-parts .status-head {
+.status.is-now:not(:has(.status-do)) .has-parts .status-head {
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -903,6 +914,10 @@ a {
 
 .status.is-now .status-more {
   flex: none;
+}
+
+.status.is-now .has-parts .status-more {
+  color: var(--soft);
 }
 
 .status.is-now .status-open svg {
@@ -1007,7 +1022,7 @@ a {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 
 /* The cost is the button: the number answers the question, and clicking it spreads the prices over the map. */
@@ -1017,7 +1032,8 @@ a {
   gap: 6px;
   height: 40px;
   padding: 7px 14px 0;
-  border-radius: var(--control-radius);
+  /* A surface of its own on the map, so it has a surface's corners, like the status beside it. */
+  border-radius: var(--panel-radius);
   background: var(--raised);
   border: 1px solid var(--hair);
   box-shadow: var(--shadow);
@@ -1089,7 +1105,8 @@ a {
   align-items: center;
   height: 40px;
   padding: 0 4px 0 14px;
-  border-radius: var(--control-radius);
+  /* A surface of its own on the map, so it has a surface's corners, like the status beside it. */
+  border-radius: var(--panel-radius);
   background: var(--raised);
   border: 1px solid var(--hair);
   box-shadow: var(--shadow);
@@ -1439,14 +1456,15 @@ button.piece-body {
   padding-top: 14px;
   border-top: 1px solid var(--hair);
   display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 10px 12px;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 16px;
   align-items: center;
 }
 
 .props dt {
   color: var(--soft);
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .props dd {
@@ -1939,7 +1957,7 @@ body:has(.agent-view) .map-canvas {
 
 .needs-panel {
   position: absolute;
-  top: 40px;
+  top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   width: min(500px, calc(100vw - 24px));
@@ -2057,8 +2075,9 @@ body:has(.agent-view) .map-canvas {
   padding-left: 12px;
   border-left: 2px solid var(--hair-strong);
   font-family: var(--sans);
-  font-size: 14px;
-  line-height: 21px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--soft);
 }
 
 .need-actions {
@@ -2213,44 +2232,6 @@ body:has(.agent-view) .map-canvas {
 
 .segmented button:not([aria-pressed='true']):active {
   background: var(--wash-strong);
-}
-
-.scale-bar {
-  display: flex;
-  margin-top: 10px;
-  height: 7px;
-  border: 1px solid var(--ink);
-}
-
-.scale-seg {
-  height: 100%;
-  background: transparent;
-  border-right: 1px solid var(--ink);
-  cursor: default;
-  transition: opacity 120ms ease;
-}
-
-.scale-seg:last-child {
-  border-right: 0;
-}
-
-.scale-seg.fill {
-  background: var(--ink);
-}
-
-.scale-labels {
-  display: flex;
-  margin-top: 3px;
-  min-height: 15px;
-}
-
-.scale-label {
-  overflow: hidden;
-  white-space: nowrap;
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--soft);
-  padding-right: 4px;
 }
 
 .cart-note {
@@ -2611,7 +2592,7 @@ body:has(.sheet) .empty > * {
 }
 
 .sheet h2 {
-  margin: 0 0 6px;
+  margin: 0 0 12px;
   font-family: var(--sans);
   font-weight: 400;
   font-size: 24px;
@@ -2937,6 +2918,7 @@ body:has(.sheet) .empty > * {
 
 .empty.blank h1 {
   font-size: clamp(26px, 3.4vw, 40px);
+  line-height: 1.12;
 }
 
 .empty.blank p {
@@ -3161,27 +3143,26 @@ body:has(.empty-foot) .toasts {
   display: none;
 }
 
-/* The sentence that says who can still read what matters more than the count after it. */
-.top-bar.fit-1 .status.is-now:has(.status-do) .status-more {
-  display: none;
-}
-
 .top-bar.fit-3 .cost-others {
   display: none;
 }
 
-.top-bar.fit-4 .status .status-more,
-.top-bar.fit-4 .status .quiet,
-.top-bar.fit-4 .status .optional {
+.top-bar.fit-2 .status.is-lens .optional {
   display: none;
 }
 
-.top-bar.fit-5 .form-long,
+.top-bar.fit-5 .status .status-more,
+.top-bar.fit-5 .status .quiet,
+.top-bar.fit-5 .status .optional {
+  display: none;
+}
+
+.top-bar.fit-4 .form-long,
 .top-bar.fit-6 .per-long {
   display: none;
 }
 
-.top-bar.fit-5 .form-short,
+.top-bar.fit-4 .form-short,
 .top-bar.fit-6 .per-short {
   display: inline;
 }
@@ -3194,15 +3175,16 @@ body:has(.empty-foot) .toasts {
   }
   /* The card folds away to its heading, so the map has the width. Clicking the heading opens it. */
   .left {
-    max-height: 46px;
+    max-height: 60px;
     overflow: hidden;
   }
   .left .left-head {
-    min-height: 50px;
+    min-height: 58px;
   }
+  /* Folded, the heading is two lines, with the same room above the first as below the second. */
   .left:not(.is-open) .company-btn {
-    padding-top: 3px;
-    padding-bottom: 3px;
+    padding-top: 9px;
+    padding-bottom: 9px;
   }
   .left:not(.is-open) .company-fold {
     display: block;
@@ -3260,15 +3242,15 @@ body:has(.empty-foot) .toasts {
 
 /* A reader's panel holds what the card holds about them, so the card folds to its heading, at any width. As under 980, and for the same reasons. */
 .left.is-folded {
-  max-height: 46px;
+  max-height: 60px;
   overflow: hidden;
 }
 .left.is-folded .left-head {
-  min-height: 50px;
+  min-height: 58px;
 }
 .left.is-folded:not(.is-open) .company-btn {
-  padding-top: 3px;
-  padding-bottom: 3px;
+  padding-top: 9px;
+  padding-bottom: 9px;
 }
 .left.is-folded:not(.is-open) .company-fold {
   display: block;
@@ -3448,10 +3430,8 @@ body:has(.left.is-folded) .agent-view {
   .cartouche-inner {
     padding: 10px 12px 8px;
   }
-  /* Each area says its own share on a phone, so a bar of them says nothing more, and Rings and Discs aren't offered here. */
-  .cart-style,
-  .scale-bar,
-  .scale-labels {
+  /* Rings and Discs aren't offered on a phone. */
+  .cart-style {
     display: none;
   }
   .cart-also {
@@ -3489,9 +3469,6 @@ body:has(.left.is-folded) .agent-view {
   .status.is-now .status-open b {
     white-space: normal;
     overflow: visible;
-  }
-  .status-open svg {
-    display: none;
   }
   /* A sheet from the foot of the screen, edge to edge. With a gutter round it, slivers of the map showed down its sides, and the pill behind it showed at a corner. */
   .side {
@@ -3872,4 +3849,44 @@ body:has(.left.is-folded) .agent-view {
   .left:not(.is-open) .company-btn > .tag {
     display: none;
   }
+}
+
+/* A list that runs on fades at its foot, so it doesn't look as if it ends at the panel's edge. A gradient that sticks to the bottom, not a mask, because a mask would take the panel's shadow with it. */
+.needs-panel::after,
+.catalog-list::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 24px;
+  margin-top: -24px;
+  background: linear-gradient(to bottom, transparent, var(--raised));
+  pointer-events: none;
+}
+
+.needs-panel::after {
+  bottom: -7px;
+}
+
+.piece-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* At the narrowest phones the folded card can't hold the name and search side by side with the price. Search is in the open card and on ⌘K. */
+@media (max-width: 380px) {
+  .left:not(.is-open) .left-head > .icon-btn {
+    display: none;
+  }
+}
+
+.per-short {
+  margin-left: -4px;
+}
+
+/* Add stands alone in the top line, so it's a surface there too. */
+.top-right > .add-menu > .btn {
+  border-radius: var(--panel-radius);
 }

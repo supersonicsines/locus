@@ -1,6 +1,7 @@
 // An area, opened from the map: what it's called, who can read it, and what's in it.
 
 import { PIECE_KINDS } from '../../core/types.ts'
+import { DISTRICTS, districtOf } from '../map/layout.ts'
 import { addPiece, createPassword, deleteArea, publishAndSay, renameGate, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
 import { Icon, NeedMark, PieceMark, plural, ReaderMark, useEscape, usePanelFocus } from './bits.tsx'
@@ -21,7 +22,8 @@ export function AreaPanel() {
   const { readOnly } = content
   const items = content.pieces
     .filter((p) => p.gate === gate.id)
-    .sort((a, b) => PIECE_KINDS.indexOf(a.kind) - PIECE_KINDS.indexOf(b.kind) || a.title.localeCompare(b.title, undefined, { numeric: true }))
+    // In the map's own order, tools first, so the list reads the way the county does.
+    .sort((a, b) => DISTRICTS.indexOf(districtOf(a.kind)) - DISTRICTS.indexOf(districtOf(b.kind)) || PIECE_KINDS.indexOf(a.kind) - PIECE_KINDS.indexOf(b.kind) || a.title.localeCompare(b.title, undefined, { numeric: true }))
   const readers = vault?.passwords ?? []
   const noOne = !readOnly && readers.length > 0 && !readersByArea(vault).has(gate.id)
   const exposed = readOnly ? undefined : exposedAreas(vault).get(gate.id)

@@ -22,7 +22,8 @@ const ROW = world(22)
 const ROW_TALL = world(36)
 const HEADING = world(18)
 const BLOCK_GAP = world(11)
-const COLUMN_GAP = world(22)
+// Wide enough that a pin leaning off the second column's mark stays clear of the first column's names.
+const COLUMN_GAP = world(30)
 /** How far the coast stands off what's on the land, at the least. */
 const SHORE = world(19)
 
@@ -60,7 +61,8 @@ export function wrapTitle(title: string): { lines: string[]; cut: boolean } {
   let best = -1
   let bestLength = Infinity
   for (let i = 1; i < words.length; i++) {
-    const longest = Math.max(words.slice(0, i).join(' ').length, words.slice(i).join(' ').length)
+    // A line that ends on "a" or "in" reads as cut, so a break after a short word counts as four characters longer.
+    const longest = Math.max(words.slice(0, i).join(' ').length, words.slice(i).join(' ').length) + (words[i - 1].length <= 2 ? 4 : 0)
     if (longest < bestLength) {
       bestLength = longest
       best = i
@@ -81,8 +83,11 @@ export function wrapTitle(title: string): { lines: string[]; cut: boolean } {
   return { lines: [top.join(' '), `${bottom.join(' ')}…`], cut: true }
 }
 
-/** The size an item's name is printed at, at the design zoom. */
-const NAME_PX = 12
+/**
+ * How big an item's name is, for laying it out, at the design zoom. Names print at a fixed size on screen, 11 px at the zoom a map usually opens at (about 0.42),
+ * which is 13.2 px at the design zoom. Laid out at 12 they overran their columns by a tenth, and neighbouring columns ran together.
+ */
+const NAME_PX = 13.2
 
 /**
  * How wide a line of an item's name is, in pixels at the size it's printed.
@@ -140,7 +145,8 @@ function flow(boxes: Box[], width: number, heading: boolean): Block {
     const height = Math.max(...row.map((b) => b.h))
     let x = 0
     row.forEach((b, i) => {
-      items.push({ id: b.piece.id, x: x + MARK / 2, y: y + height / 2 })
+      // Set from the top of the row, so a one-line name beside a two-line one shares its first line, as type in columns should.
+      items.push({ id: b.piece.id, x: x + MARK / 2, y: y + b.h / 2 })
       x += widths[i] + GUTTER
     })
     y += height

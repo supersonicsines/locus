@@ -220,7 +220,9 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const rightOpen = panel === 'share' || panel === 'area'
   // In a narrow window the panel floats over the land, because shrinking the map into what's left only makes it unreadable.
   // On a laptop a reader's panel is a little narrower, which is what it takes for everything on the land to clear it at the map's own scale.
-  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 1100 ? (panel === 'share' && window.innerWidth <= 1360 ? 388 : 428) : 32), [rightOpen, panel, map])
+  useEffect(() => map.current?.setRightInset(rightOpen && window.innerWidth > 720 ? (panel === 'share' && window.innerWidth > 1100 && window.innerWidth <= 1360 ? 388 : 428) : 32), [rightOpen, panel, map])
+  const cardOpen = useStore((s) => s.cardOpen)
+  useEffect(() => map.current?.setLeftInset(cardOpen && window.innerWidth > 720 && window.innerWidth <= 980 ? 328 : 0), [cardOpen, map])
 
   useEffect(() => map.current?.setSelected(selected), [selected, map])
   useEffect(() => map.current?.setHighlight(highlight), [highlight, map])
@@ -266,8 +268,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
 
 /** A picked reader on a phone. It holds what the card holds on a laptop, and it's short, because the map above it is the point. */
 function PhoneLens({ map }: { map: React.RefObject<MapView | null> }) {
-  // Wherever the card folds when a reader is picked, this sheet holds what the card would have, so nothing about them is out of reach.
-  const narrow = useNarrow(980)
+  const narrow = useNarrow()
   const vault = useStore((s) => s.vault)
   const lens = useStore((s) => s.lens)
   const panel = useStore((s) => s.panel)

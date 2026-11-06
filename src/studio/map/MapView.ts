@@ -186,6 +186,9 @@ const HEADING_ABOVE = 15 / DESIGN_K
 const LINE_ICON = 18
 
 /** The head of a pin, in screen pixels. The loudest thing on the map must also be the biggest. */
+/** Where the side panel starts, from the right edge: --side-w and --gutter in styles.css, and room for a name to stand clear of it. */
+const PANEL_CLEAR = 436
+
 const pinRadius = (level: NeedLevel, k: number) => (level === 'now' ? clamp(11.5 * Math.sqrt(k), 9.5, 13) : clamp(8 * Math.sqrt(k), 7, 9.5))
 const PIN_REACH = 2.35
 
@@ -287,6 +290,7 @@ export class MapView {
   /** Where the map was before a search moved it, so closing the item puts it back. */
   private returnTo: { x: number; y: number; k: number } | null = null
   private bottomInset = 0
+  private leftInset = 0
   private rearranging: Rearranging | null = null
   private rearrangeT = 1
   private landLayer: HTMLCanvasElement | null = null
@@ -408,6 +412,13 @@ export class MapView {
   }
 
   /** Room taken by something coming up from the bottom of a phone. */
+  /** Room taken by the card when it's open over a narrow window's map. The map refits beside it unless you've moved it yourself. */
+  setLeftInset(px: number) {
+    if (this.leftInset === px) return
+    this.leftInset = px
+    if (!this.userMoved && this.nodes.length) this.fit(true)
+  }
+
   setBottomInset(px: number) {
     if (this.bottomInset === px) return
     this.bottomInset = px
@@ -634,10 +645,10 @@ export class MapView {
     const right = this.subjectRight()
     if (right === null) return
     const base = this.camTarget ?? this.cam
-    const need = right - (this.w - 396)
+    const need = right - (this.w - PANEL_CLEAR)
     // What it's linked to as well, so the panel's "Linked to" doesn't point at half a word. Only as far as the land on the left has room for.
     const linked = this.linkedRight()
-    const want = linked === null ? need : Math.max(need, linked - (this.w - 396))
+    const want = linked === null ? need : Math.max(need, linked - (this.w - PANEL_CLEAR))
     const over = want > need ? Math.max(need, Math.min(want, Math.max(need, 0) + this.roomLeft(base, Math.max(need, 0)))) : need
     if (over <= 0) return
     this.slidOver += over
@@ -793,9 +804,10 @@ export class MapView {
     const narrow = this.w <= 720
     // Up to here the card folds away to its heading, so the map has the width.
     // The card's width and the gutters each side of it, as --left-w and --gutter say, and a little air.
-    const left = this.w <= 980 ? 20 : 340
-    // A panel never changes the scale. See the end of this.
-    const right = narrow ? 20 : 36
+    const left = this.leftInset || (this.w <= 980 ? 20 : 340)
+    // On a laptop a panel never changes the scale (see the end of this). In a narrow window the map fits in what the panel leaves, because sliding would push most of it off the screen.
+    const squeezed = !narrow && this.w <= 1100 && this.rightInset > 32
+    const right = narrow ? 20 : squeezed ? this.rightInset : 36
     // Below the top controls. Below 1240 the line at top centre drops under them, so there's more to clear.
     // Picked on a phone, a reader's sheet holds what the bar would say, so the map has that room too.
     const top = narrow ? (this.bottomInset ? 80 : 144) : this.w <= 1240 ? 134 : 84
@@ -830,7 +842,7 @@ export class MapView {
     const x = left + (this.w - left - right - (maxX - minX) * k) / 2 - minX * k
     const y = top + (this.h - top - bottom - (maxY - minY) * k) / 2 - minY * k
     // A reader's panel takes a third of the width, and squeezing the map into what's left costs its names. So the map keeps its scale, the card folds away, and the map slides over into the room that gives. Only as far as it takes for what's on the land to clear the panel, and it's the land's empty west that goes off the sheet if anything has to.
-    if (!narrow && this.rightInset > 32 && this.territories.length) {
+    if (!narrow && !squeezed && this.rightInset > 32 && this.territories.length) {
       const held = Math.min(...this.territories.map((t) => t.holds.minX)) * k + x
       const reach = Math.max(...this.territories.map((t) => t.holds.maxX)) * k + x
       const over = reach + 16 - (this.w - this.rightInset)
@@ -908,7 +920,7 @@ export class MapView {
     const safeTop = this.w <= 1240 ? 134 : 84
     const safeBottom = this.h - 64
     const dy = top < safeTop ? safeTop - top : bottom > safeBottom ? safeBottom - bottom : 0
-    const safeRight = this.w - 396
+    const safeRight = this.w - PANEL_CLEAR
     const safeLeft = Math.max(16, ...this.cb.covers().filter((r) => top + dy < r.bottom + 12 && bottom + dy > r.top - 12).map((r) => r.right + 12))
     let dx = right > safeRight ? safeRight - right : left < safeLeft ? safeLeft - left : 0
     // A long name in a narrow window gives way before the item's mark does.
@@ -981,7 +993,7 @@ export class MapView {
     let bestD = Infinity
     const k = this.cam.k
     for (const n of this.nodes) {
-      if (this.sealTarget.has(n.piece.gate)) continue
+      if (this.sealedOff(n)) continue
       if (n.alpha < 0.05) continue
       const [wx, wy] = this.displayPos(n)
       const [x, y] = this.toScreen(wx, wy)
@@ -992,9 +1004,9 @@ export class MapView {
       // A pin is the most obvious thing on the map to click, so its head answers as well.
       const pin = this.pinOf(n)
       if (pin && !this.overview) {
-        const pr = pinRadius(pin, k)
-        const head = Math.hypot(sx - (x - n.tipX + Math.sin(n.lean) * pr * PIN_REACH), sy - (y - this.pinLift(n, k) - Math.cos(n.lean) * pr * PIN_REACH))
-        if (head < pr + 2) {
+        const b = this.badge(n, x, y, pin)
+        const head = Math.hypot(sx - b.x, sy - b.y)
+        if (head < b.r + 2) {
           d = head / 2
           r = d + 1
         }
@@ -1016,7 +1028,7 @@ export class MapView {
     for (const l of this.labels) {
       if (l.alpha < 0.5 || l.align !== 'left') continue
       const n = this.byId.get(l.id)
-      if (!n || n.alpha < 0.05 || this.sealTarget.has(n.piece.gate)) continue
+      if (!n || n.alpha < 0.05 || this.sealedOff(n)) continue
       const [wx, wy] = this.labelAnchor(n)
       const [x, y] = this.toScreen(wx, wy)
       const left = x + l.x
@@ -1035,14 +1047,41 @@ export class MapView {
   }
 
   /** How far above an item's centre its pin's tip stands. */
+  /**
+   * Where a pin's badge sits and how big it is. On a logo, at its top-left corner; on any other mark, in the mark's place, as the mark.
+   * A badge never leaves its item's box, so it can't land on a heading or the next column's names and be read as theirs.
+   */
+  private badge(n: Node, x: number, y: number, level: NeedLevel): { x: number; y: number; r: number } {
+    const k = this.cam.k
+    if (n.piece.kind === 'service') {
+      const size = tileSize(k)
+      return { x: x - size / 2 + 1, y: y - size / 2 + 1, r: level === 'now' ? 6.5 : 5.5 }
+    }
+    const size = iconSize(k)
+    return { x, y, r: level === 'now' ? size * 0.6 : size * 0.54 }
+  }
+
   private pinLift(n: Node, k: number): number {
     return (n.piece.kind === 'service' ? tileSize(k) : iconSize(k)) / 2 - 1
   }
 
   /** What an item stands on, which is what its halo has to match. */
+  /**
+   * Under a reader's lens, a sealed area that still gives that reader its tools' names and prices shows those tools, and nothing else.
+   * Its line says "Tool names and prices only", and the map may never understate what a reader gets.
+   */
+  private throughSeal(n: Node): boolean {
+    return this.lensActive && n.piece.kind === 'service' && this.data.pricesReadable.has(n.piece.gate)
+  }
+
+  /** Whether the seal hides this item from the reader being looked through. */
+  private sealedOff(n: Node): boolean {
+    return this.sealTarget.has(n.piece.gate) && !this.throughSeal(n)
+  }
+
   private groundOf(gate: string): string {
     const p = this.palette!
-    if (this.lensActive) return p.land
+    if (this.lensActive) return this.sealTarget.has(gate) && !this.pendingSeal.has(gate) ? p.sealedLand : p.land
     if (this.data.exposed.has(gate)) return p.exposedLand
     return this.data.sealedToAll.has(gate) ? p.sealedLand : p.land
   }
@@ -1525,7 +1564,8 @@ export class MapView {
     if (this.lodT < 1 && !(n.inOverview || neighbours?.has(n.piece.id) || n.piece.id === this.hovered || this.highlight?.has(n.piece.id) || (this.dollarOn && n.cost))) a *= this.lodT
     // Prices are about what has a price. A faded mark under a disc only looks like dirt.
     if (this.dollarOn && !n.cost) a = 0
-    a *= 1 - (this.seal.get(n.piece.gate) ?? 0)
+    // A tool the reader still gets the name and price of stays, a step back, so it reads as all they get from here.
+    a *= this.throughSeal(n) ? 1 - 0.22 * (this.seal.get(n.piece.gate) ?? 0) : 1 - (this.seal.get(n.piece.gate) ?? 0)
     if (this.highlight) a *= this.highlight.has(n.piece.id) ? 1 : 0.14
     else if (neighbours && !this.dollarOn) a *= neighbours.has(n.piece.id) ? 1 : 0.34
     return a
@@ -1707,8 +1747,8 @@ export class MapView {
     if (!this.w) return
     const rects: { x: number; y: number; w: number; h: number; heading?: boolean }[] = []
     const narrow = this.w <= 720
-    const minX = narrow ? 4 : 292
-    const maxX = narrow || this.rightInset <= 28 ? this.w - 4 : this.w - this.rightInset
+    const minX = narrow ? 4 : 328
+    const maxX = narrow || this.rightInset <= 32 ? this.w - 4 : this.w - this.rightInset
     const onScreen = (r: { x: number; y: number; w: number; h: number }) => {
       if (r.x < minX || r.y < 4 || r.x + r.w > maxX || r.y + r.h > this.h - 4) return false
       return !rects.some((o) => r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y)
@@ -1750,7 +1790,7 @@ export class MapView {
     const icon = iconSize(k)
     const marks: { id: string; x: number; y: number; w: number; h: number }[] = []
     for (const n of this.nodes) {
-      if (this.sealTarget.has(n.piece.gate) || !stands(n)) continue
+      if (this.sealedOff(n) || !stands(n)) continue
       const [x, y] = settled(n)
       const half = (n.piece.kind === 'service' ? tile : icon) / 2 + 1
       const box = { x: x - half, y: y - half, w: half * 2, h: half * 2 }
@@ -1825,7 +1865,7 @@ export class MapView {
       const pin = this.pinOf(n)
       // Zoomed out, a logo goes by its picture until you point at it.
       if (overview && !isFocus && !pin) continue
-      if (this.sealTarget.has(n.piece.gate)) continue
+      if (this.sealedOff(n)) continue
       const [x, y] = settled(n)
       if (x < -80 || y < -40 || x > this.w + 80 || y > this.h + 40) continue
       const name = this.labelFor(n.piece.title, FONT)
@@ -1846,6 +1886,8 @@ export class MapView {
       const fits = (rect: { x: number; y: number; w: number; h: number }, left: number, cy: number, side: CanvasTextAlign | 'above' | 'below', pass: 'strict' | 'land' | 'tight') => {
         // Cheapest test first: this runs for every item whenever what you're pointing at changes.
         if (n.piece.id === focus) return true
+        // What wears a pin is what needs you, so its name has to be where it can be read, not off the edge of the screen.
+        if (pin && (rect.x < 4 || rect.x + rect.w > this.w - 4)) return false
         if (!free(rect)) return false
         if (isFocus) return true
         // The coast is drawn around every name set to the right of its mark, so that side needs no asking. Flipping it would only break the column it's in.
@@ -1889,6 +1931,22 @@ export class MapView {
         }
         if (placed) break
       }
+      // A mark with no name beside it looks broken, so before a one-line name gives up it tries two lines, to the right of its mark, where its column reads.
+      if (!placed && lines.length === 1 && !whole && n.piece.title.includes(' ')) {
+        const words = n.piece.title.split(' ')
+        let at = 1
+        for (let i = 1; i < words.length; i++) if (Math.abs(words.slice(0, i).join(' ').length - words.slice(i).join(' ').length) < Math.abs(words.slice(0, at).join(' ').length - words.slice(at).join(' ').length)) at = i
+        const two = [words.slice(0, at).join(' '), words.slice(at).join(' ')]
+        const w2 = Math.max(...two.map((l) => this.measure(l, FONT))) * (pin ? 1.04 : 1)
+        const cx = x + off
+        const cy = y + 4 - leading / 2
+        const rect = { x: cx - 2, y: cy - 10, w: w2 + 4, h: 14 + leading }
+        if (free(rect)) {
+          rects.push(rect)
+          next.set(n.piece.id, { id: n.piece.id, x: cx - x, y: cy - y, align: 'left', name: true, lines: two })
+          continue
+        }
+      }
       if (placed || !pin) continue
       const boxes = candidates.map(([cx, cy, align]) => {
         const left = align === 'left' ? cx : align === 'right' ? cx - w : cx - w / 2
@@ -1898,7 +1956,7 @@ export class MapView {
       let best: (typeof boxes)[number] | null = null
       let least = Infinity
       for (const box of boxes) {
-        if (!free(box.rect)) continue
+        if (!free(box.rect) || box.rect.x < 4 || box.rect.x + box.rect.w > this.w - 4) continue
         let out = 0
         for (let i = 0; i <= 8; i++) {
           const at = box.left + (w * i) / 8
@@ -2085,7 +2143,8 @@ export class MapView {
   }
 
   private districtFont(): string {
-    return `12px ${this.sans}`
+    // The same size as the names under it: a heading differs by weight and ink, so a county doesn't read as a stack of subheads.
+    return `500 ${nameSize(this.cam.k)}px ${this.sans}`
   }
 
   /**
@@ -2312,6 +2371,20 @@ export class MapView {
 
     // Every service's mark is an obstacle for every other service's figure.
     const tile = tileSize(this.cam.k)
+    // And every disc is one for every other disc's words: a name on a neighbour's rim reads as the neighbour's.
+    const discs = towns
+      ? services.map((n) => {
+          const [x, y] = this.toScreen(n.townX, n.townY)
+          return { id: n.piece.id, x, y, r: this.townScreenRadius(n) + 4 }
+        })
+      : []
+    const offDiscs = (id: string, rect: { x: number; y: number; w: number; h: number }) =>
+      discs.every((d) => {
+        if (d.id === id) return true
+        const nx = clamp(d.x, rect.x, rect.x + rect.w)
+        const ny = clamp(d.y, rect.y, rect.y + rect.h)
+        return Math.hypot(nx - d.x, ny - d.y) >= d.r
+      })
     if (!towns) {
       for (const n of services) {
         const [x, y] = this.toScreen(n.townX, n.townY)
@@ -2332,12 +2405,14 @@ export class MapView {
 
       if (towns) {
         const fits = w + 8 < r * 2
+        const left = x - w / 2
         if (fits) {
           placed = [x, y + 4, 'center', false]
         } else {
-          placed = [x, y + r + 13, 'center', false]
+          // Under its own disc, or over it where under would sit on a neighbour.
+          const under = { x: left - 2, y: y + r + 2, w: w + 4, h: 15 }
+          placed = offDiscs(n.piece.id, under) ? [x, y + r + 13, 'center', false] : [x, y - r - 6, 'center', false]
         }
-        const left = x - w / 2
         rects.push({ x: left - 2, y: placed[1] - 11, w: w + 4, h: 15 })
       } else {
         const gap = 6
@@ -2419,7 +2494,11 @@ export class MapView {
       if (towns) {
         const r = this.townScreenRadius(n)
         const below = f.y > r ? f.y + 13 : r + 13
-        candidates = [[x, y + below, 'center']]
+        const above = f.y < -r ? f.y - 15 : -r - 8
+        candidates = [
+          [x, y + below, 'center'],
+          [x, y + above, 'center'],
+        ]
       } else {
         candidates = [
           [fx, fy + 13, f.align],
@@ -2429,7 +2508,9 @@ export class MapView {
       for (const [cx, cy, align] of candidates) {
         const left = align === 'left' ? cx : align === 'right' ? cx - w : cx - w / 2
         const rect = { x: left - 1, y: cy - 9, w: w + 2, h: 12 }
-        if (free(rect)) {
+        // A name keeps a character's width from its neighbours, so two names never run together as one.
+        const roomy = { x: rect.x - 6, y: rect.y, w: rect.w + 12, h: rect.h }
+        if (free(roomy) && offDiscs(n.piece.id, rect)) {
           rects.push(rect)
           nextNames.set(n.piece.id, { id: n.piece.id, x: cx - x, y: cy - y, align, name: true })
           break
@@ -2544,7 +2625,8 @@ export class MapView {
     let shown = name
     // "L…" says nothing. A short name stays whole and runs a little long, and a long one keeps enough to recognise.
     // And a name that only just reaches a border stays whole: "Engineeri…" says less than a name touching a dashed line.
-    if (name.length > 8 && this.nameWidth(name) > room + 14) {
+    // A phone's land is coarse, and its counties narrow, so a name there may run further toward the border before it's cut.
+    if (name.length > 8 && this.nameWidth(name) > room + (this.w <= 720 ? 36 : 14)) {
       let lo = 6
       let hi = name.length - 1
       while (lo < hi) {
@@ -2568,7 +2650,7 @@ export class MapView {
       if (this.pendingSeal.has(gate)) return { ...none, tries: ['Can read until you update'], exposed: true }
       if (!this.data.pricesReadable.has(gate)) return { ...none, tries: ["Can't read"], sealed: true }
       // Money shows each service's name, plan and price, so "prices" alone would understate it. The area's panel spells it out.
-      return { ...none, family: 'lens-prices', tries: ["Can't read, except tool names and prices", 'Tool names and prices only', 'Names and prices only'], sealed: true }
+      return { ...none, family: 'lens-prices', tries: ["Can't read, except tool names and prices", 'Tool names and prices only', 'Tools and prices only'], sealed: true }
     }
     // Everyone's mark stays beside the warning. The words are about one fact, and the map may never understate who can read.
     const exposed = this.data.exposed.get(gate)
@@ -2578,13 +2660,12 @@ export class MapView {
       // Money lists every service's name and price, so an area of services is only closed apart from those.
       if (!this.data.pricesReadable.has(gate)) return { ...none, family: 'closed', tries: ['No one can read this', 'No readers'], sealed: true }
       // The same words live or not, and at every zoom: whether it's live is the top right's to say.
-      return { ...none, family: 'prices', tries: ['Tool names and prices only', 'Names and prices only', 'Names and prices'], sealed: true }
+      return { ...none, family: 'prices', tries: ['Tool names and prices only', 'Tools and prices only'], sealed: true }
     }
     const names = this.data.readers.get(gate) ?? []
     if (!names.length) return { ...none, tries: [''] }
-    // Until there's a copy online, nobody reads anything, so "Read by" would be wrong. It's who the area is for.
-    const live = this.data.live
-    const lead = live ? 'Read by' : 'For'
+    // Who the area is for, live or not: the sea and the top right say whether it's live, and one word for one fact keeps neighbours in step.
+    const lead = 'For'
     // One form for one fact across the whole map. A bare name under a county's name reads as a label for the county, so it's never that: where the line has no room the mark says who, alone.
     if (names.length === 1) return { ...none, family: 'readers', faces: names, tries: [`${lead} ${names[0]}`] }
     const shown = names.length === 2 ? `${names[0]} and ${names[1]}` : `${names[0]} and ${names.length - 1} others`
@@ -2653,8 +2734,9 @@ export class MapView {
     // Past a border or a coast it reads as the next county's, so where there are marks they say who, alone.
     // A warning to more than one keeps its words, short as they get, as it did before.
     if (faces.length === 1 || (faces.length > 1 && !exposed)) return { ...out, text: '' }
-    // A sealed line is never cut: half a warning under a seal reads as a broken one, so it stays whole, in its shortest form, and runs long.
-    if (sealed) return { ...out, text }
+    // A sealed line is never cut, and never runs into the next county: half a warning reads as a broken one, and one over a neighbour reads as theirs.
+    // Where even its shortest form has no room, it isn't said. The hatch, the vermilion name and the seal still say sealed.
+    if (sealed) return { ...out, text: '' }
     // With no marks, cut to nothing it would say nothing. Better it runs long.
     return { ...out, text: this.fitLine(text, font, this.neighbourRoom(t, x, y + 6, y + 23) - this.facesWidth(faces.length)) || text }
   }
@@ -2729,9 +2811,10 @@ export class MapView {
     const maxX = Math.max(...this.territories.map((t) => t.maxX))
     const minY = Math.min(...this.territories.map((t) => t.minY))
     const maxY = Math.max(...this.territories.map((t) => t.maxY))
-    const cx = (minX + maxX) / 2
-    const cy = (minY + maxY) / 2
-    const reach = Math.hypot(maxX - minX, maxY - minY) / 2 || 1
+    // From where the things on the land are, on average, so the first marks are the map's own and not whichever county touches the box's middle.
+    const cx = this.nodes.reduce((sum, n) => sum + n.tx, 0) / this.nodes.length
+    const cy = this.nodes.reduce((sum, n) => sum + n.ty, 0) / this.nodes.length
+    const reach = Math.max(Math.hypot(minX - cx, minY - cy), Math.hypot(maxX - cx, minY - cy), Math.hypot(minX - cx, maxY - cy), Math.hypot(maxX - cx, maxY - cy)) || 1
     this.survey = { start: now, cx, cy, reach }
     for (const n of this.nodes) {
       const d = clamp(Math.hypot(n.tx - cx, n.ty - cy) / reach, 0, 1)
@@ -2783,7 +2866,7 @@ export class MapView {
     // Ink spreads fast and then slows as it soaks in, and its edge is soft.
     const e = 1 - Math.pow(1 - spread, 2.4)
     // A front you can see move, not a fog: about 50 px of soft edge on screen.
-    const feather = Math.min(s.reach * 0.1, 56 / k)
+    const feather = Math.min(s.reach * 0.1, 56 / k, (0.06 * Math.min(this.w, this.h)) / k)
     const r = e * (s.reach * 1.08 + feather)
     const [cx, cy] = this.toScreen(s.cx, s.cy)
     sheet.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
@@ -3089,12 +3172,21 @@ export class MapView {
     const focus = this.hovered ?? this.selected
     // A line nobody asked about is noise. Links appear for the thing you're looking at, and only then.
     if (this.dollarOn || (!focus && !this.highlight)) return
+    // A few things picked out together, such as two that contradict each other, show what joins them. A whole area picked out is a place, not a question about its routes.
+    if (!focus && this.highlight && this.highlight.size > 4) return
+    // On a phone, a line to something off the screen or under the header leads nowhere you can see. The sheet lists what it's linked to.
+    const shown = (n: Node) => {
+      if (this.w > 720) return true
+      const [x, y] = this.toScreen(...this.displayPos(n))
+      return x > 0 && x < this.w && y > 0 && y < this.h && !this.cb.covers().some((c) => x > c.left && x < c.right && y > c.top && y < c.bottom)
+    }
     for (const l of this.data.links) {
       if (focus && !this.highlight && l.from !== focus && l.to !== focus) continue
       if (this.highlight && !(this.highlight.has(l.from) && this.highlight.has(l.to))) continue
       const a = this.byId.get(l.from)
       const b = this.byId.get(l.to)
       if (!a || !b) continue
+      if (!shown(a) || !shown(b)) continue
       const sealedA = this.seal.get(a.piece.gate) ?? 0
       const sealedB = this.seal.get(b.piece.gate) ?? 0
       const fade = (1 - sealedA) * (1 - sealedB)
@@ -3191,32 +3283,7 @@ export class MapView {
     const landRGB = hexToRgb(p.land)
     const quiet = `rgb(${inkRGB.map((v, i) => Math.round(lerp(landRGB[i], v, p.dark ? 0.62 : 0.56))).join(',')})`
     this.drawWashes(now, tile, icon)
-    // What needs you now glows through its land, so it survives shrinking the page.
-    for (const n of this.nodes) {
-      if (this.pinOf(n) !== 'now' || n.alpha < 0.01 || n.appear <= 0) continue
-      const [wx, wy] = this.displayPos(n)
-      const [x, y] = this.toScreen(wx, wy)
-      // Tight enough to stay on its own word, not a smudge across the next one's.
-      const r = clamp(30 * Math.sqrt(this.cam.k), 20, 38)
-      const land = this.territories.find((t) => t.gate === n.piece.gate)
-      ctx.save()
-      // It stays on its own land, because it's about this area and not the sea.
-      if (land) {
-        ctx.translate(this.cam.x, this.cam.y)
-        ctx.scale(this.cam.k, this.cam.k)
-        ctx.clip(land.coast)
-        ctx.clip(land.outer)
-        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
-      }
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, r)
-      glow.addColorStop(0, `rgba(${p.alertRGB},${0.36 * n.alpha * clamp(n.appear, 0, 1)})`)
-      glow.addColorStop(1, `rgba(${p.alertRGB},0)`)
-      ctx.fillStyle = glow
-      ctx.beginPath()
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.restore()
-    }
+    // What needs you now wears an amber badge, and the top line says it in amber. A glow as well was the one blur on a line drawing.
     for (const n of this.nodes) {
       if (n.alpha < 0.01) continue
       if (towns > 0.5 && n.cost) continue
@@ -3329,19 +3396,10 @@ export class MapView {
       const [wx, wy] = this.displayPos(n)
       const [x, y] = this.toScreen(wx, wy)
       ctx.globalAlpha = n.alpha * clamp(n.appear, 0, 1)
-      const r = pinRadius(level, k)
-      const tip = y - this.pinLift(n, k)
       const edge = this.groundOf(n.piece.gate)
-      // Zoomed out a pin's head alone stands in the row, as it does in the list of what needs you. A whole pin costs a row of land, and land is what's short here.
-      if (this.overview) {
-        const logo = n.piece.kind === 'service'
-        const size = logo ? tileSize(k) : iconSize(k)
-        const head = logo ? 5.5 : level === 'now' ? size * 0.56 : size * 0.5
-        drawPinHead(ctx, logo ? x - size / 2 : x, logo ? y - size / 2 : y, head, level === 'now' ? p.alert : p.ink, level === 'now' ? p.onAlert : p.land, edge, level === 'now' ? '!' : '?', this.sans)
-        continue
-      }
-      if (level === 'now') drawPin(ctx, x - n.tipX, tip, r, p.alert, p.onAlert, edge, '!', this.sans, n.lean)
-      else drawPin(ctx, x - n.tipX, tip, r, p.ink, p.land, edge, '?', this.sans, n.lean)
+      // A pin is a badge on what needs you, as it is in the list of what needs you: on a logo's corner, or in place of any other mark.
+      const b = this.badge(n, x, y, level)
+      drawPinHead(ctx, b.x, b.y, b.r, level === 'now' ? p.alert : p.ink, level === 'now' ? p.onAlert : p.land, edge, level === 'now' ? '!' : '?', this.sans)
     }
     ctx.globalAlpha = 1
   }
@@ -3643,9 +3701,7 @@ export class MapView {
       if (!level) continue
       const [wx, wy] = this.displayPos(n)
       const [sx, sy] = this.toScreen(wx, wy)
-      const r = pinRadius(level, k)
-      const hx = sx - n.tipX + Math.sin(n.lean) * r * PIN_REACH
-      const hy = sy - this.pinLift(n, k) - Math.cos(n.lean) * r * PIN_REACH
+      const { x: hx, y: hy, r } = this.badge(n, sx, sy, level)
       if (level === 'now') warm = true
       if (hx + r + 3 > x && hx - r < x + width && hy + r > y - 11 && hy - r < y + 3) dx = Math.max(dx, hx + r + 3 - x)
     }
@@ -3685,7 +3741,8 @@ export class MapView {
       ctx.globalAlpha = a
       ctx.font = this.figureFont(n)
       ctx.textAlign = l.align
-      ctx.fillStyle = trust === 'estimate' ? `rgba(${p.inkRGB},0.68)` : p.ink
+      // The ≈ already says it's an estimate. Grey as well only made the figures this view is for the hardest to read.
+      ctx.fillStyle = p.ink
       // A town's figure stands on its disc. A sounding's stands on the land.
       this.haloText(text, fx, fy, 3, towns ? p.land : this.groundOf(n.piece.gate))
 
@@ -3776,7 +3833,7 @@ export class MapView {
         }
         // A closed area someone can still read wears the same pin as anything else that needs you now.
         if (pinHere) {
-          if (besideName) drawPin(ctx, after + r, y + 2, r, p.alert, p.onAlert, ground, '!', this.sans)
+          if (besideName) drawPinHead(ctx, after + 9, y - 7, 9, p.alert, p.onAlert, ground, '!', this.sans)
           // Only its head on this line, or the rest of it stands up through the name above.
           else if (onLine) drawPinHead(ctx, lineEnd + 8, y + 13.5, 7, p.alert, p.onAlert, ground, '!', this.sans)
         }
@@ -3790,6 +3847,13 @@ export class MapView {
         ctx.fillStyle = `rgba(${p.inkRGB},0.72)`
         this.haloText(this.subtotalText(share.amount, this.subtotalsFit()), x, y + 16, 4, ground)
         ctx.globalAlpha = 1
+      } else if (priced > 0.01) {
+        // An area with no prices says so, in the top line's own words, so it doesn't read as free or as a glitch.
+        ctx.globalAlpha = EASE(priced)
+        ctx.font = `12px ${this.sans}`
+        ctx.fillStyle = `rgba(${p.inkRGB},0.5)`
+        this.haloText('No prices yet', x, y + 16, 4, ground)
+        ctx.globalAlpha = 1
       }
 
       // The wax mark lands on a closed gate.
@@ -3797,15 +3861,25 @@ export class MapView {
         const landed = this.sealLanded.get(t.gate)
         const age = landed ? (now - landed) / 340 : 1
         const land = this.reducedMotion ? 1 : EASE(clamp(age, 0, 1))
-        const waxSize = 44
+        // Beside the name, where the owner's view puts a seal too, so it's the same mark in the same place in both. Where the name leaves no room, at the end of the line under it.
+        // Only where neither has room, in the middle of the land, because there it can sit on the tools a reader still gets.
+        // It keeps to the map's scale, so a small map isn't buried under its seals.
+        const small = clamp(34 * Math.sqrt(this.cam.k / DESIGN_K), 22, 34)
+        const beside = this.landRoom(t, x, y - 15, y + 3) >= nameW + 14 + small
+        const noteEnd = x + this.noteWidth(note) + 10
+        const below = !beside && this.landRoom(t, x, y + 6, y + 23) >= this.noteWidth(note) + 10 + small
+        const waxSize = beside || below ? small : clamp(44 * Math.sqrt(this.cam.k / DESIGN_K), 26, 44)
         const scale = lerp(1.55, 1, land) * lerp(1.3, 1, this.sealPressed())
         const wax = this.waxSeal(waxSize)
-        const cx = (t.holds.minX + t.holds.maxX) / 2
-        const cy = (t.holds.minY + t.holds.maxY) / 2
-        const [sx, middle] = this.toScreen(cx, cy)
+        // Where the reader still sees its tools, the middle of what's on the land is among them, so it goes below them instead.
+        const shows = this.nodes.some((m) => m.piece.gate === t.gate && this.throughSeal(m))
+        const cx = shows ? (t.minX + t.maxX) / 2 : (t.holds.minX + t.holds.maxX) / 2
+        const cy = shows ? (t.holds.maxY + t.maxY) / 2 : (t.holds.minY + t.holds.maxY) / 2
+        const [mx, middle] = this.toScreen(cx, cy)
         // Below the name and the line under it, however little land there is to be in the middle of.
         const [, nameAt] = this.gateLabelPos(t)
-        const sy = Math.max(middle, nameAt + 24 + waxSize / 2)
+        const sx = beside ? x + nameW + 10 + waxSize / 2 : below ? noteEnd + waxSize / 2 : mx
+        const sy = beside ? y - 7 : below ? y + 12 : Math.max(middle, nameAt + 24 + waxSize / 2)
         const draw = waxSize * scale
         ctx.globalAlpha = Math.min(1, s * 2) * (landed ? land : s) * this.sealPressed()
         ctx.drawImage(wax, sx - draw / 2, sy - draw / 2, draw, draw)

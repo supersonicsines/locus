@@ -1,10 +1,11 @@
 // Top left: the company, and who can read its map. Pick a reader and the map shows what they see.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { pending } from '../../core/status.ts'
 import type { Password } from '../../core/types.ts'
 import { askFit, copy, createPassword, loadSample, newMap, setTheme, siteAddress, switchVault, tidyMap, toggleGateOnPassword } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
-import { Icon, plural, ReaderMark, useEscape } from './bits.tsx'
+import { Icon, NeedMark, plural, ReaderMark, useEscape } from './bits.tsx'
 import { areasOnMap, contentOf, NO_GATES, NO_PIECES, readersByArea } from './data.ts'
 
 function CompanyMenu({ close, done }: { close: () => void; done: () => void }) {
@@ -25,7 +26,7 @@ function CompanyMenu({ close, done }: { close: () => void; done: () => void }) {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, zIndex: 29 }} onClick={close} />
-      <div className="menu panel" style={{ top: 48, left: 0 }} role="menu">
+      <div className="menu panel" style={{ top: 53, left: 0, right: 0 }} role="menu">
         {!view && vault && (
           <>
             <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'rename' } }))}>
@@ -95,6 +96,9 @@ function ReaderRow({ pw, index, live, picked }: { pw: Password; index: number; l
   const panel = useStore((s) => s.panel)
   const on = lens === pw.id
   const count = gates.filter((g) => pw.gates.includes(g.id)).length
+  // Until you update, what you closed is still readable, so the row counts it: the map may never say a reader reads less than they do.
+  const still = vault ? (pending(vault).exposures.find((e) => e.who === pw.name && e.gates?.length && !e.message.includes('through the host'))?.gates ?? []) : []
+  const reads = count + gates.filter((g) => still.includes(g.id) && !pw.gates.includes(g.id)).length
 
   const pick = () => {
     if (on) setState({ lens: null, panel: panel === 'share' ? null : panel, agentView: false })
@@ -109,7 +113,10 @@ function ReaderRow({ pw, index, live, picked }: { pw: Password; index: number; l
       <button className="reader-row" aria-expanded={on} onClick={pick}>
         <ReaderMark name={pw.name} index={index} size={22} />
         <span className="reader-name">{pw.name}</span>
-        <span className="reader-count" title={count ? `${count} of ${plural(gates.length, 'area')}` : undefined}>{count ? `${count} of ${gates.length}` : 'Nothing yet'}</span>
+        <span className="reader-count" title={reads > count ? `${reads} of ${plural(gates.length, 'area')} until you update, then ${count}` : count ? `${count} of ${plural(gates.length, 'area')}` : undefined}>
+          {reads > count && <NeedMark level="now" />}
+          {reads ? `${reads} of ${gates.length}` : 'Nothing yet'}
+        </span>
       </button>
       {on && (
         <div className="reader-more">
@@ -252,6 +259,10 @@ export function Left() {
   useEffect(() => {
     setOpenOnPhone(false)
   }, [folded])
+  // In a narrow window the open card stands over the map's west, so the map moves over beside it rather than under it.
+  useEffect(() => {
+    setState({ cardOpen: openOnPhone })
+  }, [openOnPhone])
 
   return (
     <div ref={box} className={`left panel ${openOnPhone ? 'is-open' : ''} ${folded ? 'is-folded' : ''}`}>
@@ -285,7 +296,7 @@ export function Left() {
       </div>
       {menu && <CompanyMenu close={() => setMenu(false)} done={() => setOpenOnPhone(false)} />}
       {/* On a phone, picking someone puts the card away: the map is what you came to see, and the sheet below it holds the rest. */}
-      {readOnly ? <ReaderAreas /> : <Readers picked={() => (window.innerWidth <= 980 || folded) && setOpenOnPhone(false)} />}
+      {readOnly ? <ReaderAreas /> : <Readers picked={() => (window.innerWidth <= 720 || folded) && setOpenOnPhone(false)} />}
     </div>
   )
 }

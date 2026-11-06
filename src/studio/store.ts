@@ -73,6 +73,8 @@ export interface State {
   agentView: boolean
   cmdk: boolean
   uiHidden: boolean
+  /** The card is open over the map in a narrow window, so the map makes room for it. */
+  cardOpen: boolean
   theme: 'light' | 'dark'
   toasts: Toast[]
   shred: ShredProgress | null
@@ -119,6 +121,7 @@ let state: State = {
   agentView: false,
   cmdk: false,
   uiHidden: false,
+  cardOpen: false,
   theme: initialTheme(),
   toasts: [],
   shred: null,

@@ -132,7 +132,13 @@ export function NeedActions({ need }: { need: Need }) {
 
 /** What stands for an item in a list: a service's mark, or any other item's picture. */
 export function PieceMark({ kind, name, size = 14 }: { kind: PieceKind; name: string; size?: number }) {
-  return kind === 'service' ? <ServiceMark name={name} size={Math.max(size + 4, 16)} /> : <Symbol kind={kind} size={size} />
+  // A logo's tile is wider than a kind's icon, so each stands in a box of one width and every name in a list starts on one edge.
+  const box = Math.max(size + 4, 16)
+  return (
+    <span className="piece-mark" style={{ width: box }}>
+      {kind === 'service' ? <ServiceMark name={name} size={box} /> : <Symbol kind={kind} size={size} />}
+    </span>
+  )
 }
 
 /** A textarea that fits its content, for Notion-style editing in place. */
