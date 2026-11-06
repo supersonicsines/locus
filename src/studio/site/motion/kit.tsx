@@ -5,7 +5,7 @@
 // every part runs one Web Animation over the same cycle, starting when the graphic scrolls into view and pausing when it leaves.
 // Only transform and opacity move. No script or style element is written into the page, so the strict CSP holds.
 
-import { useId, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 export const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)'
 export const EASE_IN_OUT = 'cubic-bezier(0.65, 0, 0.35, 1)'
@@ -110,17 +110,23 @@ export function useMotion<T extends Element>(build: (root: T) => (Animation | nu
     if (!parts.length) return
     // Built paused at the start, so nothing runs until it's seen, and what's seen first is the beginning.
     parts.forEach((a) => a.pause())
+    // It starts once most of it is in view, so its opening beats aren't spent at the bottom edge of the window, and pauses once it's gone.
+    let playing = false
     const watch = new IntersectionObserver(
       ([seen]) => {
-        if (seen.isIntersecting) {
+        if (seen.intersectionRatio >= 0.65 && !playing) {
+          playing = true
           const t = parts[0].currentTime ?? 0
           parts.forEach((a) => {
             a.currentTime = t
             a.play()
           })
-        } else parts.forEach((a) => a.pause())
+        } else if (!seen.isIntersecting && playing) {
+          playing = false
+          parts.forEach((a) => a.pause())
+        }
       },
-      { threshold: 0.3 },
+      { threshold: [0, 0.65] },
     )
     watch.observe(root)
     return () => {
@@ -146,9 +152,9 @@ export const $$ = <E extends Element = SVGElement>(root: Element, sel: string) =
 export const W = 480
 export const H = 300
 
-export function Plate({ name, label, children, className = '', reff }: { name: string; label: string; children: ReactNode; className?: string; reff: React.RefObject<SVGSVGElement | null> }) {
+export function Plate({ name, label, children, className = '', reff, viewBox = `0 0 ${W} ${H}` }: { name: string; label: string; children: ReactNode; className?: string; reff: React.RefObject<SVGSVGElement | null>; viewBox?: string }) {
   return (
-    <svg ref={reff} className={`mg ${className}`} data-mg={name} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} preserveAspectRatio="xMidYMid meet">
+    <svg ref={reff} className={`mg ${className}`} data-mg={name} viewBox={viewBox} role="img" aria-label={label} preserveAspectRatio="xMidYMid meet">
       {children}
     </svg>
   )
@@ -236,12 +242,10 @@ export function Wax({ size = 16 }: { size?: number }) {
 }
 
 /** The pointer, with its tip at (0, 0). The inner group is what presses. */
-export function Pointer() {
+export function Pointer({ k = 1 }: { k?: number }) {
   return (
-    <g className="mg-pointer">
-      <g className="mg-press">
-        <path d="M0 0V13.2L3.4 10.1 5.8 15.4 8.1 14.4 5.8 9.2H10.3Z" />
-      </g>
+    <g className="mg-pointer" transform={k === 1 ? undefined : `scale(${k})`}>
+      <path d="M0 0V13.2L3.4 10.1 5.8 15.4 8.1 14.4 5.8 9.2H10.3Z" />
     </g>
   )
 }
@@ -381,7 +385,11 @@ export interface Item {
 }
 
 export interface Tool {
+  id: string
+  /** Its monogram. Never a logo. */
   letter: string
+  /** Meridian's own tools, as the sample company has them. */
+  name: string
   x: number
   y: number
   /** A month, in dollars. */
@@ -394,16 +402,16 @@ export interface County {
   id: keyof typeof LAND.shapes & string
   name: string
   x: number
+  /** The name's baseline. */
   y: number
   items: Item[]
   tools: Tool[]
 }
 
-export const NAME_SIZE = 14.5
-export const ITEM_SIZE = 9.2
 export const CW = 0.6
 
-export const COUNTIES: County[] = [
+/** Meridian as a laptop shows it: three items to an area, small type, tiles beside them. */
+const COUNTIES_WIDE: County[] = [
   {
     id: 'brand',
     name: 'Brand',
@@ -414,7 +422,7 @@ export const COUNTIES: County[] = [
       { kind: 'rule', label: 'No jargon', x: 52, y: 138 },
       { kind: 'fact', label: 'Tagline', x: 52, y: 154 },
     ],
-    tools: [{ letter: 'D', x: 140, y: 126, price: 64, disc: [124, 134] }],
+    tools: [{ id: 'figma', letter: 'F', name: 'Figma', x: 140, y: 126, price: 64, disc: [124, 134] }],
   },
   {
     id: 'product',
@@ -427,8 +435,8 @@ export const COUNTIES: County[] = [
       { kind: 'decision', label: 'No native app', x: 182, y: 152 },
     ],
     tools: [
-      { letter: 'N', x: 286, y: 118, price: 132, disc: [236, 128] },
-      { letter: 'L', x: 286, y: 140, price: 80, disc: [278, 146] },
+      { id: 'notion', letter: 'N', name: 'Notion', x: 286, y: 118, price: 132, disc: [236, 128] },
+      { id: 'linear', letter: 'L', name: 'Linear', x: 286, y: 140, price: 80, disc: [278, 146] },
     ],
   },
   {
@@ -442,9 +450,9 @@ export const COUNTIES: County[] = [
       { kind: 'rule', label: 'Tests first', x: 332, y: 152 },
     ],
     tools: [
-      { letter: 'A', x: 432, y: 114, price: 1180, disc: [392, 138] },
-      { letter: 'V', x: 432, y: 134, price: 148, disc: [430, 108] },
-      { letter: 'S', x: 432, y: 154, price: 58, disc: [434, 148] },
+      { id: 'anthropic', letter: 'A', name: 'Anthropic', x: 432, y: 114, price: 1180, disc: [392, 138] },
+      { id: 'vercel', letter: 'V', name: 'Vercel', x: 432, y: 134, price: 148, disc: [438, 121] },
+      { id: 'sentry', letter: 'S', name: 'Sentry', x: 432, y: 154, price: 58, disc: [434, 148] },
     ],
   },
   {
@@ -469,8 +477,8 @@ export const COUNTIES: County[] = [
       { kind: 'spec', label: 'Hiring plan', x: 202, y: 248 },
     ],
     tools: [
-      { letter: 'W', x: 300, y: 230, price: 154, disc: [230, 250] },
-      { letter: 'P', x: 300, y: 252, price: 115, disc: [279, 256] },
+      { id: 'google', letter: 'G', name: 'Google Workspace', x: 300, y: 230, price: 154, disc: [230, 250] },
+      { id: 'deel', letter: 'D', name: 'Deel', x: 300, y: 252, price: 98, disc: [279, 256] },
     ],
   },
   {
@@ -484,11 +492,64 @@ export const COUNTIES: County[] = [
       { kind: 'fact', label: 'Runway', x: 342, y: 262 },
     ],
     tools: [
-      { letter: 'B', x: 432, y: 228, price: 1240, disc: [388, 250] },
-      { letter: 'X', x: 432, y: 252, price: 59, disc: [434, 226] },
+      { id: 'stripe', letter: 'S', name: 'Stripe', x: 432, y: 228, price: 1240, disc: [388, 250] },
+      { id: 'xero', letter: 'X', name: 'Xero', x: 432, y: 252, price: 59, disc: [434, 226] },
     ],
   },
 ]
+
+/** Meridian on a phone: the same land, two items to an area in words large enough to read, and the tiles that fit. */
+const NARROW_PLACES: Record<string, { y: number; items: Item[]; tools: Record<string, [number, number]> }> = {
+  brand: { y: 90, items: [{ kind: 'rule', label: 'Voice', x: 50, y: 128 }, { kind: 'rule', label: 'No jargon', x: 50, y: 149 }], tools: { figma: [146, 112] } },
+  product: { y: 88, items: [{ kind: 'spec', label: 'Roadmap', x: 182, y: 126 }, { kind: 'spec', label: 'Onboarding', x: 182, y: 147 }], tools: { notion: [292, 110], linear: [292, 130] } },
+  engineering: { y: 88, items: [{ kind: 'spec', label: 'API rules', x: 332, y: 126 }, { kind: 'fact', label: 'Deploy', x: 332, y: 147 }], tools: { anthropic: [438, 124], vercel: [438, 146] } },
+  legal: { y: 198, items: [{ kind: 'contract', label: 'Terms', x: 60, y: 236 }, { kind: 'clause', label: 'Liability', x: 60, y: 257 }], tools: {} },
+  people: { y: 200, items: [{ kind: 'doc', label: 'Handbook', x: 202, y: 238 }, { kind: 'spec', label: 'Hiring plan', x: 202, y: 259 }], tools: { google: [306, 214], deel: [306, 236] } },
+  money: { y: 198, items: [{ kind: 'decision', label: 'Pricing', x: 342, y: 236 }, { kind: 'fact', label: 'Revenue', x: 342, y: 257 }], tools: { stripe: [436, 226], xero: [430, 254] } },
+}
+
+const COUNTIES_NARROW: County[] = COUNTIES_WIDE.map((c) => {
+  const n = NARROW_PLACES[c.id]
+  return {
+    ...c,
+    y: n.y,
+    items: n.items,
+    tools: c.tools.flatMap((t) => (n.tools[t.id] ? [{ ...t, x: n.tools[t.id][0], y: n.tools[t.id][1] }] : [])),
+  }
+})
+
+/** How the map's words and marks are sized, for the width the graphic is shown at. */
+export interface Look {
+  narrow: boolean
+  name: number
+  sub: number
+  /** How far under a county's name its second line sits. */
+  subDy: number
+  item: number
+  glyph: number
+  tile: number
+  pointer: number
+  wax: number
+  counties: County[]
+  /** The island's own crop, without the empty sea round it on a phone. */
+  viewBox: string
+}
+
+export const WIDE: Look = { narrow: false, name: 14.5, sub: 9, subDy: 13, item: 9.2, glyph: 9, tile: 11, pointer: 1, wax: 15, counties: COUNTIES_WIDE, viewBox: `0 0 ${W} ${H}` }
+export const NARROW: Look = { narrow: true, name: 17, sub: 13.5, subDy: 16, item: 13.5, glyph: 12, tile: 16, pointer: 1.3, wax: 19, counties: COUNTIES_NARROW, viewBox: '14 4 452 292' }
+
+/** Phones get the narrow look: nothing written on a graphic is under 11 CSS pixels there. Read once, as the graphic is first drawn. */
+export function useNarrow(): boolean {
+  const [narrow] = useState(() => typeof matchMedia === 'function' && matchMedia('(max-width: 720px)').matches)
+  return narrow
+}
+
+export function useLook(): Look {
+  return useNarrow() ? NARROW : WIDE
+}
+
+/** All of Meridian's tools, wherever they stand. */
+export const TOOLS = COUNTIES_WIDE.flatMap((c) => c.tools.map((t) => ({ ...t, county: c.id })))
 
 export const discRadius = (price: number) => 6 + 1.9 * Math.sqrt(price / 10)
 export const money = (n: number) => `$${n.toLocaleString('en-US')}`
@@ -496,16 +557,20 @@ export const money = (n: number) => `$${n.toLocaleString('en-US')}`
 /** One county's land, for laying a sealed look over. */
 export const shapeOf = (id: string) => LAND.shapes[id]
 
+/** Where an item's label ends, for what stands after it. */
+export const itemEnd = (look: Look, it: Item) => it.x + look.glyph + 4.5 + it.label.length * look.item * CW
+
 /** The island: land, dashed borders, and optionally the names, items and tiles of each county, each tagged so a graphic can move it. */
-export function Island({ names = true, items = true, labels = true, tools = true, extra, off, nameSize = NAME_SIZE, itemsOff = false }: { names?: boolean; items?: boolean; labels?: boolean; tools?: boolean; extra?: (c: County) => ReactNode; off?: Set<string>; nameSize?: number; itemsOff?: boolean }) {
+export function Island({ look, names = true, items = true, tools = true, extra, off, nameSize, itemsOff = false }: { look: Look; names?: boolean; items?: boolean; tools?: boolean; extra?: (c: County) => ReactNode; off?: Set<string>; nameSize?: number; itemsOff?: boolean }) {
+  const g = look.glyph
   return (
     <g className="mg-island">
       <path className="mg-land" data-land="" d={LAND.land} />
       <path className="mg-border" data-borders="" d={LAND.borders} />
-      {COUNTIES.map((c) => (
+      {look.counties.map((c) => (
         <g key={c.id} data-county={c.id}>
           {names && (
-            <text className="mg-name" data-name={c.id} x={c.x} y={c.y} fontSize={nameSize} data-off={off?.has(c.id) ? '' : undefined}>
+            <text className="mg-name" data-name={c.id} x={c.x} y={c.y} fontSize={nameSize ?? look.name} data-off={off?.has(c.id) ? '' : undefined}>
               {c.name}
             </text>
           )}
@@ -514,22 +579,20 @@ export function Island({ names = true, items = true, labels = true, tools = true
             c.items.map((it, i) => (
               <g key={i} transform={`translate(${it.x} ${it.y})`}>
                 <g className="mg-item" data-item={`${c.id}-${i}`} data-county-of={c.id} data-off={itemsOff || off?.has(c.id) ? '' : undefined}>
-                  <g transform={`translate(4.5 -3)`}>
-                    <Glyph kind={it.kind} size={9} />
+                  <g transform={`translate(${g / 2} ${-g / 3})`}>
+                    <Glyph kind={it.kind} size={g} />
                   </g>
-                  {labels && (
-                    <text x={13} y={0} fontSize={ITEM_SIZE}>
-                      {it.label}
-                    </text>
-                  )}
+                  <text x={g + 4.5} y={0} fontSize={look.item}>
+                    {it.label}
+                  </text>
                 </g>
               </g>
             ))}
           {tools &&
             c.tools.map((t) => (
-              <g key={t.letter} transform={`translate(${t.x} ${t.y})`}>
-                <g className="mg-tool" data-tool={t.letter} data-county-of={c.id} data-off={off?.has(c.id) ? '' : undefined}>
-                  <Tile letter={t.letter} />
+              <g key={t.id} transform={`translate(${t.x} ${t.y})`}>
+                <g className="mg-tool" data-tool={t.id} data-county-of={c.id} data-off={off?.has(c.id) ? '' : undefined}>
+                  <Tile letter={t.letter} size={look.tile} />
                 </g>
               </g>
             ))}
@@ -540,4 +603,4 @@ export function Island({ names = true, items = true, labels = true, tools = true
 }
 
 /** Where a county's name ends, so a seal can be pressed beside it. */
-export const nameEnd = (c: County) => c.x + c.name.length * NAME_SIZE * CW
+export const nameEnd = (look: Look, c: County) => c.x + c.name.length * look.name * CW

@@ -87,6 +87,8 @@ const MIME: Record<string, string> = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
   '.json': 'application/json',
+  // The security policy and the self-hosting guide, readable in a browser as they are.
+  '.md': 'text/plain; charset=utf-8',
   '.map': 'application/json',
   '.txt': 'text/plain; charset=utf-8',
   '.wasm': 'application/wasm',

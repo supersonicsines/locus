@@ -88,6 +88,8 @@ export interface MapCallbacks {
   gateHover(id: string | null): void
   pieceMoved(id: string, x: number, y: number, gate: string | null): void
   cameraChanged(k: number, fitK: number): void
+  /** Close in, the area under the middle of the screen while its own name is out of sight, or null. */
+  whereChanged?(name: string | null): void
   /** What floats over the map right now, so names don't go under it. */
   covers(): { left: number; top: number; right: number; bottom: number }[]
   /** Everything floating over the map, panels and the top line as well as what `covers` lists. */
@@ -257,12 +259,14 @@ const closeUp = (k: number) => Math.max(1, Math.sqrt(k / 0.85))
  */
 const NAME_MAX = 22
 const SUB_MAX = 18
+/** Past 4×, when every item near you is whole, the last stretch magnifies everything together, up to twice its size at the closest. */
+const magnify = (k: number) => clamp(k / 4, 1, 2)
 
 /** A service's tile on the map, in screen pixels. It grows slowly with zoom, and stops at sizes a logo can still be read at, until you come close. */
-const tileSize = (k: number) => Math.round(clamp(25 * Math.sqrt(k), 15, 30) * clamp(Math.sqrt(k / 1.44), 1, 56 / 30))
+const tileSize = (k: number) => Math.round(clamp(25 * Math.sqrt(k), 15, 30) * clamp(Math.sqrt(k / 1.44), 1, 56 / 30) * magnify(k))
 
 /** Any other item's picture, in screen pixels. */
-const iconSize = (k: number) => Math.round(clamp(19.5 * Math.sqrt(k), 14, 20) * clamp(Math.sqrt(k / 1.05), 1, 2))
+const iconSize = (k: number) => Math.round(clamp(19.5 * Math.sqrt(k), 14, 20) * clamp(Math.sqrt(k / 1.05), 1, 2) * magnify(k))
 const LABEL_LEADING = 15
 /** What the face draws itself, at 0.6 em a character: Latin, its punctuation, and the euro. */
 const MONO_SAFE = /^[\u0020-\u017f\u2010-\u2027\u20ac]*$/
@@ -271,10 +275,10 @@ const AREA_NAME_WEIGHT = 500
 const AREA_NAME_TRACK = 0.035
 
 /** Names step down a size just before the map gathers them up, which gives a laptop's whole-map view room for every one. */
-const nameSize = (k: number) => (k < DESIGN_K * 0.92 ? 11 : Math.min(NAME_MAX, Math.round(12 * closeUp(k) * 4) / 4))
+const nameSize = (k: number) => (k < DESIGN_K * 0.92 ? 11 : Math.round(Math.min(NAME_MAX, 12 * closeUp(k)) * magnify(k) * 4) / 4)
 const leadingAt = (k: number) => (nameSize(k) < 11.5 ? 13 : Math.round((LABEL_LEADING * nameSize(k)) / 12))
 /** An item's one line under its name, and the words of what's in it once the map is close enough to read them. */
-const subSize = (k: number) => Math.min(SUB_MAX, Math.round(10.5 * closeUp(k) * 4) / 4)
+const subSize = (k: number) => Math.round(Math.min(SUB_MAX, 10.5 * closeUp(k)) * magnify(k) * 4) / 4
 /** From here an item's summary is said whole, over as many lines as it takes. */
 const READ_LINES_K = 1.6
 /** From here an item shows what's in it, under its name, as much as there's room for before the next one. */
@@ -975,66 +979,33 @@ export class MapView {
 
   /**
    * Close in, a county's name is a long way off, at its top left, and you can be deep in its land with nothing saying whose it is.
-   * Then its name waits at the top left of the map, small and quiet, as a design tool keeps a frame's name in view. Only one, only
-   * while the county under the middle of the screen has its own name out of sight.
+   * Then the zoom pill says it, as a design tool keeps a frame's name in view: the county under the middle of the screen, judged
+   * against its borders as they're drawn, and only while its own name is off the screen or wholly under something floating.
    */
-  private drawWhereYouAre() {
-    if (this.far > 0 || this.cam.k < DETAIL_K) return
+  private whereNow(): string | null {
+    if (this.far > 0 || this.cam.k < DETAIL_K || !this.territories.length) return null
     const [wx, wy] = this.toWorld(this.w / 2, this.h / 2)
-    const gate = this.gateAt(wx, wy)
-    const t = gate ? this.territories.find((o) => o.gate === gate) : null
-    const name = gate ? this.data.gates.find((g) => g.id === gate)?.name ?? '' : ''
-    if (!t || !gate || !name) return
-    // Out of sight means its own name is off the screen, or wholly under something floating. A name on screen is never said twice.
+    const probe = (this.probe ??= document.createElement('canvas').getContext('2d')!)
+    const t = this.territories.find((o) => probe.isPointInPath(o.outer, wx, wy) && probe.isPointInPath(this.land!.coast, wx, wy))
+    const name = t ? this.data.gates.find((g) => g.id === t.gate)?.name ?? '' : ''
+    if (!t || !name) return null
     const overlays = this.cb.overlays()
     const [nx, ny] = this.gateLabelPos(t)
-    const size = this.gateLabelSize()
-    const own = { left: nx, right: nx + this.nameWidth(this.shownName(t)), top: ny - size, bottom: ny + 4 }
+    const own = { left: nx, right: nx + this.nameWidth(this.shownName(t)), top: ny - this.gateLabelSize(), bottom: ny + 4 }
     const off = own.right < 0 || own.left > this.w || own.bottom < 0 || own.top > this.h
     const covered = overlays.some((o) => own.left >= o.left && own.right <= o.right && own.top >= o.top && own.bottom <= o.bottom)
-    if (!off && !covered) return
-    // Where: on the county's own land, as near the top left of the map as it can be, under whatever floats there. Nowhere, if its land isn't up there.
-    const key = `${gate}|${Math.round(this.cam.x)}|${Math.round(this.cam.y)}|${this.cam.k.toFixed(4)}|${this.w}|${this.h}`
-    if (this.whereSpot?.key !== key) {
-      const font = `${AREA_NAME_WEIGHT} 13px ${this.sans}`
-      const wide = this.textW(name, font)
-      const left = this.w <= 720 ? 16 : this.safeLeft()
-      const top = Math.max(0, ...overlays.filter((o) => o.left < left + 220 && o.right > left && o.top < this.h / 2).map((o) => o.bottom)) + 20
-      const mine = (sx: number, sy: number) => {
-        const [ax, ay] = this.toWorld(sx, sy)
-        return this.gateAt(ax, ay) === gate
-      }
-      let spot: { x: number; y: number } | null = null
-      for (let dy = 0; dy <= 160 && !spot; dy += 8) {
-        for (let dx = 0; dx <= 320; dx += 8) {
-          const x = left + dx
-          const y = top + dy
-          if (mine(x - 4, y - 5) && mine(x + wide / 2, y - 5) && mine(x + wide + 4, y - 5) && mine(x + wide / 2, y - 14)) {
-            spot = { x, y }
-            break
-          }
-        }
-      }
-      this.whereSpot = { key, spot }
-    }
-    const spot = this.whereSpot.spot
-    if (!spot) return
-    const ctx = this.ctx
-    const p = this.palette!
-    const sealed = (this.seal.get(gate) ?? 0) > 0.5 && !this.pendingSeal.has(gate)
-    ctx.save()
-    ctx.font = `${AREA_NAME_WEIGHT} 13px ${this.sans}`
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'alphabetic'
-    ctx.lineJoin = 'round'
-    ctx.lineWidth = 4
-    ctx.strokeStyle = sealed ? p.sealedLand : this.groundOf(gate)
-    ctx.strokeText(name, spot.x, spot.y)
-    ctx.fillStyle = sealed ? p.vermilionInk : `rgba(${p.inkRGB},0.62)`
-    ctx.fillText(name, spot.x, spot.y)
-    ctx.restore()
+    return off || covered ? name : null
   }
-  private whereSpot: { key: string; spot: { x: number; y: number } | null } | null = null
+  private probe: CanvasRenderingContext2D | null = null
+  private countySpots = new Map<string, { x: number; y: number; size: number } | null>()
+  private whereSaid: string | null = null
+
+  /** Whether a zoom is as far out or as close in as the map goes, for the pill's buttons. */
+  zoomEdge(k: number): 'floor' | 'cap' | null {
+    if (k <= this.clampZoom(0) * 1.001) return 'floor'
+    if (k >= MAX_K * 0.999) return 'cap'
+    return null
+  }
 
   /**
    * The middle far form: each county's name alone, small, in the middle of what's on it. A name wider than its county is left out
@@ -1045,10 +1016,7 @@ export class MapView {
     if (shown <= 0.01) return
     const ctx = this.ctx
     const p = this.palette!
-    const size = 13
-    const font = `${AREA_NAME_WEIGHT} ${size}px ${this.sans}`
     ctx.save()
-    ctx.font = font
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.lineJoin = 'round'
@@ -1062,24 +1030,44 @@ export class MapView {
       if (!name) continue
       const box = t.holds.maxX > t.holds.minX ? t.holds : t
       const [cx, cy] = this.toScreen((box.minX + box.maxX) / 2, (box.minY + box.maxY) / 2)
-      const w = this.textW(name, font)
-      // On its own land at both ends and the middle, and clear of every dot, or a little up, down or across; failing all of those, left out.
+      const [bx0, by0] = this.toScreen(t.minX, t.minY)
+      const [bx1, by1] = this.toScreen(t.maxX, t.maxY)
       const mine = (sx: number, sy: number) => {
         const [ax, ay] = this.toWorld(sx, sy)
         return t.onLand(ax, ay)
       }
-      const clear = (x: number, y: number) =>
-        mine(x - w / 2 - 2, y) && mine(x, y) && mine(x + w / 2 + 2, y) && dots.every((d) => d.x < x - w / 2 - 6 || d.x > x + w / 2 + 6 || Math.abs(d.y - y) > 11)
-      const at = [[0, 0], [0, 17], [0, -17], [-w / 4, 0], [w / 4, 0]].map(([dx, dy]) => [cx + dx, cy + dy]).find(([x, y]) => clear(x, y))
-      if (!at) continue
-      const [x, y] = at
+      // On its own land at both ends and the middle, a little above and below its middle too, and clear of every dot. Searched from the
+      // middle of what's on the county outwards, in 4 px steps; at 13 px, then at 11; and left out only if neither fits anywhere.
+      const key = `${t.gate}|${this.cam.k.toFixed(5)}|${Math.round(this.cam.x)}|${Math.round(this.cam.y)}|${dots.length}|${name}`
+      let found = this.countySpots.get(key)
+      if (found === undefined) {
+        found = null
+        for (const size of [13, 11]) {
+          const w = this.textW(name, `${AREA_NAME_WEIGHT} ${size}px ${this.sans}`)
+          const clear = (x: number, y: number) =>
+            [-5, 0, 5].every((dy) => mine(x - w / 2 - 2, y + dy) && mine(x, y + dy) && mine(x + w / 2 + 2, y + dy)) &&
+            dots.every((d) => d.x < x - w / 2 - 7 || d.x > x + w / 2 + 7 || Math.abs(d.y - y) > 12)
+          const spots: [number, number][] = []
+          for (let y = by0 + 8; y <= by1 - 8; y += 4) for (let x = bx0 + w / 2; x <= bx1 - w / 2; x += 4) spots.push([x, y])
+          spots.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy))
+          const at = spots.find(([x, y]) => clear(x, y))
+          if (at) {
+            found = { x: at[0], y: at[1], size }
+            break
+          }
+        }
+        // Asked for every frame, so kept until the camera or what's on the county changes.
+        if (this.countySpots.size > 200) this.countySpots.clear()
+        this.countySpots.set(key, found)
+      }
+      if (!found) continue
       const sealed = (this.seal.get(t.gate) ?? 0) > 0.5 && !this.pendingSeal.has(t.gate)
-      const ground = sealed ? p.sealedLand : this.groundOf(t.gate)
+      ctx.font = `${AREA_NAME_WEIGHT} ${found.size}px ${this.sans}`
       ctx.globalAlpha = shown
-      ctx.strokeStyle = ground
-      ctx.strokeText(name, x, y)
+      ctx.strokeStyle = sealed ? p.sealedLand : this.groundOf(t.gate)
+      ctx.strokeText(name, found.x, found.y)
       ctx.fillStyle = sealed ? p.vermilionInk : p.ink
-      ctx.fillText(name, x, y)
+      ctx.fillText(name, found.x, found.y)
     }
     ctx.restore()
   }
@@ -1346,9 +1334,10 @@ export class MapView {
 
   private clampZoom(k: number) {
     // Far past the whole map, where the company is a speck with its name beside it. What's on the land gives way as it goes (see far()), so nothing lands on anything.
-    // Never so far that the island is a speck: at least 120 px across, which on a phone comes before a tenth of the whole map does.
-    const span = this.landSpan() / this.cam.k
-    const floor = Math.max(MIN_K, Math.min(this.fitK, this.overlayK) / OUT_PAST_FIT, Number.isFinite(span) && span > 0 ? 120 / span : 0)
+    // Never so far that the island is a speck: at least 120 px on its shorter side, which on a phone comes before a tenth of the whole map does.
+    const b = this.landBox()
+    const side = b ? Math.min(b.maxX - b.minX, b.maxY - b.minY) : 0
+    const floor = Math.max(MIN_K, Math.min(this.fitK, this.overlayK) / OUT_PAST_FIT, side > 0 ? 120 / side : 0)
     return clamp(k, floor, MAX_K)
   }
 
@@ -1402,7 +1391,13 @@ export class MapView {
     return this.travelled(n, x, y)
   }
 
+  /** What the pointer is on: an item's mark first, then its words. */
   private hitNode(sx: number, sy: number): Node | null {
+    return this.hitMark(sx, sy) ?? this.hitName(sx, sy)
+  }
+
+  /** An item's mark, logo tile or pin head: the part that's a handle. Words are something to click, and to drag the map past. */
+  private hitMark(sx: number, sy: number): Node | null {
     // Far out, the island is one thing: pressing it brings the whole map back.
     if (this.far >= 0.6) return null
     let best: Node | null = null
@@ -1434,12 +1429,11 @@ export class MapView {
         bestD = d
       }
     }
-    return best ?? this.hitName(sx, sy)
+    return best
   }
 
   /** A name reads as the thing itself, so it answers as the thing does. Without this, clicking the word Stripe opened the area it stands in. */
   private hitName(sx: number, sy: number): Node | null {
-    if (this.dollarOn) return null
     for (const l of this.labels) {
       if (l.alpha < 0.5 || l.align !== 'left') continue
       const n = this.byId.get(l.id)
@@ -1558,16 +1552,18 @@ export class MapView {
     }
 
     const middle = e.button === 1
-    const hit = !this.spaceDown && !middle ? this.hitNode(x, y) : null
+    const mark = !this.spaceDown && !middle ? this.hitMark(x, y) : null
+    const hit = mark ?? (!this.spaceDown && !middle ? this.hitName(x, y) : null)
     // Zoomed out, things stand in a line and not where they live, so there's nowhere meaningful to drag them from.
     // On a touch screen a finger on the map is moving the map. Arranging things is for a pointer: a phone has no room to do it and every chance of doing it by accident.
     this.pressed = hit?.piece.id ?? null
     if (this.pressed) this.invalidate()
-    if (hit && !this.data.readOnly && !this.overview && e.pointerType !== 'touch') {
+    // Only a mark is a handle. Close in, words cover most of the land, and a drag that starts on them is someone moving the map.
+    if (mark && !this.data.readOnly && !this.overview && e.pointerType !== 'touch') {
       this.cb.itemHover?.(null, 0, 0)
       // It stays where you took hold of it, or it jumps to the pointer on the first move. By its name, that's a long way.
       const [gx, gy] = this.toWorld(x, y)
-      this.drag = { kind: 'piece', id: hit.piece.id, sx: x, sy: y, moved: false, lastX: x, lastY: y, ox: gx - hit.tx, oy: gy - hit.ty }
+      this.drag = { kind: 'piece', id: mark.piece.id, sx: x, sy: y, moved: false, lastX: x, lastY: y, ox: gx - mark.tx, oy: gy - mark.ty }
     } else if (hit) {
       this.drag = { kind: 'pan', id: hit.piece.id, sx: x, sy: y, moved: false, lastX: x, lastY: y }
     } else {
@@ -1808,6 +1804,8 @@ export class MapView {
   private onGesture = (e: Event & { scale?: number; clientX?: number; clientY?: number }) => {
     if (!this.showing()) return
     e.preventDefault()
+    // On a touch screen the fingers' own pointers already pinch the map; the gesture is only stopped from zooming the page.
+    if (this.pointers.size >= 2 || this.drag?.kind === 'pinch') return
     if (e.type === 'gesturestart') {
       this.pinching = true
       this.gestureScale = 1
@@ -1880,6 +1878,11 @@ export class MapView {
       if (said !== this.reported) {
         this.reported = said
         this.cb.cameraChanged(k, this.fitK)
+      }
+      const where = this.whereNow()
+      if (where !== this.whereSaid) {
+        this.whereSaid = where
+        this.cb.whereChanged?.(where)
       }
     }
     // Back where the whole map fits, by any route, it's the whole map again: "Whole map" has nowhere to bring you back from.
@@ -2799,7 +2802,7 @@ export class MapView {
    * size: close in, where type stops growing, a heading in world units would float off its column.
    */
   private headingRise(above: number, k: number): number {
-    return Math.min(above * k, above * DESIGN_K * (NAME_MAX / 12) * 1.3)
+    return Math.min(above * k, above * DESIGN_K * (NAME_MAX / 12) * 1.3 * magnify(k))
   }
 
   private districtPos(d: District, detail: number): [number, number] {
@@ -2978,11 +2981,9 @@ export class MapView {
         // Said the way every other kind on the land is said, a name and how many, only without a row of its own.
         const parts = unsaid.map((d) => ({ icon: d.def.icon, text: `${d.def.name} ${d.members.length}` }))
         const said = parts.map((part) => part.text).join('  ')
-        const shorter = unsaid.map((d) => d.def.name).join(', ')
-        // "Kinds" is a word nothing else on the page uses. How many more items there are, it can say.
+        // Every kind is counted, and the rest is said one way everywhere: the kinds with their numbers, or how many more items.
+        // Never a list of kinds with no numbers, and never a bare "4 more", which beside "Rules 4" reads as four more rules.
         const more = unsaid.reduce((sum, d) => sum + d.members.length, 0)
-        const short = more === 1 ? '1 more item' : `${more} more items`
-        // Never a bare "4 more", which beside "Rules 4" reads as four more rules.
         const shortest = more === 1 ? '+1 item' : `+${more} items`
         const lowest = boxes.reduce((most, b) => (b.y + b.h > most.y + most.h ? b : most), boxes[0])
         // A line takes only its own width on its own row, and what hangs under it takes the rows below.
@@ -3002,12 +3003,8 @@ export class MapView {
         const spots = [{ x: left + dx, y: (lowest ? lowest.y - 12 + lowest.h : start + dy) + 13 }, ...lines.map((b) => ({ x: b.x + b.lineW + 12, y: b.y }))]
         // The names if they fit, and how many if only that does, so a kind is never gone with no word.
         const whole = spots.find((s) => free(s, said))
-        const brief = whole ? null : spots.find((s) => free(s, shorter))
-        const counted = whole || brief ? null : spots.find((s) => free(s, short))
-        const tight = whole || brief || counted ? null : spots.find((s) => free(s, shortest))
+        const tight = whole ? null : spots.find((s) => free(s, shortest))
         if (whole) this.unsaid.set(gate, { ...whole, text: said, parts })
-        else if (brief) this.unsaid.set(gate, { ...brief, text: shorter })
-        else if (counted) this.unsaid.set(gate, { ...counted, text: short })
         else if (tight) this.unsaid.set(gate, { ...tight, text: shortest })
         // Nowhere it's clear of everything: still said, at the foot of the block, because a kind gone with no word understates the map.
         else this.unsaid.set(gate, { ...spots[0], text: shortest })
@@ -3639,16 +3636,59 @@ export class MapView {
     if (this.dollarT > 0 && this.dollarStyle === 'soundings') this.drawSoundings(k)
     ctx.restore()
 
+    // Words and marks stay out of the narrow margins round the floating cards, so no scraps of letters show in a gutter or between
+    // two chips. The land, its borders and the sea run on under the cards as before.
+    ctx.save()
+    this.clipChrome()
     this.drawNodes(now)
     if (this.dollarT > 0 && this.dollarStyle === 'towns') this.drawTowns(now)
     this.drawLabels()
     this.drawDistricts()
     if (this.dollarT > 0) this.drawFigures()
     this.drawGateLabels(now)
-    this.drawWhereYouAre()
     this.drawCountyNames()
     this.drawCompanyName()
     this.drawPins()
+    ctx.restore()
+  }
+
+  /**
+   * Clips out what floats over the map, with a margin: each card grown by 10 px, any edge within 40 px of the window's taken to the
+   * window, and cards side by side with less than 40 px between them joined, so the top line is one band. What's left is where words
+   * and marks are drawn.
+   */
+  private clipChrome() {
+    const near = 40
+    const rects = this.cb.overlays().map((o) => ({ l: o.left - 10, t: o.top - 10, r: o.right + 10, b: o.bottom + 10 }))
+    for (const r of rects) {
+      if (r.l < near) r.l = -1
+      if (r.t < near) r.t = -1
+      if (this.w - r.r < near) r.r = this.w + 1
+      if (this.h - r.b < near) r.b = this.h + 1
+    }
+    for (let joined = true; joined; ) {
+      joined = false
+      for (let i = 0; i < rects.length && !joined; i++) {
+        for (let j = i + 1; j < rects.length && !joined; j++) {
+          const a = rects[i]
+          const b = rects[j]
+          const sameBand = a.t < b.b && b.t < a.b
+          const gap = Math.max(a.l, b.l) - Math.min(a.r, b.r)
+          if (sameBand && gap < near) {
+            rects[i] = { l: Math.min(a.l, b.l), t: Math.min(a.t, b.t), r: Math.max(a.r, b.r), b: Math.max(a.b, b.b) }
+            rects.splice(j, 1)
+            joined = true
+          }
+        }
+      }
+    }
+    const ctx = this.ctx
+    for (const r of rects) {
+      ctx.beginPath()
+      ctx.rect(-2, -2, this.w + 4, this.h + 4)
+      ctx.rect(r.l, r.t, r.r - r.l, r.b - r.t)
+      ctx.clip('evenodd')
+    }
   }
 
   private drawLand(k: number) {

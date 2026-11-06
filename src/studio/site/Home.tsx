@@ -4,20 +4,28 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { PACKAGE } from '../../core/agent.ts'
 import { copy } from '../actions.ts'
 import { setState, useStore } from '../store.ts'
-import { REPO_URL, repoFile, SiteHeader, ThemeButton, useSitePage } from './frame.tsx'
+import { REPO_URL, SiteHeader, ThemeButton, useSitePage } from './frame.tsx'
 import { Mark } from './Mark.tsx'
 import { ConnectMotion } from './motion/Connect.tsx'
 import { CostsMotion } from './motion/Costs.tsx'
 import { EncryptedMotion } from './motion/Encrypted.tsx'
 import { MapFormsMotion } from './motion/MapForms.tsx'
 import { SealMotion } from './motion/Seal.tsx'
-import { Link } from './route.tsx'
+import { Link, onboarded } from './route.tsx'
 import './site.css'
 
-function Feature({ id, n, label, title, graphic, children, facts }: { id: string; n: number; label: string; title: string; graphic: ReactNode; children: ReactNode; facts: ReactNode[] }) {
+/** A feature, led by its graphic. The first has no graphic of its own here, because the hero shows it: its words and facts stand side by side. */
+function Feature({ id, n, label, title, graphic, children, facts }: { id: string; n: number; label: string; title: string; graphic?: ReactNode; children: ReactNode; facts: ReactNode[] }) {
+  const list = (
+    <ul className="facts">
+      {facts.map((f, i) => (
+        <li key={i}>{f}</li>
+      ))}
+    </ul>
+  )
   return (
-    <section className="feature" id={id} aria-labelledby={`${id}-title`}>
-      <div className="plate">{graphic}</div>
+    <section className={`feature ${graphic ? '' : 'is-bare'}`} id={id} aria-labelledby={`${id}-title`}>
+      {graphic && <div className="plate">{graphic}</div>}
       <div className="feature-text">
         <p className="eyebrow">
           <span className="eyebrow-n">{String(n).padStart(2, '0')}</span>
@@ -25,12 +33,9 @@ function Feature({ id, n, label, title, graphic, children, facts }: { id: string
         </p>
         <h2 id={`${id}-title`}>{title}</h2>
         <p className="feature-body">{children}</p>
-        <ul className="facts">
-          {facts.map((f, i) => (
-            <li key={i}>{f}</li>
-          ))}
-        </ul>
+        {graphic && list}
       </div>
+      {!graphic && list}
     </section>
   )
 }
@@ -66,15 +71,12 @@ function Command({ title, lines, note }: { title: string; lines: string[]; note:
   )
 }
 
-/** A link into the repository, or plain words while it isn't public yet. */
-function RepoLink({ path, children }: { path: string; children: ReactNode }) {
-  const href = repoFile(path)
-  return href ? (
-    <a href={href} target="_blank" rel="noreferrer noopener">
+/** One of the documents every host serves itself, the version that's running here, as plain text. */
+function Doc({ path, children }: { path: string; children: ReactNode }) {
+  return (
+    <a href={path} target="_blank" rel="noreferrer noopener">
       {children}
     </a>
-  ) : (
-    <>{children}</>
   )
 }
 
@@ -85,17 +87,20 @@ export function Home() {
   const hasOwn = list.some((m) => !m.sample)
   const accounts = server?.accounts
   const donate = server?.mode === 'hosted' || !!server?.donateUrl
+  // Someone who's been through the first steps doesn't need them again: a new map starts at the last of them.
+  const start = onboarded() ? { to: '/start?step=begin', words: hasOwn ? 'Start another map' : 'Start a map' } : { to: '/start', words: 'Get started' }
 
   return (
     <div className="site">
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <SiteHeader>
+      <SiteHeader animated>
+        {/* Each a step in the history, so Back returns to where you were on the page. */}
         <nav className="site-nav" aria-label="On this page">
-          <a href="#how">How it works</a>
-          <a href="#security">Security</a>
-          <a href="#run">Run your own</a>
+          <Link to="/#how">How it works</Link>
+          <Link to="/#security">Security</Link>
+          <Link to="/#run">Run your own</Link>
         </nav>
         <ThemeButton />
         {hasOwn ? (
@@ -103,18 +108,15 @@ export function Home() {
             Open your map
           </Link>
         ) : (
-          <Link to="/start" className="btn btn-ink site-cta">
-            Get started
+          <Link to={start.to} className="btn btn-ink site-cta">
+            {start.words}
           </Link>
         )}
       </SiteHeader>
 
       <main id="main" tabIndex={-1}>
         <section className="hero" aria-labelledby="hero-title">
-          <div className="hero-brand">
-            <Mark size={52} animated />
-            <span>Locus</span>
-          </div>
+          <div className="hero-text">
           <h1 id="hero-title">A map of your company that any agent can read.</h1>
           <p className="lede">
             Your brand book, contracts, specs and invoices become one map. Each reader gets a password that opens only the areas you choose, and the map is encrypted before it leaves your browser.
@@ -125,8 +127,8 @@ export function Home() {
                 Open your map
               </Link>
             )}
-            <Link to="/start" className={`btn ${hasOwn ? 'btn-paper' : 'btn-ink'} btn-lg`}>
-              Get started
+            <Link to={start.to} className={`btn ${hasOwn ? 'btn-paper' : 'btn-ink'} btn-lg`}>
+              {start.words}
             </Link>
             <Link to="/example" className="btn btn-paper btn-lg">
               See an example
@@ -143,6 +145,11 @@ export function Home() {
               {accounts.used >= accounts.max ? 'Every free account on this host is taken. You can still build a map here, or run your own.' : `Free on this host while there's room: ${accounts.used} of ${accounts.max} accounts taken.`}
             </p>
           )}
+          </div>
+          {/* What Locus is, shown rather than said: files in, a secret struck out, a map comes up. */}
+          <div className="plate hero-plate">
+            <MapFormsMotion />
+          </div>
         </section>
 
         <Feature
@@ -150,7 +157,6 @@ export function Home() {
           n={1}
           label="Your documents"
           title="Your documents become one map."
-          graphic={<MapFormsMotion />}
           facts={[
             'Read with your own Claude key, from the browser, or with no AI at all, on your device.',
             'Secrets are removed before anything leaves.',
@@ -179,7 +185,7 @@ export function Home() {
           id="agents"
           n={3}
           label="Agents"
-          title="One line connects an agent."
+          title="One command connects an agent."
           graphic={<ConnectMotion />}
           facts={[
             <>
@@ -206,7 +212,7 @@ export function Home() {
               Anyone can download the bundle, and <code>locus verify</code> shows what it does and doesn't reveal.
             </>,
             <>
-              The <RepoLink path="docs/SECURITY.md">threat model</RepoLink> says plainly what isn't protected. The code hasn't had a professional audit.
+              The <Doc path="/docs/SECURITY.md">threat model</Doc> says plainly what isn't protected. The code hasn't had a professional audit.
             </>,
           ]}
         >
@@ -240,7 +246,11 @@ export function Home() {
             <Command
               title="On a server, with Docker"
               lines={['cp .env.example .env', 'docker compose --profile public up -d']}
-              note={<>From a clone of the repository. Set your domain in .env; Caddy gets a certificate for it and for every address on it.</>}
+              note={
+                <>
+                  From a clone of the {REPO_URL ? <a href={REPO_URL} target="_blank" rel="noreferrer noopener">repository</a> : 'repository'}. Set your domain in .env; Caddy gets a certificate for it and for every address on it.
+                </>
+              }
             />
           </div>
           <div className="run-note">
@@ -248,14 +258,7 @@ export function Home() {
               <b>On a public domain, always run hosted mode,</b> even for a host that's yours alone, with one account. Plain self-host mode has no account cap, so anyone could claim names and fill your disk. The Compose file sets both.
             </p>
             <p>
-              Put it behind HTTPS, never behind a CDN that decrypts, and back up its data folder.{' '}
-              {REPO_URL ? (
-                <>
-                  <RepoLink path="docs/SELF-HOSTING.md">Running your own</RepoLink> walks through each way.
-                </>
-              ) : (
-                <>The repository's guide to running your own walks through each way.</>
-              )}
+              Put it behind HTTPS, never behind a CDN that decrypts, and back up its data folder. <Doc path="/docs/SELF-HOSTING.md">The guide to running your own</Doc> walks through each way, and <Doc path="/docs/SECURITY.md">the security policy</Doc> says what it does and doesn't protect.
             </p>
           </div>
         </section>
@@ -267,22 +270,22 @@ export function Home() {
           <span>Locus{server?.version ? ` ${server.version}` : ''}</span>
         </div>
         <nav className="site-foot-links" aria-label="About Locus">
+          {/* The reader most convinced is the one at the bottom, so the way on is here too. */}
+          {hasOwn ? <Link to="/map">Open your map</Link> : <Link to={start.to}>{start.words}</Link>}
+          <Link to="/example">See an example</Link>
+          <Doc path="/docs/SELF-HOSTING.md">Running your own</Doc>
+          <Doc path="/docs/SECURITY.md">Security</Doc>
+          {REPO_URL && (
+            <a href={REPO_URL} target="_blank" rel="noreferrer noopener">
+              Source
+            </a>
+          )}
           <a href="/licenses/LICENSE-Locus.txt" target="_blank" rel="noreferrer noopener">
             MIT licence
           </a>
           <a href="/licenses/NOTICE.txt" target="_blank" rel="noreferrer noopener">
             Notices
           </a>
-          {REPO_URL && (
-            <>
-              <a href={repoFile('docs/SECURITY.md')} target="_blank" rel="noreferrer noopener">
-                Security policy
-              </a>
-              <a href={REPO_URL} target="_blank" rel="noreferrer noopener">
-                Source
-              </a>
-            </>
-          )}
           {donate && (
             <button className="site-foot-btn" onClick={() => setState({ sheet: { kind: 'donate' } })}>
               Donate

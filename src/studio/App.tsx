@@ -142,10 +142,14 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       cameraChanged: (k, fitK) => {
         const s = getState()
         const moved = view.moved
-        if (s.zoom !== k || s.fitZoom !== fitK || s.mapMoved !== moved) setState({ zoom: k, fitZoom: fitK, mapMoved: moved })
+        const edge = view.zoomEdge(k)
+        if (s.zoom !== k || s.fitZoom !== fitK || s.mapMoved !== moved || s.zoomEdge !== edge) setState({ zoom: k, fitZoom: fitK, mapMoved: moved, zoomEdge: edge })
+      },
+      whereChanged: (name) => {
+        if (getState().where !== name) setState({ where: name })
       },
       covers: () => Array.from(document.querySelectorAll('.left-col > *'), (el) => el.getBoundingClientRect()),
-      overlays: () => (floatingOver ??= Array.from(document.querySelectorAll('.left-col > *, .status.panel, .side, .top-right > *, .lens-sheet'), (el) => el.getBoundingClientRect())),
+      overlays: () => (floatingOver ??= Array.from(document.querySelectorAll('.left-col > *, .status.panel, .side, .top-right > *, .lens-sheet, .bottom-right > *'), (el) => el.getBoundingClientRect())),
     })
     map.current = view
     view.setPalette(PALETTES[getState().theme])
@@ -548,8 +552,17 @@ export function App() {
         setState({ uiHidden: !s.uiHidden })
         return
       }
+      // ⌘ or ctrl with + − 0 is the map's zoom while the map is showing, as in Figma and Miro, not the browser's page zoom, which would
+      // resize every card under you. From a field, or with a sheet open, the browser's own zoom is left alone.
+      if ((e.metaKey || e.ctrlKey) && ['=', '+', '-', '0'].includes(e.key) && !typing && (s.mode === 'studio' || s.mode === 'viewer') && map.current && !document.querySelector('.scrim')) {
+        e.preventDefault()
+        if (e.key === '0') map.current.fit()
+        else map.current.zoomBy(e.key === '-' ? 1 / 1.3 : 1.3)
+        return
+      }
       if (typing) return
       if (s.mode !== 'studio' && s.mode !== 'viewer') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === '$') setState({ dollars: !s.dollars })
       else if (e.shiftKey && (e.key === '!' || e.code === 'Digit1')) map.current?.fit()
       else if (e.key === '0') map.current?.fit()

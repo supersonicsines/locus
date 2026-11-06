@@ -48,8 +48,12 @@ window.addEventListener('popstate', (e) => {
   scrolled.set(here, window.scrollY)
   here = numberOf(e.state)
   const now = location.pathname + location.search
-  // A jump within the page, to a heading: the browser has already moved there.
-  if (now === page) return
+  // Within the page, to a heading or back from one: go where that entry was, or to its heading.
+  if (now === page) {
+    tell()
+    thenScroll(location.hash ? null : (scrolled.get(here) ?? 0))
+    return
+  }
   page = now
   const next = routeOf()
   const moved = next !== current

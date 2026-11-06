@@ -222,29 +222,22 @@ a.btn {
   font-size: 13px;
 }
 
-/* The hero. */
+/* The hero: what it is in words on the left, and shown on the right. */
 
 .hero {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+  gap: 64px;
+  align-items: center;
   max-width: calc(var(--wrap) + var(--side) * 2);
   margin: 0 auto;
-  padding: 64px var(--side) 80px;
-}
-
-.hero-brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 44px;
-  font-size: 24px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  padding: 56px var(--side) 88px;
 }
 
 .hero h1 {
-  max-width: 25ch;
-  font-size: clamp(34px, 5.9vw, 80px);
-  line-height: 1.03;
-  letter-spacing: -0.045em;
+  font-size: clamp(34px, 4vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
 }
 
 .hero .lede {
@@ -372,6 +365,15 @@ a.btn {
   border-bottom: 1px solid var(--hair);
 }
 
+/* The first feature's graphic is the hero's, so here its words and its facts stand side by side. */
+.feature.is-bare {
+  align-items: start;
+}
+
+.feature.is-bare > .facts {
+  margin-top: 34px;
+}
+
 /* Run your own. */
 
 .run {
@@ -465,6 +467,29 @@ a.btn {
 .run-note b {
   color: var(--ink);
   font-weight: 500;
+}
+
+/* Continue with Google, as Google's sign-in branding asks: its neutral button, its G. The only other company's colours on the site. */
+.site .btn-google {
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #747775;
+  color: #1f1f1f;
+}
+
+:root[data-theme='dark'] .site .btn-google {
+  background: #131314;
+  border-color: #8e918f;
+  color: #e3e3e3;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .site .btn-google:hover {
+    background: #f6f7f7;
+  }
+  :root[data-theme='dark'] .site .btn-google:hover {
+    background: #1e1f21;
+  }
 }
 
 /* The footer. */
@@ -564,9 +589,16 @@ a.btn {
   justify-content: center;
 }
 
-.start-mark {
-  display: flex;
-  justify-content: center;
+/* A step with nothing to show starts at the top, so its choices are in the window, not under the bar. */
+.start-main:not(.has-graphic) {
+  align-items: flex-start;
+  padding-top: 48px;
+}
+
+/* Fitted to the window's height as well, so a step and its words fit a laptop's window without scrolling. */
+.start-plate {
+  width: 100%;
+  max-width: min(760px, calc((100dvh - 380px) * 1.6));
 }
 
 .start-text h1 {
@@ -663,6 +695,13 @@ a.btn {
   font-size: 15px;
 }
 
+/* A finger can't drop a file. The button says what to do. */
+@media (pointer: coarse) {
+  .drop-words {
+    display: none;
+  }
+}
+
 .start-nav {
   position: sticky;
   bottom: 0;
@@ -675,6 +714,10 @@ a.btn {
   margin: 0 auto;
   padding: 16px var(--side) 28px;
   background: var(--page);
+}
+
+.start:not(.is-explaining) .start-nav {
+  position: static;
 }
 
 .start-nav-side {
@@ -735,20 +778,21 @@ a.btn {
   .start-stage {
     animation: step-in 440ms var(--ease-out) both;
   }
-  .hero > * {
+  .hero-text > *,
+  .hero-plate {
     animation: step-in 640ms var(--ease-out) both;
   }
-  .hero > :nth-child(2) {
+  .hero-text > :nth-child(2) {
     animation-delay: 60ms;
   }
-  .hero > :nth-child(3) {
+  .hero-text > :nth-child(3) {
     animation-delay: 120ms;
   }
-  .hero > :nth-child(4) {
+  .hero-text > :nth-child(n + 4) {
     animation-delay: 180ms;
   }
-  .hero > :nth-child(n + 5) {
-    animation-delay: 240ms;
+  .hero-plate {
+    animation-delay: 140ms;
   }
 }
 
@@ -947,9 +991,17 @@ a.btn {
 }
 
 .mg-redact {
-  fill: var(--ink);
+  /* A blackout is black in either theme. Paper-coloured, it would read as a highlight. */
+  fill: #15191e;
   transform-box: fill-box;
   transform-origin: 0 50%;
+}
+
+/* On a dark card the blackout is nearly the card's own colour, so its edge carries it. */
+:root[data-theme='dark'] .mg-redact {
+  fill: #05070a;
+  stroke: rgba(232, 230, 223, 0.42);
+  stroke-width: 0.7;
 }
 
 .mg-ask {
@@ -1003,6 +1055,24 @@ a.btn {
   fill: color-mix(in srgb, var(--ink) 80%, transparent);
 }
 
+.mg .mg-read-strong {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.mg-term-tint {
+  fill: var(--term-soft);
+}
+
+.mg-content {
+  fill: rgba(var(--ink-rgb), 0.22);
+}
+
+.mg .mg-price-name {
+  fill: var(--soft);
+  font-weight: 400;
+}
+
 .mg .mg-cipher {
   fill: color-mix(in srgb, var(--ink) 72%, transparent);
 }
@@ -1052,10 +1122,35 @@ a.btn {
 
 /* Narrower windows. */
 
+/* One column from here down, so a graphic is never squeezed beside its words. */
 @media (max-width: 1100px) {
+  .hero,
   .feature,
   .start-stage {
-    gap: 40px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+  .feature .plate,
+  .hero-plate {
+    max-width: 760px;
+  }
+  .feature {
+    padding-top: 64px;
+    padding-bottom: 64px;
+  }
+  .feature-text,
+  .hero-text {
+    max-width: 62ch;
+  }
+  .feature.is-bare > .facts {
+    margin-top: 0;
+    max-width: 62ch;
+  }
+  .start-stage {
+    gap: 28px;
+  }
+  .start-main {
+    align-items: flex-start;
   }
 }
 
@@ -1065,24 +1160,6 @@ a.btn {
   }
   .site-nav {
     display: none;
-  }
-  .feature,
-  .start-stage {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 32px;
-  }
-  .feature {
-    padding-top: 64px;
-    padding-bottom: 64px;
-  }
-  .feature-text {
-    max-width: 62ch;
-  }
-  .start-stage {
-    gap: 28px;
-  }
-  .start-main {
-    align-items: flex-start;
   }
 }
 
@@ -1094,13 +1171,11 @@ a.btn {
     height: 64px;
   }
   .hero {
-    padding-top: 40px;
-    padding-bottom: 64px;
+    padding-top: 32px;
+    padding-bottom: 56px;
   }
-  .hero-brand {
-    gap: 12px;
-    margin-bottom: 28px;
-    font-size: 20px;
+  .start-main:not(.has-graphic) {
+    padding-top: 24px;
   }
   .hero .lede {
     margin-top: 20px;

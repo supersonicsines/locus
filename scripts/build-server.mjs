@@ -35,3 +35,9 @@ for (const name of ['react', 'react-dom', 'scheduler', 'pdfjs-dist', 'fflate', '
   }
 }
 console.log('Copied licences to', out)
+
+// The website links to these, so every host serves the version of them that it runs, as plain text, whether or not the repository is public.
+const docs = 'dist/studio/docs'
+mkdirSync(docs, { recursive: true })
+for (const f of ['SECURITY.md', 'SELF-HOSTING.md']) copyFileSync(join('docs', f), join(docs, f))
+console.log('Copied the security policy and the self-hosting guide to', docs)

@@ -1,33 +1,42 @@
 // Who reads what. Pick a reader and the map shows what they can see; press an area and it seals: its land turns vermilion-pink, its edge
 // wears the colour, what's on it goes, the links into it fade, and the wax lands. The product's one memorable moment, so it's given room.
 
-import { $, $$, COUNTIES, enter, EASE, EASE_IN_OUT, GLIDE, Hatches, Island, nameEnd, NAME_SIZE, Plate, Pointer, Sea, shapeOf, swap, track, useMotion, useSvgId, Wax, type Key } from './kit.tsx'
+import { $, $$, enter, EASE, EASE_IN_OUT, GLIDE, Hatches, Island, itemEnd, nameEnd, Plate, Pointer, Sea, shapeOf, swap, track, useLook, useMotion, useSvgId, Wax, type Key } from './kit.tsx'
 
 const CYCLE = 10200
 const BACK = 8300
-/** Pressed, in order, and when. */
-const PRESSES = [
-  { id: 'legal', at: 2050, tip: [156, 250] as const },
-  { id: 'money', at: 3650, tip: [408, 262] as const },
-]
-const SEALED = new Set(PRESSES.map((p) => p.id))
-const WAX = 15
-
-/** Links that cross between areas, as the map draws them. The ones into a sealed area fade with it. */
-const LINKS = [
-  { into: 'legal', d: 'M108 151 C 126 172, 134 205, 150 226' },
-  { into: 'money', d: 'M412 149 C 418 175, 410 205, 402 226' },
-]
+const SEALED = new Set(['legal', 'money'])
+/** Pressed, in order, and when. The tip lands on empty land in each area. */
+const PRESS_AT = { legal: 2050, money: 3650 }
 
 export function SealMotion() {
+  const look = useLook()
   const hatch = useSvgId('sealed')
+  const county = (id: string) => look.counties.find((c) => c.id === id)!
+  const tips = look.narrow
+    ? { legal: [158, 232] as const, money: [398, 268] as const }
+    : { legal: [156, 250] as const, money: [408, 262] as const }
+  const presses = (['legal', 'money'] as const).map((id) => ({ id, at: PRESS_AT[id], tip: tips[id] }))
+
+  // Links that cross between areas, as the map draws them: from the end of one item's name to the end of another's. The ones into a sealed area fade with it.
+  const from = (cid: string, i: number) => {
+    const it = county(cid).items[i]
+    return [itemEnd(look, it) + 4, it.y - look.item * 0.35] as const
+  }
+  const [a1, b1] = [from('brand', look.narrow ? 1 : 2), from('legal', 0)]
+  const [a2, b2] = [from('engineering', look.narrow ? 1 : 2), from('money', 0)]
+  const links = [
+    { into: 'legal', d: `M${a1[0]} ${a1[1]} C ${a1[0] + 18} ${a1[1] + 24}, ${b1[0] + 8} ${b1[1] - 40}, ${b1[0]} ${b1[1] - 4}` },
+    { into: 'money', d: `M${a2[0]} ${a2[1]} C ${a2[0] + 8} ${a2[1] + 26}, ${b2[0] + 8} ${b2[1] - 40}, ${b2[0]} ${b2[1] - 4}` },
+  ]
+
   const ref = useMotion<SVGSVGElement>((root) => {
     const parts: (Animation | null)[] = []
     // Picking the reader: the line that says whose view this is, and what each area lets them read.
     parts.push(enter($(root, '[data-pill]'), CYCLE, 250, 520, { opacity: 0, transform: 'translate(0px, -8px)' }, BACK))
-    for (const c of COUNTIES) {
+    for (const c of look.counties) {
       const can = $(root, `[data-can="${c.id}"]`)
-      const press = PRESSES.find((p) => p.id === c.id)
+      const press = presses.find((p) => p.id === c.id)
       if (!press) parts.push(enter(can, CYCLE, 520, 420, { opacity: 0, transform: 'translate(0px, 3px)' }, BACK))
       else {
         parts.push(
@@ -48,7 +57,7 @@ export function SealMotion() {
     }
 
     // Each press seals its area.
-    for (const p of PRESSES) {
+    for (const p of presses) {
       const t = p.at
       // The county's colour settles onto it, a touch from above, as the wax will.
       parts.push(swap($(root, `[data-seal="${p.id}"]`), CYCLE, t, 520, { opacity: 0, transform: 'scale(1.012)' }, { opacity: 1, transform: 'scale(1)' }, BACK, { backDur: 600 }))
@@ -85,20 +94,21 @@ export function SealMotion() {
 
     // The pointer: in, to the first area, press, to the second, press, away.
     const at = (x: number, y: number) => `translate(${x}px, ${y}px)`
-    const [a, b] = PRESSES
+    const [a, b] = presses
+    const start = look.narrow ? ([300, 282] as const) : ([292, 274] as const)
     parts.push(
       track(
         $(root, '[data-pointer]'),
         [
-          { at: 0, opacity: 0, transform: at(292, 274) },
-          { at: 760, opacity: 0, transform: at(292, 274) },
-          { at: 1060, opacity: 1, transform: at(286, 268), ease: GLIDE },
+          { at: 0, opacity: 0, transform: at(start[0], start[1]) },
+          { at: 760, opacity: 0, transform: at(start[0], start[1]) },
+          { at: 1060, opacity: 1, transform: at(start[0] - 6, start[1] - 6), ease: GLIDE },
           { at: a.at - 120, opacity: 1, transform: at(a.tip[0], a.tip[1]) },
           { at: a.at + 520, opacity: 1, transform: at(a.tip[0], a.tip[1]), ease: GLIDE },
           { at: b.at - 120, opacity: 1, transform: at(b.tip[0], b.tip[1]) },
           { at: b.at + 700, opacity: 1, transform: at(b.tip[0], b.tip[1]), ease: EASE_IN_OUT },
           { at: b.at + 1100, opacity: 0, transform: at(b.tip[0] + 8, b.tip[1] + 10) },
-          { at: CYCLE, opacity: 0, transform: at(292, 274) },
+          { at: CYCLE, opacity: 0, transform: at(start[0], start[1]) },
         ],
         CYCLE,
       ),
@@ -112,58 +122,70 @@ export function SealMotion() {
     return parts
   })
 
+  // The line that says whose view this is, sized to its words.
+  const pillText = look.narrow ? 13.5 : 9.4
+  const pillH = look.narrow ? 32 : 26
+  const pillW = 'Seeing the map as Design contractor'.length * pillText * 0.6 + pillH + 26
+  const pillX = 240 - pillW / 2
+  const pillY = look.narrow ? 8 : 12
+  const markR = pillH * 0.27
+
   return (
-    <Plate reff={ref} name="seal" label="Seeing the map as one reader. Pressing Legal and then Money seals them: each turns vermilion, what's on it goes, and a wax seal lands on it.">
+    <Plate reff={ref} name="seal" viewBox={look.viewBox} label="Seeing the map as one reader. Pressing Legal and then Money seals them: each turns vermilion, what's on it goes, and a wax seal lands on it.">
       <Hatches sealed={hatch} />
       <Sea />
       <Island
+        look={look}
+        tools={false}
         off={SEALED}
         extra={(c) => (
           // What this reader can read, said under each name, as the map says it.
-          <text className="mg-sub" data-can={c.id} x={c.x} y={c.y + 13} fontSize={9} data-off={SEALED.has(c.id) ? '' : undefined}>
+          <text className="mg-sub" data-can={c.id} x={c.x} y={c.y + look.subDy} fontSize={look.sub} data-off={SEALED.has(c.id) ? '' : undefined}>
             Can read
           </text>
         )}
       />
-      {LINKS.map((l, i) => (
-        <path key={i} className="mg-link" d={l.d} data-link-into={l.into || undefined} data-off={l.into ? '' : undefined} />
+      {links.map((l, i) => (
+        <path key={i} className="mg-link" d={l.d} data-link-into={l.into} data-off="" />
       ))}
-      {COUNTIES.filter((c) => SEALED.has(c.id)).map((c) => (
-        <g key={c.id}>
-          <g className="mg-sealed o" data-seal={c.id}>
-            <path className="mg-sealed-land" d={shapeOf(c.id)} />
-            <path d={shapeOf(c.id)} fill={`url(#${hatch})`} />
-            <path className="mg-sealed-edge" d={shapeOf(c.id)} />
-          </g>
-          <text className="mg-name mg-name-sealed" data-name-sealed={c.id} x={c.x} y={c.y} fontSize={NAME_SIZE}>
-            {c.name}
-          </text>
-          <text className="mg-sub mg-sub-sealed" data-cant={c.id} x={c.x} y={c.y + 13} fontSize={9}>
-            Can't read
-          </text>
-          <g transform={`translate(${nameEnd(c) + 11} ${c.y - 4.6})`}>
-            <circle className="mg-impact" data-ring={c.id} r={WAX * 0.5} data-off="" />
-            <g className="mg-wax-drop" data-wax={c.id}>
-              <Wax size={WAX} />
+      {look.counties
+        .filter((c) => SEALED.has(c.id))
+        .map((c) => (
+          <g key={c.id}>
+            <g className="mg-sealed o" data-seal={c.id}>
+              <path className="mg-sealed-land" d={shapeOf(c.id)} />
+              <path d={shapeOf(c.id)} fill={`url(#${hatch})`} />
+              <path className="mg-sealed-edge" d={shapeOf(c.id)} />
+            </g>
+            <text className="mg-name mg-name-sealed" data-name-sealed={c.id} x={c.x} y={c.y} fontSize={look.name}>
+              {c.name}
+            </text>
+            <text className="mg-sub mg-sub-sealed" data-cant={c.id} x={c.x} y={c.y + look.subDy} fontSize={look.sub}>
+              Can't read
+            </text>
+            <g transform={`translate(${nameEnd(look, c) + look.wax * 0.75} ${c.y - look.name * 0.32})`}>
+              <circle className="mg-impact" data-ring={c.id} r={look.wax * 0.5} data-off="" />
+              <g className="mg-wax-drop" data-wax={c.id}>
+                <Wax size={look.wax} />
+              </g>
             </g>
           </g>
-        </g>
-      ))}
+        ))}
       <g data-pill="">
-        <rect className="mg-card-shadow" x={114} y={13.5} width={252} height={26} rx={9} />
-        <rect className="mg-card" x={114} y={12} width={252} height={26} rx={9} />
-        <circle cx={130} cy={25} r={7} className="mg-reader" />
-        <text className="mg-reader-l" x={130} y={28.1} fontSize={8.2} textAnchor="middle">
+        <rect className="mg-card-shadow" x={pillX} y={pillY + 1.5} width={pillW} height={pillH} rx={9} />
+        <rect className="mg-card" x={pillX} y={pillY} width={pillW} height={pillH} rx={9} />
+        <circle cx={pillX + 8 + markR} cy={pillY + pillH / 2} r={markR} className="mg-reader" />
+        <text className="mg-reader-l" x={pillX + 8 + markR} y={pillY + pillH / 2 + markR * 0.42} fontSize={markR * 1.15} textAnchor="middle">
           D
         </text>
-        <text x={143} y={28.2} fontSize={9.4}>
+        <text x={pillX + 16 + markR * 2} y={pillY + pillH / 2 + pillText * 0.34} fontSize={pillText}>
           <tspan className="mg-soft">Seeing the map as </tspan>
           <tspan fontWeight={500}>Design contractor</tspan>
         </text>
       </g>
       <g data-pointer="" data-off="">
         <g data-press="">
-          <Pointer />
+          <Pointer k={look.pointer} />
         </g>
       </g>
     </Plate>

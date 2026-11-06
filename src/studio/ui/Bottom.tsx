@@ -89,6 +89,8 @@ export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
   const zoom = useStore((s) => s.zoom)
   const fitZoom = useStore((s) => s.fitZoom)
   const moved = useStore((s) => s.mapMoved)
+  const edge = useStore((s) => s.zoomEdge)
+  const where = useStore((s) => s.where)
   const panel = useStore((s) => s.panel)
   const hasContent = useStore((s) => (contentOf(s)?.pieces.length ?? 0) > 0)
   const selected = useStore((s) => s.selected)
@@ -101,13 +103,15 @@ export function BottomRight({ map }: { map: React.RefObject<MapView | null> }) {
   return (
     <div className="bottom-right" style={hidden ? { right: 'calc(var(--side-w) + var(--gutter) * 2)' } : undefined}>
       <div className={`zoom panel ${fitted ? 'is-fit' : ''}`}>
-        <button className="icon-btn" aria-label="Zoom out" onClick={() => map.current?.zoomBy(1 / 1.3)}>
+        {/* Close in, where you are, while the area's own name is out of sight. */}
+        {where && <span className="zoom-where" aria-live="polite">{where}</span>}
+        <button className="icon-btn" aria-label="Zoom out" aria-disabled={edge === 'floor'} onClick={() => edge !== 'floor' && map.current?.zoomBy(1 / 1.3)}>
           <Icon name="minus" size={14} />
         </button>
         <button className="pct" title="Fit the whole map" aria-label="Fit the whole map" onClick={() => map.current?.fit()}>
           {Math.round(zoom * 100)}%
         </button>
-        <button className="icon-btn" aria-label="Zoom in" onClick={() => map.current?.zoomBy(1.3)}>
+        <button className="icon-btn" aria-label="Zoom in" aria-disabled={edge === 'cap'} onClick={() => edge !== 'cap' && map.current?.zoomBy(1.3)}>
           <Icon name="plus" size={14} />
         </button>
         {/* The way back, said in words, only once you've left it. */}

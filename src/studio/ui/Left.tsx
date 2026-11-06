@@ -165,19 +165,26 @@ function Readers({ picked }: { picked: () => void }) {
             {vault.sample ? "A made-up company's map for its AI tools and people. Pick a name to see what they can read." : 'What your AI tools and people need to know, on one map. You choose who can read which parts.'}
           </p>
           {/* The first time, through the first steps. After that, straight to a new map of your own. */}
+          {/* On the sample, the website is a word away too: someone who came to look may want to read about it. */}
           {vault.sample && (
-            <Link
-              className="text-btn start-own"
-              to="/start"
-              onClick={(e) => {
-                picked()
-                if (!onboarded() || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
-                e.preventDefault()
-                go('/map', { then: async () => { await newMap() } })
-              }}
-            >
-              Start your own map
-            </Link>
+            <p className="start-own">
+              <Link
+                className="text-btn"
+                to="/start"
+                onClick={(e) => {
+                  picked()
+                  if (!onboarded() || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+                  e.preventDefault()
+                  go('/map', { then: async () => { await newMap() } })
+                }}
+              >
+                Start your own map
+              </Link>
+              <span className="start-own-dot" aria-hidden="true">·</span>
+              <Link className="text-btn" to="/">
+                About Locus
+              </Link>
+            </p>
           )}
         </>
       )}
@@ -287,8 +294,10 @@ export function Left() {
       <div className="left-head">
         {/* The way home, to the website. A reader's page has none: its home is the map. */}
         {!readOnly && (
-          <Link to="/" className="home-mark" aria-label="Locus home" title="Locus home">
+          <Link to="/" className="home-mark" aria-label="Locus home">
             <Mark size={22} />
+            {/* Said at once on pointing or focus, not after the browser's second-long wait for a title. */}
+            <span className="home-tip" aria-hidden="true">Locus home</span>
           </Link>
         )}
         <button

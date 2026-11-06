@@ -458,15 +458,47 @@ a {
   background: var(--wash-strong);
 }
 
-/* The way home: the Locus mark, first in the card's heading. The company's name follows it as before. */
+/* The way home: the Locus mark, first in the card's heading, its own control behind a hairline, so it doesn't read as the company's logo. */
 .home-mark {
+  position: relative;
   flex: none;
   align-self: stretch;
   display: flex;
   align-items: center;
-  padding: 0 2px 0 14px;
+  padding: 0 12px 0 14px;
+  margin-right: 2px;
+  border-right: 1px solid var(--hair);
   border-radius: var(--panel-radius) 0 0 0;
   transition: opacity 120ms ease;
+}
+
+.home-tip {
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  z-index: 2;
+  padding: 3px 8px;
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 100ms ease;
+}
+
+.home-mark:focus-visible .home-tip {
+  opacity: 1;
+}
+
+.start-own-dot {
+  margin: 0 7px;
+  color: var(--faint);
 }
 
 .home-mark:focus-visible {
@@ -475,17 +507,20 @@ a {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .home-mark:hover {
+  .home-mark:hover > svg {
     opacity: 0.8;
+  }
+  .home-mark:hover .home-tip {
+    opacity: 1;
   }
 }
 
-.home-mark:active {
+.home-mark:active > svg {
   opacity: 0.7;
 }
 
 .home-mark + .company-btn {
-  padding-left: 10px;
+  padding-left: 12px;
   border-radius: 0;
 }
 
@@ -4063,4 +4098,24 @@ body:has(.left.is-folded) .agent-view {
   .cost-more {
     display: inline;
   }
+}
+
+/* The zoom pill: where you are close in, and a button that can't go further steps back. */
+.zoom-where {
+  padding: 0 10px 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--soft);
+  white-space: nowrap;
+  border-right: 1px solid var(--hair);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zoom .icon-btn[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
 }

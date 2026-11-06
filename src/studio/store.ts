@@ -111,6 +111,10 @@ export interface State {
   fitZoom: number
   /** Whether someone has moved the map from where it fits itself. */
   mapMoved: boolean
+  /** Whether the zoom is at its furthest out or closest in, so the pill's button that can't go further says so. */
+  zoomEdge: 'floor' | 'cap' | null
+  /** Close in, the area you're in, while its own name on the map is out of sight. The zoom pill says it. */
+  where: string | null
   /** Goes up when something has changed the map enough that it should be seen whole. */
   fitAsk: number
   claudeKey: string
@@ -157,6 +161,8 @@ let state: State = {
   zoom: 1,
   fitZoom: 1,
   mapMoved: false,
+  zoomEdge: null,
+  where: null,
   fitAsk: 0,
   claudeKey: '',
   claudeKeySaved: false,

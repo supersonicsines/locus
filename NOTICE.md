@@ -10,6 +10,8 @@ They're shown only to identify the services a company uses, on that company's ow
 
 If you own a mark and want it changed or removed, open an issue.
 
+The Google "G" belongs to Google. It appears only on the "Continue with Google" button, as Google's sign-in branding guidelines ask, and only on a host that has sign-in with Google turned on.
+
 ### Where each one came from
 
 `licenses/logo-sources.csv` lists every service, in the list's order, with the source and licence of its logo, or the reason it has none. A pack's licence covers the drawing in the file. It doesn't touch the trademark, whatever the licence says.

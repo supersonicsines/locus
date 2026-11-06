@@ -54,6 +54,7 @@
       const icon = {
         intro: '<svg viewBox="0 0 14 14"><path d="M2.5 7a4.5 4.5 0 1 0 1.4-3.3"/><path d="M2.6 1.6v2.6h2.6"/></svg>',
         down: '<svg viewBox="0 0 14 14"><path d="M7 2v7.5"/><path d="M3.8 6.4 7 9.6l3.2-3.2"/><path d="M2.5 12h9"/></svg>',
+        live: '<svg viewBox="0 0 14 14"><path d="M1.5 8.5c1.6 0 1.6-1.4 3.2-1.4s1.6 1.4 3.2 1.4 1.6-1.4 3.2-1.4 1.4 1.4 1.4 1.4"/><path d="M1.5 11.5c1.6 0 1.6-1.4 3.2-1.4s1.6 1.4 3.2 1.4 1.6-1.4 3.2-1.4 1.4 1.4 1.4 1.4"/></svg>',
       }
       const el = (tag, props = {}, ...kids) => {
         const e = document.createElement(tag)
@@ -89,17 +90,10 @@
         const motion = el('button', { class: 'btn toggle', role: 'switch', 'aria-checked': 'false', 'aria-label': `Motion for ${v.name}` }, 'Motion ', el('span', { class: 'switch' }))
         motion.addEventListener('click', () => setMotion(card, !card.motion))
         card.button = motion
-        // A mark that can go live gets its own switch: going live is a moment of its own, not motion.
+        // A mark that can go live gets a button that plays the moment once: going live is an event, not a state.
         const live = v.live
-          ? el('button', { class: 'btn toggle', role: 'switch', 'aria-checked': 'false', 'aria-label': `Live for ${v.name}` }, 'Live ', el('span', { class: 'switch' }))
+          ? el('button', { class: 'btn', 'aria-label': `Go live, for ${v.name}`, html: `${icon.live}Go live`, onclick: () => { card.goLive(); time.wake() } })
           : null
-        if (live)
-          live.addEventListener('click', () => {
-            card.live = !card.live
-            live.setAttribute('aria-checked', String(card.live))
-            time.wake()
-          })
-        card.liveButton = live
 
         const plates = ['light', 'dark'].map((theme) => {
           const s = svg(280)
@@ -137,9 +131,9 @@
               el('h2', {}, el('span', { class: 'num' }, String(i + 1).padStart(2, '0')), v.name),
               el('p', { class: 'idea' }, v.idea)),
             el('div', { class: 'card-tools' },
-              ...(live ? [live] : []),
               motion,
               el('button', { class: 'btn', html: `${icon.intro}Intro`, onclick: () => { card.playIntro(); time.wake() } }),
+              ...(live ? [live] : []),
               el('button', { class: 'btn', html: `${icon.down}SVG`, title: 'Download the still mark', onclick: () => download(v, 'light') }),
               el('button', { class: 'btn', html: `${icon.down}Dark`, title: 'Download the still mark for dark grounds', onclick: () => download(v, 'dark') }))),
           el('div', { class: 'card-body' }, ...plates, el('div', { class: 'ladder' }, ...rungs, tabs)))
@@ -203,22 +197,28 @@
         __variants: () => VARIANTS.map((v) => ({ id: v.id, name: v.name, period: v.period, flow: v.flow || 0, live: !!v.live, liveDur: v.liveDur || 0, introDur: v.introDur })),
         __still() {
           time.freeze(true)
-          for (const c of cards) Object.assign(c, { introAt: null, p: 1, ramp: 0, spd: 0, fade: null, live: false, liveRamp: 0, time: 0 }), c.render()
+          for (const c of cards) Object.assign(c, { introAt: null, p: 1, ramp: 0, spd: 0, fade: null, liveAt: null, lv: null, time: 0 }), c.render()
         },
         // Loop time in seconds, at full motion. Live stays as it is.
         __setTime(seconds, id) {
           time.freeze(true)
-          for (const c of pick(id)) Object.assign(c, { introAt: null, p: 1, ramp: 1, spd: 1, fade: null, time: seconds % c.v.period }), c.render()
+          for (const c of pick(id)) Object.assign(c, { introAt: null, p: 1, ramp: 1, spd: 1, fade: null, liveAt: null, lv: null, time: seconds % c.v.period }), c.render()
         },
         // Intro progress, 0 to 1.
         __setIntro(id, p) {
           time.freeze(true)
-          for (const c of pick(id)) Object.assign(c, { introAt: null, p, ramp: 0, spd: 0, fade: null, liveRamp: 0, time: 0 }), c.render()
+          for (const c of pick(id)) Object.assign(c, { introAt: null, p, ramp: 0, spd: 0, fade: null, liveAt: null, lv: null, time: 0 }), c.render()
         },
-        // How far the going-live moment has run, 0 to 1, for a mark that can go live.
-        __setLive(id, k) {
+        // The going-live moment, `seconds` in, from the still (reduced: the reduced-motion version).
+        __setLiveAt(id, seconds, reduced = false) {
           time.freeze(true)
-          for (const c of pick(id)) Object.assign(c, { liveRamp: k, live: k > 0 }), c.render()
+          for (const c of pick(id)) {
+            if (!c.v.live) continue
+            Object.assign(c, { introAt: null, p: 1, ramp: 0, spd: 0, fade: null, liveAt: null, time: 0 })
+            const m = c.v.moment(seconds, reduced)
+            c.lv = m.done ? null : m
+            c.render()
+          }
         },
         __live() {
           time.freeze(false)

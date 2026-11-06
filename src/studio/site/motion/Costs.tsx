@@ -1,29 +1,33 @@
 // What it costs. Press the total and every tool's price spreads over the map: tools swell into discs as big as their bills, each area
 // says what it costs a month, and an area with no prices says so rather than guessing.
 
-import { $, $$, COUNTIES, discRadius, EASE, EASE_IN_OUT, enter, GLIDE, Hatches, Island, money, Plate, Pointer, Sea, swap, Tile, track, useMotion, useSvgId, type Key, type Tool } from './kit.tsx'
+import { $, $$, discRadius, EASE, EASE_IN_OUT, enter, GLIDE, Hatches, Island, money, Plate, Pointer, Sea, swap, Tile, TOOLS, track, useLook, useMotion, useSvgId, type Key } from './kit.tsx'
 
 const CYCLE = 9800
 const BACK = 8000
 const PRESS = 1600
 const TILE_K = 0.82
 
-const TOOLS = COUNTIES.flatMap((c) => c.tools.map((t) => ({ ...t, county: c.id })))
 const TOTAL = TOOLS.reduce((s, t) => s + t.price, 0)
 /** The biggest bills swell first. */
 const ORDER = [...TOOLS].sort((a, b) => b.price - a.price)
-const totalOf = (id: string) => COUNTIES.find((c) => c.id === id)!.tools.reduce((s, t) => s + t.price, 0)
-
-/** Where a tool's tile sits once its disc is up: on the disc's rim, so the price has the middle. */
-const rim = (t: Tool) => ({ x: t.disc[0], y: t.disc[1] - discRadius(t.price) })
-
-const PILL = { x: 336, y: 12, w: 130, h: 26 }
+const totalOf = (id: string) => TOOLS.filter((t) => t.county === id).reduce((s, t) => s + t.price, 0)
+/** A disc big enough to carry its tool's name as well as its price. */
+const BIG = 20
 
 export function CostsMotion() {
+  const look = useLook()
   const hatch = useSvgId('disc')
+  // Where each tile stands on this layout before prices are up. A phone draws fewer tiles.
+  const tiles = look.counties.flatMap((c) => c.tools)
+  /** Where a tool's tile sits once its disc is up: on the disc's rim, so the price has the middle. */
+  const rim = (t: (typeof TOOLS)[number]) => ({ x: t.disc[0], y: t.disc[1] - discRadius(t.price) })
+  const pill = look.narrow ? { x: 312, y: 8, w: 150, h: 32, big: 13.5, small: 13.5 } : { x: 336, y: 12, w: 130, h: 26, big: 10.4, small: 8.6 }
+
   const ref = useMotion<SVGSVGElement>((root) => {
     const parts: (Animation | null)[] = []
     const at = (x: number, y: number) => `translate(${x}px, ${y}px)`
+    const target = [pill.x + pill.w * 0.6, pill.y + pill.h * 0.65] as const
     // The pointer goes to the total, top right, and presses it.
     parts.push(
       track(
@@ -32,9 +36,9 @@ export function CostsMotion() {
           { at: 0, opacity: 0, transform: at(300, 214) },
           { at: 300, opacity: 0, transform: at(300, 214) },
           { at: 600, opacity: 1, transform: at(296, 208), ease: GLIDE },
-          { at: PRESS - 120, opacity: 1, transform: at(PILL.x + 78, PILL.y + 17) },
-          { at: PRESS + 700, opacity: 1, transform: at(PILL.x + 78, PILL.y + 17), ease: EASE_IN_OUT },
-          { at: PRESS + 1100, opacity: 0, transform: at(PILL.x + 86, PILL.y + 30) },
+          { at: PRESS - 120, opacity: 1, transform: at(target[0], target[1]) },
+          { at: PRESS + 700, opacity: 1, transform: at(target[0], target[1]), ease: EASE_IN_OUT },
+          { at: PRESS + 1100, opacity: 0, transform: at(target[0] + 8, target[1] + 13) },
           { at: CYCLE, opacity: 0, transform: at(300, 214) },
         ],
         CYCLE,
@@ -47,8 +51,11 @@ export function CostsMotion() {
     // Each tool swells into a disc as big as its bill, and its tile rides to the rim.
     ORDER.forEach((t, i) => {
       const go = PRESS + 140 + i * 70
-      const r = rim(t)
-      parts.push(swap($(root, `[data-tile="${t.letter}"]`), CYCLE, go, 620, { transform: `translate(0px, 0px) scale(1)` }, { transform: `translate(${r.x - t.x}px, ${r.y - t.y}px) scale(${TILE_K})` }, BACK, { backDur: 600 }))
+      const tile = tiles.find((x) => x.id === t.id)
+      if (tile) {
+        const r = rim(t)
+        parts.push(swap($(root, `[data-tile="${t.id}"]`), CYCLE, go, 620, { transform: `translate(0px, 0px) scale(1)` }, { transform: `translate(${r.x - tile.x}px, ${r.y - tile.y}px) scale(${TILE_K})` }, BACK, { backDur: 600 }))
+      }
       const disc: Key[] = [
         { at: 0, opacity: 0, transform: 'scale(0)' },
         { at: go, opacity: 0, transform: 'scale(0)', ease: EASE },
@@ -57,62 +64,78 @@ export function CostsMotion() {
         { at: BACK, opacity: 1, transform: 'scale(1)', ease: EASE_IN_OUT },
         { at: BACK + 600, opacity: 0, transform: 'scale(0)' },
       ]
-      parts.push(track($(root, `[data-disc="${t.letter}"]`), disc, CYCLE))
-      parts.push(enter($(root, `[data-price="${t.letter}"]`), CYCLE, go + 380, 320, { opacity: 0 }, BACK, { to: { opacity: 1 }, fade: 300 }))
+      parts.push(track($(root, `[data-disc="${t.id}"]`), disc, CYCLE))
+      parts.push(enter($(root, `[data-price="${t.id}"]`), CYCLE, go + 380, 320, { opacity: 0 }, BACK, { to: { opacity: 1 }, fade: 300 }))
     })
     // Each area says what it costs.
-    COUNTIES.forEach((c, i) => parts.push(enter($(root, `[data-area-total="${c.id}"]`), CYCLE, PRESS + 900 + i * 70, 420, { opacity: 0, transform: 'translate(0px, 3px)' }, BACK)))
+    look.counties.forEach((c, i) => parts.push(enter($(root, `[data-area-total="${c.id}"]`), CYCLE, PRESS + 900 + i * 70, 420, { opacity: 0, transform: 'translate(0px, 3px)' }, BACK)))
     return parts
   })
 
   return (
-    <Plate reff={ref} name="costs" label="Pressing the monthly total spreads every tool's price over the map: each tool becomes a disc sized by its bill, and each area shows what it costs a month.">
+    <Plate reff={ref} name="costs" viewBox={look.viewBox} label="Pressing the monthly total spreads every tool's price over the map: each tool becomes a disc sized by its bill, and each area shows what it costs a month.">
       <Hatches ink={hatch} />
       <Sea />
       <Island
+        look={look}
         tools={false}
         itemsOff
         extra={(c) => (
-          <text className="mg-sub" data-area-total={c.id} x={c.x} y={c.y + 13} fontSize={9}>
-            {c.tools.length ? `${money(totalOf(c.id))} a month` : 'No prices yet'}
+          <text className="mg-sub" data-area-total={c.id} x={c.x} y={c.y + look.subDy} fontSize={look.sub}>
+            {totalOf(c.id) ? (look.narrow ? money(totalOf(c.id)) : `${money(totalOf(c.id))} a month`) : look.narrow ? 'No prices' : 'No prices yet'}
           </text>
         )}
       />
       {TOOLS.map((t) => (
-        <g key={t.letter} transform={`translate(${t.disc[0]} ${t.disc[1]})`}>
-          <g className="o" data-disc={t.letter}>
+        <g key={t.id} transform={`translate(${t.disc[0]} ${t.disc[1]})`}>
+          <g className="o" data-disc={t.id}>
             <circle className="mg-disc" r={discRadius(t.price)} />
             <circle r={discRadius(t.price)} fill={`url(#${hatch})`} />
             <circle className="mg-disc-edge" r={discRadius(t.price)} />
           </g>
         </g>
       ))}
-      {TOOLS.map((t) => (
-        <g key={t.letter} transform={`translate(${t.x} ${t.y})`}>
-          <g data-tile={t.letter} style={{ transform: `translate(${rim(t).x - t.x}px, ${rim(t).y - t.y}px) scale(${TILE_K})` }}>
-            <Tile letter={t.letter} />
+      {tiles.map((t) => {
+        const full = TOOLS.find((x) => x.id === t.id)!
+        return (
+          <g key={t.id} transform={`translate(${t.x} ${t.y})`}>
+            <g data-tile={t.id} style={{ transform: `translate(${rim(full).x - t.x}px, ${rim(full).y - t.y}px) scale(${TILE_K})` }}>
+              <Tile letter={t.letter} size={look.tile} />
+            </g>
           </g>
-        </g>
-      ))}
-      {TOOLS.map((t) => (
-        <text key={t.letter} className="mg-price" data-price={t.letter} x={t.disc[0]} y={t.disc[1] + 3.4} fontSize={discRadius(t.price) > 20 ? 9.6 : 7.6} textAnchor="middle">
-          {money(t.price)}
-        </text>
-      ))}
+        )
+      })}
+      {TOOLS.map((t) => {
+        const big = discRadius(t.price) > BIG
+        // On a phone a small disc's price would be too small to read, so only the biggest bills say theirs. The size says the rest.
+        if (look.narrow && !big) return null
+        return (
+          <g key={t.id} data-price={t.id}>
+            <text className="mg-price" x={t.disc[0]} y={t.disc[1] + (big ? (look.narrow ? 4.6 : 1) : 3.4)} fontSize={look.narrow ? 13.5 : big ? 9.6 : 7.6} textAnchor="middle">
+              {money(t.price)}
+            </text>
+            {big && !look.narrow && (
+              <text className="mg-price mg-price-name" x={t.disc[0]} y={t.disc[1] + 12} fontSize={7.6} textAnchor="middle">
+                {t.name}
+              </text>
+            )}
+          </g>
+        )
+      })}
       <g>
-        <rect className="mg-card-shadow" x={PILL.x} y={PILL.y + 1.5} width={PILL.w} height={PILL.h} rx={9} />
-        <rect className="mg-card" x={PILL.x} y={PILL.y} width={PILL.w} height={PILL.h} rx={9} />
-        <rect className="mg-pill-on" data-on="" x={PILL.x + 0.5} y={PILL.y + 0.5} width={PILL.w - 1} height={PILL.h - 1} rx={8.5} />
-        <text x={PILL.x + 12} y={PILL.y + 17.4} fontSize={10.4}>
+        <rect className="mg-card-shadow" x={pill.x} y={pill.y + 1.5} width={pill.w} height={pill.h} rx={9} />
+        <rect className="mg-card" x={pill.x} y={pill.y} width={pill.w} height={pill.h} rx={9} />
+        <rect className="mg-pill-on" data-on="" x={pill.x + 0.5} y={pill.y + 0.5} width={pill.w - 1} height={pill.h - 1} rx={8.5} />
+        <text x={pill.x + 12} y={pill.y + pill.h / 2 + pill.big * 0.36} fontSize={pill.big}>
           <tspan fontWeight={500}>≈{money(TOTAL)}</tspan>
-          <tspan className="mg-soft" fontSize={8.6}>
+          <tspan className="mg-soft" fontSize={pill.small}>
             {' '}a month
           </tspan>
         </text>
       </g>
       <g data-pointer="" data-off="">
         <g data-press="">
-          <Pointer />
+          <Pointer k={look.pointer} />
         </g>
       </g>
     </Plate>

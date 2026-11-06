@@ -7,13 +7,12 @@ import { Mark } from './Mark.tsx'
 import { Link } from './route.tsx'
 
 /**
- * Where the source lives. Written once, here. Empty until the repository is public, and every link that needs it hides until then.
+ * Where the source lives. Written once, here, and the one switch for links to it. Empty until the repository is public, and every link
+ * that needs it hides until then. The documents the site links to are served by the host itself, from dist/studio/docs/.
  * Set it to the repository's address, such as https://github.com/<owner>/<repo>, with no trailing slash.
  */
 export const REPO_URL: string = ''
 
-/** A file in the repository, on its main branch. */
-export const repoFile = (path: string) => (REPO_URL ? `${REPO_URL}/blob/main/${path}` : '')
 
 /** The Studio's page is fixed and never scrolls, because the map is the app. These pages scroll. Set before the first paint, so nothing jumps. */
 export function useSitePage(title: string) {
@@ -43,11 +42,11 @@ export function ThemeButton() {
 }
 
 /** The header every page of the website has: the mark and the name, going home, and whatever the page puts on the right. */
-export function SiteHeader({ children }: { children?: ReactNode }) {
+export function SiteHeader({ children, animated = false }: { children?: ReactNode; animated?: boolean }) {
   return (
     <header className="site-head">
       <Link to="/" className="site-brand" aria-label="Locus, home">
-        <Mark size={26} />
+        <Mark size={26} animated={animated} />
         <span>Locus</span>
       </Link>
       <div className="site-head-right">{children}</div>
