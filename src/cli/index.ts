@@ -18,7 +18,7 @@ const HELP = `locus ${SERVER_VERSION}
 A map of your company that any agent can read.
 
   locus serve               Run the Studio and host. Open http://localhost:4747
-    --port 4747             Or the PORT environment variable
+    --port 4747             Or LOCUS_PORT, or the PORT a host such as Railway sets
     --domain localhost      Your wildcard domain, for yourco.domain addresses
     --data ~/.locus         Where sealed maps are stored
     --hosted                Free-with-a-cap mode (see --max-accounts)
@@ -64,8 +64,17 @@ function die(message: string): never {
   process.exit(1)
 }
 
-// A switch set in the environment, as a host such as Railway sets it. "false" and "0" mean off, which Boolean() alone would read as on.
-const on = (v: unknown) => (typeof v === 'string' ? /^(1|true|yes|on)$/i.test(v.trim()) : Boolean(v))
+// A switch set in the environment, as a host such as Railway sets it. "false", "0", "no" and "off" mean off, which Boolean() alone would read as on.
+// Anything else that's set means on: a typo in LOCUS_HOSTED must leave the limits on, not quietly take them off.
+const on = (v: unknown) => (typeof v === 'string' ? v.trim() !== '' && !/^(0|false|no|off)$/i.test(v.trim()) : Boolean(v))
+
+// A number set in a flag or the environment. A typo or an empty value must never turn a limit off, so it stops the host with the reason.
+function num(name: string, v: unknown, fallback: number, least = 0): number {
+  if (v === undefined || v === true) return fallback
+  const n = Number(String(v).trim())
+  if (String(v).trim() === '' || !Number.isFinite(n) || n < least) die(`${name} must be a number of at least ${least}, not "${v}".`)
+  return n
+}
 
 const dataDir = (args: Args) => resolve(args.data ?? process.env.LOCUS_DATA ?? join(homedir(), '.locus'))
 
@@ -97,15 +106,15 @@ async function serve(args: Args) {
     dataDir: dataDir(args),
     studioDir: args.studio ?? join(here, 'studio'),
     hosted,
-    maxAccounts: Number(args['max-accounts'] ?? process.env.LOCUS_MAX_ACCOUNTS ?? 500),
+    maxAccounts: num('--max-accounts or LOCUS_MAX_ACCOUNTS', args['max-accounts'] ?? process.env.LOCUS_MAX_ACCOUNTS, 500),
     maxBundleBytes: (hosted ? 10 : 200) * 1_048_576,
-    powBits: Number(process.env.LOCUS_POW_BITS ?? 16),
+    powBits: num('LOCUS_POW_BITS', process.env.LOCUS_POW_BITS, 16),
     donateUrl: args['donate-url'] ?? process.env.LOCUS_DONATE_URL ?? '',
     abuseContact: args['abuse-contact'] ?? process.env.LOCUS_ABUSE_CONTACT ?? '',
     trustProxy: on(args['trust-proxy'] ?? process.env.LOCUS_TRUST_PROXY),
-    proxyHops: Number(args['proxy-hops'] ?? process.env.LOCUS_PROXY_HOPS ?? 1),
+    proxyHops: num('--proxy-hops or LOCUS_PROXY_HOPS', args['proxy-hops'] ?? process.env.LOCUS_PROXY_HOPS, 1, 1),
   }
-  const port = Number(args.port ?? process.env.PORT ?? 4747)
+  const port = num('--port, LOCUS_PORT or PORT', args.port ?? process.env.LOCUS_PORT ?? process.env.PORT, 4747, 1)
   mkdirSync(config.dataDir, { recursive: true })
   await listen(createHandler(config), port, config.maxBundleBytes, config.trustProxy ? config.proxyHops ?? 1 : 0)
   console.log(`Locus is running at http://${config.domain === 'localhost' ? 'localhost' : config.domain}:${port}`)
@@ -123,25 +132,45 @@ async function mcp(args: Args) {
   let fetchedAt = 0
 
   async function current(): Promise<View> {
-    // Picks up new publishes without restarting the client.
-    if (!view || Date.now() - fetchedAt > 60_000) {
-      view = await openBundle(await fetchBundle(addr), key)
-      fetchedAt = Date.now()
+    // Picks up new publishes without restarting the client. If the host is away for a moment, as it is during a redeploy, the last good copy carries on and it tries again on the next request.
+    if (view && Date.now() - fetchedAt > 60_000) {
+      try {
+        const r = await fetch(`${addr}/bundle.json`)
+        if (r.ok) {
+          view = await openBundle((await r.json()) as Bundle, key)
+          fetchedAt = Date.now()
+        }
+      } catch {
+        // Still the last good copy. A bundle that fails its checks is refused here too, and the last good one stands.
+      }
     }
-    return view
+    return view!
   }
 
-  await current().catch((e) => die(e instanceof Error ? e.message : String(e)))
+  try {
+    view = await openBundle(await fetchBundle(addr), key)
+    fetchedAt = Date.now()
+  } catch (e) {
+    die(e instanceof Error ? e.message : String(e))
+  }
   console.error(`Locus: reading ${view!.company.name} as "${view!.passwordName}". Decrypting on this machine.`)
 
   const rl = createInterface({ input: process.stdin })
   rl.on('line', async (line) => {
     if (!line.trim()) return
+    let request: { id?: unknown }
     try {
-      const reply = handleRpc(await current(), JSON.parse(line))
-      if (reply) process.stdout.write(JSON.stringify(reply) + '\n')
+      request = JSON.parse(line)
     } catch {
       process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }) + '\n')
+      return
+    }
+    try {
+      const reply = handleRpc(await current(), request as Parameters<typeof handleRpc>[1])
+      if (reply) process.stdout.write(JSON.stringify(reply) + '\n')
+    } catch (e) {
+      // Answered with the request's own id, so the client knows which call failed and the session carries on.
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: request?.id ?? null, error: { code: -32603, message: e instanceof Error ? e.message : 'Internal error' } }) + '\n')
     }
   })
   rl.on('close', () => process.exit(0))
@@ -211,23 +240,20 @@ async function verify(args: Args) {
   console.log(`  Reads:        ${view.pieces.length} pieces, ${view.links.length} links`)
   console.log(`  Prices:       ${view.costs ? `${view.costs.length} services` : 'sealed'}`)
 
-  // Flip one byte in each thing we opened and make sure it's refused.
-  const id = Object.keys(bundle.gates)[0]
-  if (id) {
+  // Flip one byte in the map's header, which every password reads and every password's envelope vouches for, and make sure it's refused.
+  {
     const tampered = structuredClone(bundle)
-    const ct = Buffer.from(tampered.gates[id].ct, 'base64')
+    const ct = Buffer.from(tampered.head.ct, 'base64')
     ct[Math.floor(ct.length / 2)] ^= 1
-    tampered.gates[id].ct = ct.toString('base64')
-    const before = view.gates.length
+    tampered.head.ct = ct.toString('base64')
     let refused = false
     try {
-      const again = await openBundle(tampered, key)
-      refused = again.gates.length !== before
-      if (!refused) console.log('  Tampering:    this password does not read the part we changed, so this check is inconclusive')
+      await openBundle(tampered, key)
     } catch {
       refused = true
     }
-    if (refused) console.log('  Tampering:    a changed byte was refused, as it should be')
+    console.log(refused ? '  Tampering:    a changed byte was refused, as it should be' : '  Tampering:    A CHANGED BYTE WAS ACCEPTED. Do not trust this host or this copy of Locus.')
+    if (!refused) process.exitCode = 1
   }
 }
 

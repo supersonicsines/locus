@@ -158,8 +158,8 @@ function PublishSheet() {
           Your map is still here, in this browser, and you can keep building it. Nobody else can read it until it's live. To go live today, run your own host on a computer with Node.js: it takes one command in a terminal, and it has no limit on accounts.
         </p>
         <div className="code-block">
-          <code>npx {PACKAGE} serve</code>
-          <button className="btn btn-paper code-copy" aria-label="Copy the command" onClick={async () => { if (await copy(`npx ${PACKAGE} serve`, null)) setCopiedKey(true) }}>
+          <code>npx -y {PACKAGE} serve</code>
+          <button className="btn btn-paper code-copy" aria-label="Copy the command" onClick={async () => { if (await copy(`npx -y ${PACKAGE} serve`, null)) setCopiedKey(true) }}>
             <Icon name={copiedKey ? 'check' : 'copy'} size={13} /> {copiedKey ? 'Copied' : 'Copy'}
           </button>
         </div>

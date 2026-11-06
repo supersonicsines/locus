@@ -323,7 +323,7 @@ export function createHandler(config: Config) {
     if (entry && !entry.remote) {
       return {
         fail: textReply(
-          `This password is set to local use only, so this host will not decrypt with it.\nDecrypt on your own machine instead: npx -y ${PACKAGE} mcp <address>\n`,
+          `This password is set to local use only, so this host will not decrypt with it.\nDecrypt on your own machine instead: LOCUS_KEY=<password> npx -y ${PACKAGE} mcp <address>\n`,
           403,
         ),
       }
@@ -393,7 +393,7 @@ export function createHandler(config: Config) {
 
     // Refuse to accept a password over plain HTTP from the open internet.
     if (proto(req) === 'http' && !isLocal(hostOf(req))) {
-      return textReply(`Refusing a password over plain HTTP. Use HTTPS, or decrypt locally: npx -y ${PACKAGE} mcp <address>\n`, 400)
+      return textReply(`Refusing a password over plain HTTP. Use HTTPS, or decrypt locally: LOCUS_KEY=<password> npx -y ${PACKAGE} mcp <address>\n`, 400)
     }
 
     const { view, fail } = await openFor(name, key, ip)

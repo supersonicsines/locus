@@ -245,7 +245,7 @@ export function lockedText(site: string, origin: string): string {
     `- Send a header: Authorization: Bearer <password>, to ${origin}/llms.txt`,
     `- If you can't set headers: ${origin}/k/<password>/llms.txt`,
     `- As an MCP server: ${origin}/mcp, with the same header`,
-    `- To decrypt on your own machine, so the host never sees the password: npx -y ${PACKAGE} mcp ${origin}`,
+    `- To decrypt on your own machine, so the host never sees the password: LOCUS_KEY=<password> npx -y ${PACKAGE} mcp ${origin}`,
     '',
     `The sealed data itself is public: ${origin}/bundle.json`,
     '',
