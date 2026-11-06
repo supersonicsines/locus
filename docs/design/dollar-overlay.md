@@ -21,7 +21,7 @@ The reviewing agent's vote was Rings, as the one to keep open every day. Discs w
 - **A card**, bottom left, with a month/year switch, Rings or Discs, and one quiet sentence: `71% of this is from invoices. 4 price notes`. Each area says its own figure under its name, so the bar of areas by share of spend that once sat here was removed in the Locus pass: it said nothing the map didn't. On a phone it's only the month/year switch and the sentence.
 - **Subtotals** under each area's name.
 - **Colour:** ink only. Vermilion keeps its one meaning, sealed.
-- **Three trust states:** known (invoice or typed), estimate (`≈`; list prices and usage), unknown (`–`). Every figure is in full ink: the `≈` says estimate, and grey as well only made the figures hard to read. `free` is a value, not a state. The source itself goes in the peek.
+- **Three trust states:** known (invoice or typed), estimate (`≈`; list prices and usage), unknown (a dashed rim and no figure). Every figure is in full ink: the `≈` says estimate, and grey as well only made the figures hard to read. `free` is a value, not a state. The source itself goes in the peek.
 - **To check** means something you can act on: unknown price (grouped into one entry), invoice more than 20% above list (flat plans or known seat counts only), renewal within 30 days, or a usage jump above 25% (needs two invoices). Marked with a small diamond beside the figure, and the same diamond stands beside `4 price notes`, so one explains the other.
 - **One cost per service.** Precedence: you, invoice, list. The latest invoice wins, and annual invoices become monthly.
 - **Currencies are never converted.** A map has a main currency. Shares and sizes use the main currency only. Other-currency services get the smallest mark, their own figure, and no share of the main total.
@@ -43,7 +43,7 @@ The debate's version moved nothing. Since Round 3, services spread over their la
 
 ## Discs: services shoulder aside, land frozen
 
-- **Mark:** a disc with fine engraved hatching, figure knocked out in the centre. Rim by trust: double (known), single (estimate), dashed (unknown, unhatched, smallest class).
+- **Mark:** a disc with fine engraved hatching, figure knocked out in the centre. One rim for a known price and an estimate (the `≈` says which), and a dashed rim, unhatched and in the smallest class, for no price. The double rim for known prices was removed in the Locus pass: nothing on screen explained it.
 - **Size:** five fixed classes, like settlement symbols on an old chart. Fixed classes mean a single large bill doesn't flatten the rest, and symbols don't change when another bill does.
 
   | Monthly cost | Radius |

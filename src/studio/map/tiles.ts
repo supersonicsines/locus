@@ -88,25 +88,70 @@ export class TileCache {
     return c
   }
 
+  /**
+   * What a logo is made of, looked at once: a one-colour black mark, a mark with dark parts, or a light or colourful one.
+   * Dark land needs to know, because a black mark vanishes on a dark plate and a white plate outshines the names.
+   */
+  private kinds = new Map<string, 'black' | 'dark' | 'light'>()
+  private kindOf(service: KnownService, img: HTMLImageElement): 'black' | 'dark' | 'light' {
+    const had = this.kinds.get(service.id)
+    if (had) return had
+    let kind: 'black' | 'dark' | 'light' = 'dark'
+    try {
+      const c = this.blank(32)
+      const x = c.getContext('2d', { willReadFrequently: true })!
+      x.drawImage(img, 0, 0, 32, 32)
+      const d = x.getImageData(0, 0, 32, 32).data
+      let solid = 0
+      let dark = 0
+      let grey = 0
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 60) continue
+        solid++
+        const [r, g, b] = [d[i], d[i + 1], d[i + 2]]
+        if (0.2126 * r + 0.7152 * g + 0.0722 * b < 70) dark++
+        if (Math.max(r, g, b) - Math.min(r, g, b) < 24) grey++
+      }
+      if (solid) kind = dark / solid > 0.85 && grey / solid > 0.9 ? 'black' : dark / solid > 0.25 ? 'dark' : 'light'
+    } catch {
+      // A logo that can't be looked at keeps the plate it was drawn for.
+    }
+    this.kinds.set(service.id, kind)
+    return kind
+  }
+
   private drawLogo(service: KnownService, img: HTMLImageElement, px: number): HTMLCanvasElement {
     const c = this.blank(px)
     const x = c.getContext('2d')!
     const r = px * TILE_RADIUS
+    const dark = !!this.palette?.dark
+    // On dark land a pale plate is the brightest thing on the map, so a mark that reads on dark gets a dark plate: a black one-colour mark drawn in the ink colour, a light one as it is.
+    // A colour mark with dark parts keeps a pale plate, the ground it was drawn for, or its dark parts would vanish.
+    const kind = dark && !service.tile ? this.kindOf(service, img) : 'light'
+    const plate = service.tile ?? (dark ? (kind === 'dark' ? '#bfc6cf' : '#252c38') : '#ffffff')
     // A hairline in the mark's own frame, so the tile holds its edge on paper and on dark.
     roundedRect(x, 0.5, 0.5, px - 1, px - 1, r)
     x.save()
     x.clip()
-    // Logos are drawn for white. On dark land a white plate is the brightest thing on the map and outshouts the names, so there it's a paler grey: still the ground the mark was drawn for, a step down.
-    x.fillStyle = service.tile ?? (this.palette?.dark ? '#bfc6cf' : '#ffffff')
+    x.fillStyle = plate
     x.fillRect(0, 0, px, px)
     x.imageSmoothingEnabled = true
     x.imageSmoothingQuality = 'high'
     const pad = service.full ? 0 : Math.round(px * TILE_PADDING)
-    x.drawImage(img, pad, pad, px - pad * 2, px - pad * 2)
+    if (dark && kind === 'black') {
+      const mark = this.blank(px)
+      const m = mark.getContext('2d')!
+      m.imageSmoothingQuality = 'high'
+      m.drawImage(img, pad, pad, px - pad * 2, px - pad * 2)
+      m.globalCompositeOperation = 'source-in'
+      m.fillStyle = this.palette!.ink
+      m.fillRect(0, 0, px, px)
+      x.drawImage(mark, 0, 0)
+    } else x.drawImage(img, pad, pad, px - pad * 2, px - pad * 2)
     x.restore()
     roundedRect(x, 0.5, 0.5, px - 1, px - 1, r)
     x.lineWidth = 1
-    x.strokeStyle = this.palette?.dark ? 'rgba(255,255,255,0.18)' : 'rgba(21,25,30,0.16)'
+    x.strokeStyle = dark ? 'rgba(255,255,255,0.12)' : 'rgba(21,25,30,0.16)'
     x.stroke()
     return c
   }

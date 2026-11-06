@@ -186,7 +186,9 @@ export function pieceText(view: View, id: string): string | null {
 }
 
 function costLine(c: Cost): string {
-  const parts = [`${figure(c)} a month`]
+  // "free a month" and "? a month" say nothing an agent can use. Free is free, and no known price is said once, below.
+  const f = figure(c)
+  const parts = f === '?' ? [] : [f === 'free' ? 'free' : `${f} a month`]
   if (c.plan) parts.push(`on ${oneLine(c.plan, 60)}`)
   if (c.unit === 'seat' && c.seats) parts.push(`${plural(c.seats, 'seat')}`)
   const trust = trustOf(c)

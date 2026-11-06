@@ -26,7 +26,7 @@ function CompanyMenu({ close, done }: { close: () => void; done: () => void }) {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, zIndex: 29 }} onClick={close} />
-      <div className="menu panel company-menu" style={{ top: 58, left: 0, right: 0 }} role="menu">
+      <div className="menu panel company-menu" style={{ top: 50, left: 0, right: 0 }} role="menu">
         {!view && vault && (
           <>
             <button className="menu-item" role="menuitem" onClick={act(() => setState({ sheet: { kind: 'rename' } }))}>
@@ -287,7 +287,6 @@ export function Left() {
               <span className="company-fold">{sample && <span className="fold-sample">Sample · </span>}{readOnly ? `You can read ${plural(areaCount, 'area')}` : plural(readerCount, 'reader')}</span>
             )}
           </span>
-          {sample && <span className="tag">Sample</span>}
           <Icon name="chevron" size={14} />
         </button>
         <button className="icon-btn" aria-label="Search the map" title="Search the map (⌘K)" onClick={() => { setOpenOnPhone(false); setState({ cmdk: true }) }}>

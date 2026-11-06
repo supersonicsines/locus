@@ -58,6 +58,7 @@ const FIT_STEPS: { name: string; frees: 'cost' | 'status' }[] = [
   { name: 'fit-6', frees: 'cost' }, // the other currencies, leaving a + to say there are some
   { name: 'fit-7', frees: 'cost' }, // the folded card's "Sample ·", which its own menu still says
   { name: 'fit-8', frees: 'cost' }, // the folded card's search, which ⌘K and the open card still have
+  { name: 'fit-9', frees: 'cost' }, // "Not live" beside "Go live", which says it already
 ]
 
 /**
@@ -170,11 +171,15 @@ export function StatusLine() {
     if (still) {
       return (
         <div key="lens-now" className="status panel is-now is-lens" role="alert">
-          <NeedMark level="now" />
-          <b className="lens-still" title={still}><Forms long={still} short={still.replace(/ until you update$/, '')} /></b>
-          {/* The sentence ends "until you update", so the button beside it is Update. Leaving the lens is a quiet × after it. */}
-          <button className="status-do go-live" aria-busy={publishing} disabled={publishing} onClick={() => void publishAndSay()}>{publishing ? 'Updating' : 'Update'}</button>
-          <button className="status-x icon-btn" aria-label={`Stop seeing the map as ${lensPw.name}`} title="Stop seeing the map as them (Esc)" onClick={done}><Icon name="close" size={13} /></button>
+          {/* Amber holds the urgent sentence and its verb, Update, which says "until you update" for it. Leaving the lens isn't urgent, so its × waits on the white tail. */}
+          <div className="status-open has-more">
+            <span className="status-head">
+              <NeedMark level="now" />
+              <b className="lens-still" title={still}>{still.replace(/ until you update$/, '')}</b>
+              <button className="status-do go-live" aria-busy={publishing} disabled={publishing} onClick={() => void publishAndSay()}>{publishing ? 'Updating' : 'Update'}</button>
+            </span>
+            <button className="status-x icon-btn" aria-label={`Stop seeing the map as ${lensPw.name}`} title="Stop seeing the map as them (Esc)" onClick={done}><Icon name="close" size={13} /></button>
+          </div>
         </div>
       )
     }
@@ -387,7 +392,9 @@ export function TopRight() {
   const isLive = !!vault?.published && !!vault.site
   const clean = isLive && p?.changes === 0
   // Someone can still read what you closed, so the bar at top centre has the button. Two would only compete.
-  const barHasUpdate = isLive && !!p?.exposures.length && !lens
+  // In a reader's view the bar has it only when it's that reader who can still read something.
+  const lensName = lens ? vault?.passwords.find((x) => x.id === lens)?.name : null
+  const barHasUpdate = isLive && !!p?.exposures.length && (!lens || (!!lensName && !!vault && !!stillOpenFor(vault, lensName)))
 
   const total = useMemo(() => {
     if (!content?.costs) return null
