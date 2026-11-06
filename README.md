@@ -18,7 +18,7 @@ npm run build
 npm start
 ```
 
-Open http://localhost:4747 and choose **See an example**. Scroll to zoom, drag to move, and click anything to open it.
+Open http://localhost:4747 and choose **See an example**, or go straight to http://localhost:4747/example. It moves like Miro or Figma: two fingers on a trackpad move the map, a pinch or a mouse wheel zooms, a drag can be thrown, and the arrow keys pan. Zoom far out and the company is an island; zoom right in and each item shows what's in it. Click anything to open it. The Locus mark at the top left takes you back home.
 
 ## What it does
 
@@ -78,17 +78,14 @@ Passwords come from `--key` or `LOCUS_KEY`. Run it as `npx -y locus-harness <com
 
 ## Run your own
 
-The host has no runtime dependencies and no database. A site is a folder holding a sealed bundle and a hash.
+Locus is open source and built to be run by anyone. The host has no runtime dependencies and no database: a site is a folder holding a sealed bundle and a hash. Running your own is also the most private way to use it, because the page that decrypts a map in a reader's browser then comes from your server.
 
 ```sh
-locus serve --domain yourdomain.com --trust-proxy --proxy-hops 1 --data /var/lib/locus
+npx -y locus-harness serve                      # on your computer, at http://localhost:4747
+docker compose --profile public up -d           # on a server, with Caddy and HTTPS for every address
 ```
 
-Point `*.yourdomain.com` and `yourdomain.com` at it, behind anything that terminates HTTPS. Wildcard certificates need a DNS challenge: Caddy with a DNS plugin, or Cloudflare in front, both work. Without wildcard DNS, every address also works at `/s/<name>/`.
-
-Or with Docker: `docker build -t locus . && docker run -p 4747:4747 -v locus:/data locus`. Every flag can also be an environment variable, such as `LOCUS_DOMAIN` or `LOCUS_TRUST_PROXY=1`.
-
-To deploy on Railway, follow [docs/LAUNCH.md](docs/LAUNCH.md): one service, one volume, two domains.
+[docs/SELF-HOSTING.md](docs/SELF-HOSTING.md) walks through each way, including the settings that matter on a public domain (always hosted mode; HTTPS and the proxy settings; never a CDN that decrypts; back up the data folder). To deploy on Railway, follow [docs/LAUNCH.md](docs/LAUNCH.md): one service, one volume, two domains.
 
 ### The free hosted mode
 
@@ -96,7 +93,7 @@ To deploy on Railway, follow [docs/LAUNCH.md](docs/LAUNCH.md): one service, one 
 locus serve --hosted --max-accounts 500 --donate-url https://… --abuse-contact abuse@…
 ```
 
-An account is a claimed name and a recovery key: no email, nothing personal stored. A small proof of work and a per-address limit stop a script taking every spot, and each account is limited to 10 MB, or about 3.7 MB of text. When it's full, the map still works in the browser and the app offers the self-host command. Read the note on abuse in [docs/SECURITY.md](docs/SECURITY.md) before opening one to the public.
+An account is a claimed name and a recovery key: no email, nothing personal stored. A small proof of work and a per-address limit stop a script taking every spot, and each account is limited to 10 MB, or about 3.7 MB of text. A host can also turn on **sign in with Google** (`LOCUS_GOOGLE_CLIENT_ID` and `LOCUS_GOOGLE_CLIENT_SECRET`): then claiming an address needs a Google sign-in instead of the proof of work, and a new device lists your maps so you only paste the recovery key. The host keeps a keyed hash of the Google account's id and nothing else, and Google never touches a map or a recovery key. When it's full, the map still works in the browser and the app offers the self-host command. Read the note on abuse in [docs/SECURITY.md](docs/SECURITY.md) before opening one to the public.
 
 ## Developing
 
@@ -109,7 +106,9 @@ npm run typecheck
 - `src/core`: types, sealing, search, the text agents read. Web Crypto only.
 - `src/server`: the host.
 - `src/cli`: the `locus` command.
-- `src/studio`: the map. A static React app, drawn on one canvas.
+- `src/studio`: the map and the website. A static React app; the map is drawn on one canvas.
+
+Contributions are welcome: [CONTRIBUTING.md](CONTRIBUTING.md) says how, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) how we treat each other, and [CHANGELOG.md](CHANGELOG.md) what's changed. Report a security problem privately, as [docs/SECURITY.md](docs/SECURITY.md#reporting-a-problem) says, never in a public issue.
 
 Start with [docs/STATUS.md](docs/STATUS.md) for where things stand and what's still to decide, then [docs/PRD.md](docs/PRD.md). [docs/LAUNCH.md](docs/LAUNCH.md) is the plan for going public on Railway. [docs/PRD-QA.md](docs/PRD-QA.md) records what an adversarial read found, [docs/design/dollar-overlay.md](docs/design/dollar-overlay.md) how the `$` switch was designed, and [docs/design/qa-rounds.md](docs/design/qa-rounds.md) every round of visual QA.
 

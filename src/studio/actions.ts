@@ -5,7 +5,7 @@ import { createEmptyVault, createSample } from '../core/sample.ts'
 import { snapshot } from '../core/status.ts'
 import type { Bundle, Cost, Gate, Password, Piece, Vault } from '../core/types.ts'
 import { layoutPieces, restorePositions } from './map/layout.ts'
-import { getState, setState, storage, type Toast } from './store.ts'
+import { getState, once, setState, storage, type Me, type PublishDraft, type Toast } from './store.ts'
 import { asReaderSees, putAreaBack, putPieceBack, rejectKeepsItem, rejectProposal, undoRejectProposal, withoutArea, withoutPiece } from './ui/data.ts'
 
 // Toasts
@@ -484,10 +484,88 @@ export async function reloadFromHost() {
 }
 
 export async function refreshServer() {
+  const [info, me] = await Promise.all([
+    fetch('/api/info').catch(() => null),
+    // Who's signed in with Google. An address answers that nobody is, because accounts belong to the host.
+    fetch('/api/me').catch(() => null),
+  ])
   try {
-    const res = await fetch('/api/info')
-    if (res.ok) setState({ server: await res.json() })
+    if (info?.ok) setState({ server: await info.json() })
   } catch {}
+  try {
+    if (me) setState({ me: me.ok ? ((await me.json()) as Me) : { signedIn: false } })
+  } catch {}
+  comeBackFromGoogle()
+}
+
+// Signing in with Google, on a host that has it. It tells the host who owns which address, and nothing more:
+// Google never sees the map, and the recovery key is still the only thing that opens or updates it.
+
+const BACK = 'locus-back-from-google'
+
+/** Goes to Google to sign in, then back to `next`, a path on this host. `back` reopens a sheet on return, with what was typed in it. */
+export function signInWithGoogle(next?: string, back?: { sheet: 'publish' | 'signin'; draft?: PublishDraft }) {
+  const query = new URLSearchParams(location.search)
+  query.delete('signin')
+  query.delete('why')
+  // Never the fragment: it can hold a password, and it never goes to the host.
+  const path = next ?? `${location.pathname}${query.toString() ? `?${query}` : ''}`
+  try {
+    if (back) sessionStorage.setItem(BACK, JSON.stringify({ ...back, vault: getState().vault?.id ?? null }))
+    else sessionStorage.removeItem(BACK)
+  } catch {}
+  location.assign(`/api/auth/google/start?next=${encodeURIComponent(path)}`)
+}
+
+/** Signs this browser out of the host. Maps already in this browser stay. */
+export async function signOut(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/auth/signout', { method: 'POST', headers: { 'X-Locus': '1' } })
+    if (!res.ok) return false
+    setState({ me: { signedIn: false } })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Why signing in with Google didn't work, from the word the host put in the address. */
+export function signinTrouble(why: string): string {
+  if (why === 'denied') return "Signing in with Google was cancelled, so you're not signed in."
+  if (why === 'busy') return 'Too many sign-ins from your connection. Wait a minute and try again.'
+  if (why === 'unverified') return "Google hasn't verified that account's email address, so this host can't use it. Try another account."
+  return "Couldn't sign in with Google. Try again."
+}
+
+let cameBack = false
+
+/** Back from Google: the sheet that went there opens again, once the Studio has opened its map, or a failure is said. */
+function comeBackFromGoogle() {
+  if (cameBack) return
+  cameBack = true
+  const query = new URLSearchParams(location.search)
+  const failed = query.get('signin') === 'failed' ? (query.get('why') ?? 'error') : undefined
+  if (query.has('signin')) {
+    query.delete('signin')
+    query.delete('why')
+    history.replaceState(history.state, '', `${location.pathname}${query.toString() ? `?${query}` : ''}${location.hash}`)
+  }
+  let back: { sheet: 'publish' | 'signin'; draft?: PublishDraft; vault: string | null } | null = null
+  try {
+    back = JSON.parse(sessionStorage.getItem(BACK) ?? 'null')
+    sessionStorage.removeItem(BACK)
+  } catch {}
+  if (!back && !failed) return
+  once(
+    (s) => s.mode !== 'loading',
+    () => {
+      const s = getState()
+      if (s.mode !== 'studio') return
+      if (back?.sheet === 'publish' && s.vault && s.vault.id === back.vault && !s.vault.site) setState({ sheet: { kind: 'publish', draft: back.draft, signinFailed: failed } })
+      else if (back?.sheet === 'signin') setState({ sheet: { kind: 'signin', signinFailed: failed } })
+      else if (failed) toast(signinTrouble(failed))
+    },
+  )
 }
 
 // Signing in with an owner key on another device.

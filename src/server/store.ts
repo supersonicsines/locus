@@ -1,5 +1,6 @@
 // Where sealed maps live: a folder per name. There's no database and nothing
-// else to leak. A site is ciphertext plus a hash of its publish token.
+// else to leak. A site is ciphertext plus a hash of its publish token, and, on a
+// host with Google sign-in, a keyed hash of the account that claimed it.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -10,6 +11,8 @@ export interface SiteMeta {
   updatedAt: string
   version: number
   bytes: number
+  /** A keyed hash of the Google account that claimed this name (auth.ts). Never an email or a name. */
+  owner?: string
 }
 
 export class FileStore {

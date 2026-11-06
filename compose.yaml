@@ -1,0 +1,46 @@
+# Locus with Docker Compose.
+#
+#   docker compose up -d                      Locus alone, at http://localhost:4747, for yourself on this machine
+#   docker compose --profile public up -d     Locus behind Caddy, with HTTPS on your domain and every address under it
+#
+# For the public profile, copy .env.example to .env and set LOCUS_DOMAIN first. docs/SELF-HOSTING.md walks through it.
+
+services:
+  locus:
+    build: .
+    restart: unless-stopped
+    environment:
+      LOCUS_DOMAIN: ${LOCUS_DOMAIN:-localhost}
+      # Hosted mode turns on the limits. With one account, your first "Go live" takes the only address and nobody else can claim one.
+      LOCUS_HOSTED: ${LOCUS_HOSTED:-1}
+      LOCUS_MAX_ACCOUNTS: ${LOCUS_MAX_ACCOUNTS:-1}
+      # Behind Caddy there's one proxy in front, and it says whether the request came over HTTPS.
+      LOCUS_TRUST_PROXY: ${LOCUS_TRUST_PROXY:-1}
+      LOCUS_PROXY_HOPS: ${LOCUS_PROXY_HOPS:-1}
+      LOCUS_ABUSE_CONTACT: ${LOCUS_ABUSE_CONTACT:-}
+      LOCUS_GOOGLE_CLIENT_ID: ${LOCUS_GOOGLE_CLIENT_ID:-}
+      LOCUS_GOOGLE_CLIENT_SECRET: ${LOCUS_GOOGLE_CLIENT_SECRET:-}
+    volumes:
+      - locus-data:/data
+    # Only this machine can reach it directly. The public way in is Caddy.
+    ports:
+      - "127.0.0.1:4747:4747"
+
+  caddy:
+    image: caddy:2
+    profiles: [public]
+    restart: unless-stopped
+    depends_on: [locus]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  locus-data:
+  caddy-data:
+  caddy-config:

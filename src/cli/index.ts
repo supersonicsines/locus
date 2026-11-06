@@ -27,6 +27,9 @@ A map of your company that any agent can read.
     --abuse-contact <addr>
     --trust-proxy           Read X-Forwarded-* from your reverse proxy
     --proxy-hops 1          How many proxies you run in front (2 for Cloudflare and Caddy)
+    --google-client-id <id> Sign in with Google: both, or neither. See docs/SECURITY.md
+    --google-client-secret  Better set as LOCUS_GOOGLE_CLIENT_SECRET, out of the process list
+    --maps-per-account 3    With Google in hosted mode, the addresses each account can take
 
   locus mcp <address>       MCP server on stdio. Decrypts here; the host never sees the password
   locus pull <address>      Write the map to a folder as Markdown
@@ -38,6 +41,7 @@ A map of your company that any agent can read.
 
 Passwords come from --key or the LOCUS_KEY environment variable.
 Every flag of serve can also be set as LOCUS_<FLAG>, such as LOCUS_DOMAIN or LOCUS_TRUST_PROXY=1.
+LOCUS_SESSION_SECRET signs sign-in cookies. Without it, one is made once and kept in the data folder.
 `
 
 interface Args {
@@ -76,6 +80,13 @@ function num(name: string, v: unknown, fallback: number, least = 0): number {
   return n
 }
 
+// A value set in a flag or the environment. A flag with nothing after it is a mistake, not "on".
+function text(name: string, v: unknown): string | undefined {
+  if (v === undefined) return undefined
+  if (v === true) die(`${name} needs a value.`)
+  return String(v).trim() || undefined
+}
+
 const dataDir = (args: Args) => resolve(args.data ?? process.env.LOCUS_DATA ?? join(homedir(), '.locus'))
 
 function needKey(args: Args): string {
@@ -98,9 +109,26 @@ async function fetchBundle(addr: string): Promise<Bundle> {
   return (await r.json()) as Bundle
 }
 
+/** Sign in with Google needs both halves of the client. Half of one stops the host with the reason, rather than quietly running without it. */
+function googleClient(args: Args): Config['google'] {
+  const clientId = text('--google-client-id or LOCUS_GOOGLE_CLIENT_ID', args['google-client-id'] ?? process.env.LOCUS_GOOGLE_CLIENT_ID)
+  const clientSecret = text('--google-client-secret or LOCUS_GOOGLE_CLIENT_SECRET', args['google-client-secret'] ?? process.env.LOCUS_GOOGLE_CLIENT_SECRET)
+  if (!clientId && !clientSecret) return undefined
+  if (!clientId || !clientSecret) die(`Sign in with Google needs both a client ID and a client secret, and only the ${clientId ? 'ID' : 'secret'} is set. Set LOCUS_GOOGLE_CLIENT_ID and LOCUS_GOOGLE_CLIENT_SECRET, or neither.`)
+  return { clientId, clientSecret }
+}
+
+function sessionSecretFromEnv(): string | undefined {
+  const v = process.env.LOCUS_SESSION_SECRET
+  if (v === undefined) return undefined
+  if (v.trim().length < 32) die('LOCUS_SESSION_SECRET must be at least 32 characters. Leave it unset and the host makes one and keeps it in the data folder.')
+  return v.trim()
+}
+
 async function serve(args: Args) {
   const hosted = on(args.hosted ?? process.env.LOCUS_HOSTED)
   const here = dirname(fileURLToPath(import.meta.url))
+  const google = googleClient(args)
   const config: Config = {
     domain: args.domain ?? process.env.LOCUS_DOMAIN ?? 'localhost',
     dataDir: dataDir(args),
@@ -113,6 +141,9 @@ async function serve(args: Args) {
     abuseContact: args['abuse-contact'] ?? process.env.LOCUS_ABUSE_CONTACT ?? '',
     trustProxy: on(args['trust-proxy'] ?? process.env.LOCUS_TRUST_PROXY),
     proxyHops: num('--proxy-hops or LOCUS_PROXY_HOPS', args['proxy-hops'] ?? process.env.LOCUS_PROXY_HOPS, 1, 1),
+    google,
+    sessionSecret: google ? sessionSecretFromEnv() : undefined,
+    mapsPerAccount: num('--maps-per-account or LOCUS_MAPS_PER_ACCOUNT', args['maps-per-account'] ?? process.env.LOCUS_MAPS_PER_ACCOUNT, 3, 1),
   }
   const port = num('--port, LOCUS_PORT or PORT', args.port ?? process.env.LOCUS_PORT ?? process.env.PORT, 4747, 1)
   mkdirSync(config.dataDir, { recursive: true })
@@ -120,6 +151,7 @@ async function serve(args: Args) {
   console.log(`Locus is running at http://${config.domain === 'localhost' ? 'localhost' : config.domain}:${port}`)
   console.log(`Sealed maps are stored in ${config.dataDir}`)
   if (hosted) console.log(`Hosted mode: up to ${config.maxAccounts} free accounts.`)
+  if (google) console.log(hosted ? `Sign in with Google is on. A new address needs it, and each Google account can take ${config.mapsPerAccount}.` : 'Sign in with Google is on.')
   if (config.domain !== 'localhost' && !config.trustProxy) {
     console.log('Put this behind HTTPS and pass --trust-proxy. Passwords sent over plain HTTP are refused.')
   }
@@ -264,7 +296,8 @@ function admin(args: Args) {
     const all = store.list()
     if (!all.length) return console.log('No accounts.')
     for (const { name, meta } of all) {
-      console.log(`${name}  version ${meta.version}  ${(meta.bytes / 1024).toFixed(0)} KB  updated ${meta.updatedAt}`)
+      // Whether a Google account claimed it, and nothing about which one.
+      console.log(`${name}  version ${meta.version}  ${(meta.bytes / 1024).toFixed(0)} KB  updated ${meta.updatedAt}${meta.owner ? '  claimed with Google' : ''}`)
     }
     return
   }

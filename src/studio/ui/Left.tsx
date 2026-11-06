@@ -6,6 +6,8 @@ import { askFit, copy, createPassword, loadSample, newMap, setTheme, siteAddress
 import { setState, useStore } from '../store.ts'
 import { Icon, NeedMark, plural, ReaderMark, useEscape } from './bits.tsx'
 import { areasOnMap, contentOf, NO_GATES, NO_PIECES, readersByArea } from './data.ts'
+import { Mark } from '../site/Mark.tsx'
+import { go, Link, onboarded } from '../site/route.tsx'
 
 function CompanyMenu({ close, done }: { close: () => void; done: () => void }) {
   const vault = useStore((s) => s.vault)
@@ -162,7 +164,21 @@ function Readers({ picked }: { picked: () => void }) {
           <p className="left-about">
             {vault.sample ? "A made-up company's map for its AI tools and people. Pick a name to see what they can read." : 'What your AI tools and people need to know, on one map. You choose who can read which parts.'}
           </p>
-          {vault.sample && <button className="text-btn start-own" onClick={() => { picked(); void newMap() }}>Start your own map</button>}
+          {/* The first time, through the first steps. After that, straight to a new map of your own. */}
+          {vault.sample && (
+            <Link
+              className="text-btn start-own"
+              to="/start"
+              onClick={(e) => {
+                picked()
+                if (!onboarded() || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+                e.preventDefault()
+                go('/map', { then: async () => { await newMap() } })
+              }}
+            >
+              Start your own map
+            </Link>
+          )}
         </>
       )}
       <div className="left-title">{live ? 'Who can read it' : 'Who can read it once live'}</div>
@@ -269,6 +285,12 @@ export function Left() {
     <div ref={box} className={`left panel ${openOnPhone ? 'is-open' : ''} ${folded ? 'is-folded' : ''}`}>
       {openOnPhone && <div className="phone-backdrop" onClick={() => setOpenOnPhone(false)} />}
       <div className="left-head">
+        {/* The way home, to the website. A reader's page has none: its home is the map. */}
+        {!readOnly && (
+          <Link to="/" className="home-mark" aria-label="Locus home" title="Locus home">
+            <Mark size={22} />
+          </Link>
+        )}
         <button
           className="company-btn"
           aria-haspopup="menu"

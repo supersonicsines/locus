@@ -20,11 +20,13 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "preview:google": "node --experimental-strip-types --no-warnings scripts/preview-google.mjs",
     "build": "vite build && node scripts/build-server.mjs",
     "start": "node dist/cli.mjs serve",
     "test": "node --test --experimental-strip-types test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "workbench": "node scripts/workbench.mjs"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^1.4.0",

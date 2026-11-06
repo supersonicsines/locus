@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toCheck } from '../core/money.ts'
 import { levelOf, needs, pending, sortNeeds, type NeedKind, type NeedLevel } from '../core/status.ts'
-import { clearPlainToasts, dismissToast, loadSample, movePiece, newMap, openVault, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
+import { clearPlainToasts, dismissToast, movePiece, newMap, refreshServer, toggleGateOnPassword, unlockViewer } from './actions.ts'
 import { loadLogos } from './logos/store.ts'
 import { MapView, type Palette } from './map/MapView.ts'
 import { readerColour } from './map/symbols.ts'
@@ -18,6 +18,9 @@ import { Peek } from './ui/Peek.tsx'
 import { AgentView, SharePanel } from './ui/Share.tsx'
 import { Sheets, ShredStrip } from './ui/Sheets.tsx'
 import { FitTop, NeedsPanel, StatusLine, stillOpenFor, TopRight } from './ui/Top.tsx'
+import { Home } from './site/Home.tsx'
+import { go, isStudio, routeOf, routing, startRouting, useArriving, useRoute } from './site/route.tsx'
+import { Start } from './site/Start.tsx'
 
 const PALETTES: Record<'light' | 'dark', Palette> = {
   light: {
@@ -71,7 +74,22 @@ const NEED_WORDS: Record<NeedKind, string> = {
 }
 
 /** Point at an item with a mark on it and this says what the mark is about, so the mark doesn't need explaining anywhere else. */
-function MapTip({ tip }: { tip: { id: string; x: number; y: number } | null }) {
+type Tip = { id: string; x: number; y: number } | null
+/** The tooltip has its own state, so pointing at things re-renders the tooltip and nothing else: on a big map, a re-render of the map's component on every hover change was a dropped frame. */
+let showTip: (tip: Tip) => void = () => {}
+
+function MapTipLayer() {
+  const [tip, setTip] = useState<Tip>(null)
+  useEffect(() => {
+    showTip = setTip
+    return () => {
+      showTip = () => {}
+    }
+  }, [])
+  return <MapTip tip={tip} />
+}
+
+function MapTip({ tip }: { tip: Tip }) {
   const vault = useStore((s) => s.vault)
   const selected = useStore((s) => s.selected)
   if (!tip || !vault || selected === tip.id) return null
@@ -89,8 +107,8 @@ function MapTip({ tip }: { tip: { id: string; x: number; y: number } | null }) {
 
 function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   const ref = useRef<HTMLCanvasElement>(null)
-  const [tip, setTip] = useState<{ id: string; x: number; y: number } | null>(null)
   const tipTimer = useRef(0)
+  const tipShown = useRef(false)
 
   useLayoutEffect(() => {
     const canvas = ref.current!
@@ -111,8 +129,14 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       // It waits for you to stop on something. A pointer on its way past shouldn't set off words.
       itemHover: (id, x, y) => {
         clearTimeout(tipTimer.current)
-        if (!id) setTip(null)
-        else tipTimer.current = window.setTimeout(() => setTip({ id, x, y }), 240)
+        if (!id) {
+          if (tipShown.current) showTip(null)
+          tipShown.current = false
+        } else
+          tipTimer.current = window.setTimeout(() => {
+            tipShown.current = true
+            showTip({ id, x, y })
+          }, 240)
       },
       pieceMoved: (id, x, y, gate) => movePiece(id, x, y, gate),
       cameraChanged: (k, fitK) => {
@@ -220,6 +244,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
       readers,
       readerColours,
       readOnly: c?.readOnly ?? false,
+      company: c?.company.name ?? '',
     })
   }, [vault, view, flagged, exposed, pricesReadable, live, behind, priceChecks, sealedToAll, readers, readerColours, map])
 
@@ -278,7 +303,7 @@ function MapSurface({ map }: { map: React.RefObject<MapView | null> }) {
   return (
     <>
       <canvas ref={ref} className="map-canvas" tabIndex={-1} aria-hidden="true" />
-      <MapTip tip={tip} />
+      <MapTipLayer />
     </>
   )
 }
@@ -324,44 +349,6 @@ function PhoneLens({ map }: { map: React.RefObject<MapView | null> }) {
       </div>
       <button className="btn btn-paper reader-setup" onClick={() => setState({ panel: 'share', agentView: false })}>{live ? 'Connect this reader' : 'How to connect them'}</button>
     </section>
-  )
-}
-
-function FirstRun() {
-  const server = useStore((s) => s.server)
-  const input = useRef<HTMLInputElement>(null)
-  const accounts = server?.accounts
-  return (
-    <div className="empty">
-      <div className="empty-word">Locus</div>
-      <h1>Teach your AI tools about your company.</h1>
-      <p><span>Add your documents: brand{'\u00a0'}book, contracts, specs, invoices.</span> <span>They become one map, and you choose which parts each AI tool or person can read.</span></p>
-      <div className="empty-actions">
-        <button className="btn btn-ink" onClick={() => input.current?.click()}>Choose files</button>
-        <button className="btn btn-paper" onClick={() => void loadSample()}>See an example</button>
-      </div>
-      <div className="empty-note">Nothing leaves this device until you say so.</div>
-      <input
-        ref={input}
-        type="file"
-        multiple
-        hidden
-        onChange={(e) => {
-          const files = [...(e.target.files ?? [])]
-          if (files.length) void startWith(files)
-          e.target.value = ''
-        }}
-      />
-      <div className="empty-foot">
-        <button onClick={() => setState({ sheet: { kind: 'signin' } })}>Already have a map? Sign in</button>
-        {accounts && (
-          <span>
-            {accounts.used >= accounts.max ? 'Every free account is taken. You can still build a map here.' : `Free while there's room: ${accounts.used} of ${accounts.max} accounts taken.`}
-          </span>
-        )}
-        {(server?.mode === 'hosted' || server?.donateUrl) && <button onClick={() => setState({ sheet: { kind: 'donate' } })}>Donate</button>}
-      </div>
-    </div>
   )
 }
 
@@ -536,11 +523,10 @@ export function App() {
       const savedKey = await storage.get<string>('claudeKey')
       if (savedKey) setState({ claudeKey: savedKey, claudeKeySaved: true })
       const all = await storage.vaults()
-      const last = await storage.get<string>('lastVault')
-      const v = all.find((x) => x.id === last) ?? all[0]
-      if (v) await openVault(v)
-      setState({ mode: 'studio', vaultList: all.map((x) => ({ id: x.id, name: x.company.name, sample: x.sample, items: x.pieces.length })) })
-      if (new URLSearchParams(location.search).get('sample') !== null && !v) await loadSample()
+      setState({ vaultList: all.map((x) => ({ id: x.id, name: x.company.name, sample: x.sample, items: x.pieces.length })) })
+      // The address says which page this is: the website, the first steps, your map or the sample. A map opens only on the last two.
+      await startRouting()
+      setState({ mode: 'studio' })
     })()
   }, [])
 
@@ -550,6 +536,8 @@ export function App() {
       const target = e.target as HTMLElement
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable
       const s = getState()
+      // The website's pages have no map to drive.
+      if (s.mode === 'studio' && !isStudio(routeOf())) return
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setState({ cmdk: !s.cmdk })
@@ -572,9 +560,15 @@ export function App() {
     return () => window.removeEventListener('keydown', on)
   }, [])
 
+  const route = useRoute()
+  const arriving = useArriving()
+  // On the website's pages there's no map in the Studio's sense, and the first steps take their own files.
+  const studio = mode === 'studio' && isStudio(route)
+  const site = mode === 'studio' && !isStudio(route)
+
   // Dropping files anywhere on the map.
   useEffect(() => {
-    if (mode !== 'studio') return
+    if (!studio) return
     const enter = (e: DragEvent) => {
       if (!e.dataTransfer?.types.includes('Files')) return
       e.preventDefault()
@@ -603,7 +597,7 @@ export function App() {
       window.removeEventListener('dragleave', leave)
       window.removeEventListener('drop', drop)
     }
-  }, [mode])
+  }, [studio])
 
   useEscape(() => {
     const s = getState()
@@ -617,12 +611,33 @@ export function App() {
     if (hasMap) loadLogos()
   }, [hasMap])
 
+  // The address follows the map in hand when something in the Studio changes it: the sample at /example, your own maps at /map.
+  // A map opened from the website's pages (signing in with a recovery key) is shown where maps are.
+  const vaultId = vault?.id ?? null
+  const vaultSample = !!vault?.sample
+  const lastId = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (mode !== 'studio' || arriving || !routing()) return
+    const before = lastId.current
+    lastId.current = vaultId
+    if (vaultId && !vaultSample) void storage.set('lastMap', vaultId)
+    if (route === 'example' && vaultId && !vaultSample) go('/map', { replace: true })
+    else if (route === 'map' && vaultSample) go('/example', { replace: true })
+    else if (isStudio(route) && !vaultId) go('/', { replace: true })
+    else if (!isStudio(route) && vaultId && before !== undefined && before !== vaultId) go('/map')
+  }, [mode, arriving, route, vaultId, vaultSample])
+
+  const sheet = useStore((s) => s.sheet?.kind)
+  const showMap = (studio && !arriving) || mode === 'locked' || mode === 'viewer'
+  const showChrome = (studio && !arriving) || mode === 'viewer'
+
   return (
     <>
-      <MapSurface map={map} />
+      {showMap && <MapSurface map={map} />}
       {mode === 'locked' && siteName && <Locked name={siteName} />}
-      {mode === 'studio' && !vault && <FirstRun />}
-      {mode === 'studio' && vault && !vault.pieces.length && <BlankMap />}
+      {site && route === 'home' && <Home />}
+      {site && route === 'start' && <Start />}
+      {studio && !arriving && vault && !vault.pieces.length && <BlankMap />}
       <input
         id="add-files"
         type="file"
@@ -634,10 +649,11 @@ export function App() {
           e.target.value = ''
         }}
       />
-      {(mode === 'studio' || mode === 'viewer') && hasMap && <Chrome map={map} />}
-      {cmdk && hasMap && <CommandK map={map} />}
-      <Sheets />
-      <ShredStrip />
+      {showChrome && hasMap && <Chrome map={map} />}
+      {showChrome && cmdk && hasMap && <CommandK map={map} />}
+      {/* The website's pages can open signing in with a recovery key, and Donate. Everything else a sheet does is about the map. */}
+      {(!site || sheet === 'signin' || sheet === 'donate') && <Sheets />}
+      {!site && <ShredStrip />}
       <Toasts />
       {dropping && <div className="drop-hint">{vault?.sample ? 'Drop to start your own map' : 'Drop to add to the map'}</div>}
     </>

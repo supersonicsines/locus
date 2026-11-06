@@ -51,8 +51,11 @@ export function listen(handler: Handler, port: number, maxBodyBytes: number, pro
       const ip = clientAddress(Array.isArray(forwarded) ? forwarded.join(',') : forwarded, req.socket.remoteAddress, proxyHops)
       const response = await handler(request, ip)
 
-      const out: Record<string, string> = {}
+      const out: Record<string, string | string[]> = {}
       response.headers.forEach((v, k) => (out[k] = v))
+      // Each cookie is its own header. Walking the headers keeps only the last of them.
+      const cookies = response.headers.getSetCookie()
+      if (cookies.length) out['set-cookie'] = cookies
       res.writeHead(response.status, out)
       res.end(method === 'HEAD' ? undefined : Buffer.from(await response.arrayBuffer()))
     } catch (e) {

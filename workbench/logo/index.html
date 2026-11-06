@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Locus mark</title>
+    <link rel="icon" id="favicon" href="data:," />
+    <link rel="preload" href="/font.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="workbench.css" />
+    <script>
+      // Set the theme before anything paints.
+      try {
+        const saved = localStorage.getItem('locus-mark-theme')
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      } catch {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
+  </head>
+  <body>
+    <main class="page">
+      <header class="top">
+        <div>
+          <h1>Locus mark</h1>
+          <p>Five marks in one squircle. Each is drawn from a few curves, the same ones that move, and redrawn rather than shrunk at every size.</p>
+        </div>
+        <div class="tools">
+          <button class="chip" id="motion-all" role="switch" aria-checked="false">Motion <span class="switch"></span></button>
+          <div class="seg" role="group" aria-label="Page theme">
+            <button data-theme="light" aria-pressed="false">Light</button>
+            <button data-theme="dark" aria-pressed="false">Dark</button>
+          </div>
+        </div>
+      </header>
+      <section class="cards" id="cards"></section>
+      <p class="note">Motion runs only for marks on screen and stops while the tab is hidden. With reduced motion asked for, it starts off. Click a tab strip to make that mark this page's icon.</p>
+    </main>
+
+    <script type="module">
+      import { VARIANTS, Card, clock, svgFile } from './logos.js'
+
+      const params = new URLSearchParams(location.search)
+      const still = params.has('still')
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+      const LADDER = [96, 48, 32, 16]
+      const NS = 'http://www.w3.org/2000/svg'
+      const svg = (size) => {
+        const s = document.createElementNS(NS, 'svg')
+        s.setAttribute('width', size)
+        s.setAttribute('height', size)
+        return s
+      }
+      const icon = {
+        intro: '<svg viewBox="0 0 14 14"><path d="M2.5 7a4.5 4.5 0 1 0 1.4-3.3"/><path d="M2.6 1.6v2.6h2.6"/></svg>',
+        down: '<svg viewBox="0 0 14 14"><path d="M7 2v7.5"/><path d="M3.8 6.4 7 9.6l3.2-3.2"/><path d="M2.5 12h9"/></svg>',
+      }
+      const el = (tag, props = {}, ...kids) => {
+        const e = document.createElement(tag)
+        for (const [k, v] of Object.entries(props)) {
+          if (k === 'html') e.innerHTML = v
+          else if (k.startsWith('on')) e.addEventListener(k.slice(2), v)
+          else e.setAttribute(k, v)
+        }
+        e.append(...kids)
+        return e
+      }
+
+      const cards = []
+      const host = document.getElementById('cards')
+      const time = clock(cards)
+
+      function download(v, theme) {
+        const blob = new Blob([svgFile(v, theme)], { type: 'image/svg+xml' })
+        const a = el('a', { href: URL.createObjectURL(blob), download: `locus-${v.id}${theme === 'dark' ? '-dark' : ''}.svg` })
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      }
+
+      function setFavicon(v) {
+        document.getElementById('favicon').href = 'data:image/svg+xml,' + encodeURIComponent(svgFile(v, 'light', 16))
+      }
+
+      VARIANTS.forEach((v, i) => {
+        const card = new Card(v)
+        card.reduced = reduced
+        cards.push(card)
+
+        const motion = el('button', { class: 'btn toggle', role: 'switch', 'aria-checked': 'false', 'aria-label': `Motion for ${v.name}` }, 'Motion ', el('span', { class: 'switch' }))
+        motion.addEventListener('click', () => setMotion(card, !card.motion))
+        card.button = motion
+        // A mark that can go live gets its own switch: going live is a moment of its own, not motion.
+        const live = v.live
+          ? el('button', { class: 'btn toggle', role: 'switch', 'aria-checked': 'false', 'aria-label': `Live for ${v.name}` }, 'Live ', el('span', { class: 'switch' }))
+          : null
+        if (live)
+          live.addEventListener('click', () => {
+            card.live = !card.live
+            live.setAttribute('aria-checked', String(card.live))
+            time.wake()
+          })
+        card.liveButton = live
+
+        const plates = ['light', 'dark'].map((theme) => {
+          const s = svg(280)
+          s.dataset.v = v.id
+          s.dataset.size = 280
+          s.dataset.ground = theme
+          card.add(s, 280, theme)
+          return el('figure', { class: `plate ${theme}`, 'data-ground': theme }, s)
+        })
+
+        const rungs = ['light', 'dark'].map((theme) =>
+          el('div', { class: `rung ${theme}` }, ...LADDER.map((size) => {
+            const s = svg(size)
+            s.dataset.v = v.id
+            s.dataset.size = size
+            s.dataset.ground = theme
+            card.add(s, size, theme)
+            return el('figure', {}, s, el('figcaption', {}, String(size)))
+          })),
+        )
+
+        const tabs = el('div', { class: 'tabs' }, ...['light', 'dark'].map((theme) => {
+          const s = svg(16)
+          s.dataset.v = v.id
+          s.dataset.size = 'tab'
+          s.dataset.ground = theme
+          card.add(s, 16, theme)
+          return el('button', { class: `strip ${theme}`, title: 'Use as this page’s icon', onclick: () => setFavicon(v) },
+            el('div', { class: 'tab' }, s, el('span', {}, 'Locus'), el('i', {}, '×')))
+        }))
+
+        const article = el('article', { class: 'card', 'data-id': v.id },
+          el('header', { class: 'card-head' },
+            el('div', {},
+              el('h2', {}, el('span', { class: 'num' }, String(i + 1).padStart(2, '0')), v.name),
+              el('p', { class: 'idea' }, v.idea)),
+            el('div', { class: 'card-tools' },
+              ...(live ? [live] : []),
+              motion,
+              el('button', { class: 'btn', html: `${icon.intro}Intro`, onclick: () => { card.playIntro(); time.wake() } }),
+              el('button', { class: 'btn', html: `${icon.down}SVG`, title: 'Download the still mark', onclick: () => download(v, 'light') }),
+              el('button', { class: 'btn', html: `${icon.down}Dark`, title: 'Download the still mark for dark grounds', onclick: () => download(v, 'dark') }))),
+          el('div', { class: 'card-body' }, ...plates, el('div', { class: 'ladder' }, ...rungs, tabs)))
+        host.append(article)
+        card.el = article
+        card.render()
+      })
+
+      setFavicon(VARIANTS[0])
+
+      /* ---------- motion ---------- */
+
+      const all = document.getElementById('motion-all')
+      function syncAll() {
+        all.setAttribute('aria-checked', String(cards.every((c) => c.motion)))
+      }
+      function setMotion(card, on) {
+        card.motion = on
+        card.button.setAttribute('aria-checked', String(on))
+        syncAll()
+        time.wake()
+      }
+      all.addEventListener('click', () => {
+        const on = !cards.every((c) => c.motion)
+        for (const c of cards) setMotion(c, on)
+      })
+      for (const c of cards) setMotion(c, !reduced && !still)
+
+      // Only cards on screen draw. Each plays its intro the first time it's seen.
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          const c = cards.find((k) => k.el === e.target)
+          c.visible = e.isIntersecting
+          if (c.visible) {
+            if (!c.seen && !reduced && !still && !time.frozen) c.playIntro()
+            c.seen = true
+            c.render()
+          }
+        }
+        time.wake()
+      })
+      for (const c of cards) io.observe(c.el)
+
+      /* ---------- theme ---------- */
+
+      const segs = document.querySelectorAll('.seg button')
+      function setTheme(theme) {
+        document.documentElement.dataset.theme = theme
+        segs.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.theme === theme)))
+        try {
+          localStorage.setItem('locus-mark-theme', theme)
+        } catch {}
+      }
+      segs.forEach((b) => b.addEventListener('click', () => setTheme(b.dataset.theme)))
+      setTheme(document.documentElement.dataset.theme)
+
+      /* ---------- hooks for the QA shots: exact frames off the page's own clock ---------- */
+
+      const pick = (id) => (id ? cards.filter((c) => c.v.id === id) : cards)
+      Object.assign(window, {
+        __variants: () => VARIANTS.map((v) => ({ id: v.id, name: v.name, period: v.period, flow: v.flow || 0, live: !!v.live, liveDur: v.liveDur || 0, introDur: v.introDur })),
+        __still() {
+          time.freeze(true)
+          for (const c of cards) Object.assign(c, { introAt: null, p: 1, ramp: 0, spd: 0, fade: null, live: false, liveRamp: 0, time: 0 }), c.render()
+        },
+        // Loop time in seconds, at full motion. Live stays as it is.
+        __setTime(seconds, id) {
+          time.freeze(true)
+          for (const c of pick(id)) Object.assign(c, { introAt: null, p: 1, ramp: 1, spd: 1, fade: null, time: seconds % c.v.period }), c.render()
+        },
+        // Intro progress, 0 to 1.
+        __setIntro(id, p) {
+          time.freeze(true)
+          for (const c of pick(id)) Object.assign(c, { introAt: null, p, ramp: 0, spd: 0, fade: null, liveRamp: 0, time: 0 }), c.render()
+        },
+        // How far the going-live moment has run, 0 to 1, for a mark that can go live.
+        __setLive(id, k) {
+          time.freeze(true)
+          for (const c of pick(id)) Object.assign(c, { liveRamp: k, live: k > 0 }), c.render()
+        },
+        __live() {
+          time.freeze(false)
+        },
+        __theme: setTheme,
+      })
+    </script>
+  </body>
+</html>

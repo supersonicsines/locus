@@ -49,6 +49,12 @@ The CLI reads any Locus address, so publishing it before the host exists does no
    | `LOCUS_MAX_ACCOUNTS` | `1` for yours alone, `400` for a public one | With `1`, your first publish claims the only name and nobody else can claim one. Public accounts are 10 MB each and a Hobby volume is 5 GB, so 500 would fill it to the byte. Raise it with the volume on Pro |
    | `LOCUS_ABUSE_CONTACT` | an inbox you read | Shown to anyone reporting a map. Required in practice for a public host |
    | `LOCUS_DONATE_URL` | when there is one | Optional |
+   | `LOCUS_GOOGLE_CLIENT_ID` | from Google Cloud, optional | Turns on Sign in with Google. With `LOCUS_HOSTED=1`, a new address then needs a Google account, instead of a proof of work. Set both Google values or neither ([SECURITY.md](SECURITY.md), "Signing in with Google") |
+   | `LOCUS_GOOGLE_CLIENT_SECRET` | from Google Cloud, with the ID | The other half. Set it here, never as a flag |
+   | `LOCUS_MAPS_PER_ACCOUNT` | `3` | With Google on in hosted mode, how many addresses one Google account can take |
+   | `LOCUS_SESSION_SECRET` | optional, 32 characters or more | Signs sign-in cookies and keys the account hashes. Unset, the host makes one in `/data`, which the volume keeps. Changing it signs everyone out and forgets which account owns which address |
+
+   For Google, the OAuth client's authorised redirect URI is `https://example.com/api/auth/google/callback`. Signing in works only at `example.com` itself, so on the generated `*.up.railway.app` domain it's off, and with Google on, new addresses can only be claimed at your own domain.
 
    `PORT` is set by Railway, and the host reads it. A switch is off only for `0`, `false`, `no` or `off`; any other value is on, so a typo leaves the limits on. A number that isn't one stops the host with the reason, rather than quietly removing a limit.
 4. **Settings:** healthcheck path `/api/info`, restart policy On failure, and serverless (sleeping) off, so the first agent request of the day isn't a cold start.

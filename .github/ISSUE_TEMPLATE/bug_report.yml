@@ -1,0 +1,54 @@
+name: Something's wrong
+description: Locus did something it shouldn't, or didn't do something it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. **Don't paste passwords (`lcr_…`), recovery keys (`lco_…`), Claude keys or anything from a real company's map.** A security problem goes through the Security tab, not here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      description: Starting from "See an example" if you can, so anyone can follow along.
+      placeholder: |
+        1. Open /example
+        2. Pick the Accountant
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - The Studio (the map)
+        - The website or onboarding
+        - A reader's page (an address)
+        - The locus command (mcp, pull, verify, serve)
+        - Hosting it myself
+        - Somewhere else
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`locus --version`, or the commit you built from."
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and system
+      placeholder: Chrome 140 on macOS 26, Safari on iOS 26, Node 22…
+  - type: textarea
+    id: more
+    attributes:
+      label: Screenshots or logs
+      description: A screenshot says more than a description. Logs never include passwords, but check before pasting.

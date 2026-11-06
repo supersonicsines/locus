@@ -20,7 +20,7 @@ Their existing habits guide how the app behaves. We don't copy either product; w
 
 | They already know | So in Locus |
 | --- | --- |
-| Figma's canvas and any online map: pan, zoom, floating panels | The map behaves the same way: scroll zooms about the pointer, drag pans, and the panels float over it |
+| Figma's and Miro's canvas, and any online map: pan, zoom, floating panels | The map behaves the same way: two fingers on a trackpad move it, a pinch zooms (anywhere on the page, cards included), a mouse wheel zooms about the pointer, ⌘ or ctrl and scrolling zoom on anything, a drag pans and can be thrown, the arrows pan, and the panels float over it |
 | Figma's layers panel | The list of who can read the map, top left over the map |
 | Figma's Dev Mode switch, top right | The cost button sits in the same place, and spreads prices over the map |
 | Share in both products | A reader's password and setup open from their row on the left |
@@ -31,6 +31,8 @@ Their existing habits guide how the app behaves. We don't copy either product; w
 ## 4. Binding principle
 
 **The map is the app.** One screen. Everything slides over the map. No dashboards, tables, settings pages or nav sidebar. Power features live behind ⌘K. Anything that would crowd the screen gets cut.
+
+Around the app there's a small website: a home page at `/` that says what Locus is and how to run your own, and an onboarding at `/start` that shows the features in motion before the first map. They're how you arrive and how you leave; the map is still where everything happens. The routes are `/` (home), `/start` (onboarding), `/map` (your maps), `/example` (the sample), and an address's own page.
 
 Where this collides with anything else in this document, this wins.
 
@@ -73,7 +75,7 @@ Technical terms the audience already knows (MCP, API) are fine in the interface.
 **Two ways to run it**
 
 - **Self-hosted:** one command runs everything, or one container. No limits.
-- **SaaS-lite:** the same code in hosted mode. Free, a cap on accounts, a donation button. An account is a claimed name plus an owner key: no email, no personal data stored. A name is claimed by its first successful publish, so there are no empty reservations, and deleting an account frees its spot. When full, the map still works locally and the interface offers the self-host command. Hosted limits: 10 MB per account, a small proof-of-work on claiming, a per-IP limit, reserved names, and `locus admin remove <name>` with a configurable abuse contact for takedowns. The crypto donation target gets wired up later; v1 ships the slot and its configuration.
+- **SaaS-lite:** the same code in hosted mode. Free, a cap on accounts, a donation button. An account is a claimed name plus an owner key: no email, no personal data stored. A host can also turn on **sign in with Google**: then claiming a name needs a Google sign-in instead of proof of work, each Google account can hold a few names, and a new device lists your maps so only the recovery key is pasted. The host keeps a keyed hash of the Google account's id and nothing else, and Google never touches the map or the recovery key (SECURITY.md). A name is claimed by its first successful publish, so there are no empty reservations, and deleting an account frees its spot. When full, the map still works locally and the interface offers the self-host command. Hosted limits: 10 MB per account, a small proof-of-work on claiming, a per-IP limit, reserved names, and `locus admin remove <name>` with a configurable abuse contact for takedowns. The crypto donation target gets wired up later; v1 ships the slot and its configuration.
 
 **The map (Studio)**
 
@@ -106,7 +108,7 @@ Technical terms the audience already knows (MCP, API) are fine in the interface.
 - Live sync with Figma, Notion and others. The map tells agents where things live and which MCP to use; it doesn't mirror them.
 - Cheaper-alternative recommendations and our own lightweight LLM (the overlay leaves a place for them).
 - Real-time collaboration, teams, roles.
-- Email accounts, billing.
+- Email and password accounts, billing. Google sign-in identifies an account on a host; it never replaces the recovery key.
 - Password expiry, read receipts.
 - Storing original files. Pieces hold the extracted text.
 - Vector search. See 11.4.
@@ -180,6 +182,8 @@ Each password has a switch, **Remote access**, that makes the host refuse the la
 
 **The one memorable moment:** flipping a gate closed on a password. The county seals, its land turns vermilion-pink and its edge wears the colour, the wax mark lands, and the links crossing into it fade. Everything else stays quiet so that this moment lands.
 
+**Scale.** Like a real map, it changes in kind and not only in size, over a wide range: from a tenth of the whole map (never smaller than an island you can see the shape of) to eight times closer. Far out, the company is an island with its name under it, and only what needs you shows, as dots. Then each county's name alone. Then each kind of thing in an area gathers into one line with a count. Each far form is chosen with a little give either way and changes on a clock, so a map left at any zoom is wholly one form. Then every item with its name, which is how the map opens. Closer, each item's one line; then its whole summary; then what's in it, as much as fits before the next thing down, so a map you've come right up to reads like the page it came from. Type stops growing at sizes that read comfortably while the land keeps growing, so each step closer gives an item more room, until it's whole. Close in, the county you're in keeps its name at the top left once its own name is out of sight. Where a name goes depends only on the map and the zoom, so panning never changes it, and words run under the floating cards as on any canvas. Hairlines stay hairlines, the grid halves and doubles so it never snaps, and price discs stop growing once they'd cover what you came close to read. The input is followed exactly: a trackpad's two fingers and pinch as they arrive, a mouse wheel's notches gliding briefly, a throw carrying on and slowing, and zoom always in proportion.
+
 **Arriving.** The first map a page shows is inked in from the middle of what's on it, with a soft front. Each county's name rises into place behind the wave, then what's on the land, then the cards slide in from their edges, and the seals are pressed last, because sealing is what the map is for. It's over in about a second and a half, the map can be used throughout, and none of it runs under reduced motion. The first page's grid draws itself out from the middle, and its words come up in reading order.
 
 ## 10. The `$` switch
@@ -221,7 +225,7 @@ One package, four parts:
 
 ### 11.3 No accounts database
 
-A site is a folder holding a sealed bundle and a hash of its publish token. There is nothing else to leak.
+A site is a folder holding a sealed bundle and a hash of its publish token. With Google sign-in on, its meta file also holds the owner's keyed hash, and the host keeps one session secret. There is nothing else to leak.
 
 ### 11.4 Search
 

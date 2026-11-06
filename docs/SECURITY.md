@@ -9,6 +9,7 @@ What Locus protects, how, and what it doesn't. **This code has not had a profess
 - A reader checks everything it reads against what the owner sealed for that password, so neither the host nor another password's holder can change it undetected. The one exception is below.
 - When an agent reads through the host, the host does see the password and the plaintext, in memory, for that one request. If that's not acceptable, decrypt on your own machine or turn **Remote access** off for that password. The Studio's switch for it says **Let AI tools in the cloud read this**.
 - Which services a company uses stays sealed. Logos come as one file, fetched whole from the same address whatever the map holds, so the request says nothing about what's on the map. No logo is ever fetched from anywhere else.
+- Signing in with Google, where a host offers it, only says who owns which address. It never decrypts anything, and the host keeps a keyed hash of the account, not the email or the name.
 
 ## Who can read what
 
@@ -70,7 +71,35 @@ Gate names, password names, company name, pieces, links, prices and readers' lay
 - Put it behind HTTPS and pass `--trust-proxy`. Passwords over plain HTTP are refused when the proxy reports them.
 - Set `--proxy-hops` to the number of proxies you run in front (2 for Cloudflare and Caddy). Limits are per address, and only entries your own proxies added to `X-Forwarded-For` are believed. If this is wrong, one client can look like many.
 - A remote read decrypts and may search a whole map, so each map is limited to 240 reads a minute in hosted mode. A large free account can still cost real CPU within that.
+- Consider turning on Sign in with Google (below). In hosted mode it caps addresses per Google account, which stops a script better than the proof of work it replaces.
 - **Free, encrypted hosting attracts abuse, and you can't inspect what's stored.** Hosted mode limits each account to 10 MB, which is about 3.7 MB of text because the owner's sealed copy doubles a map's size. It accepts only strictly valid bundles and serves them as JSON with `nosniff`, so it's a poor file host. Set `--abuse-contact`, and use `locus admin remove <name>` for takedowns. Take advice on your own legal position before opening a public instance.
+
+## Signing in with Google
+
+A host can offer **Sign in with Google**. It's off until you set it up, and it changes nothing about how a map is sealed.
+
+**What it's for.** Who owns which address on a host, and nothing else. In hosted mode, with Google on, a new address needs a Google account, and each account can take a few (`--maps-per-account`, 3 unless you say otherwise). That replaces the proof of work, and it's a better limit: a script can do work cheaply, but not make Google accounts. On a new device, signing in lists the addresses your account took, so you only paste your recovery key.
+
+**What it never touches.** Your map is still sealed on your device. The recovery key is still the only thing that decrypts the owner's copy, and the only thing that can publish changes to an address. A Google sign-in can do neither, and neither can Google. Updating an address you already have needs only its recovery key, signed in or not, so the CLI and your other devices work as they did. If you lose your Google account, you lose the list, not the map.
+
+**What the host stores.** For each address claimed while signed in, a keyed hash of Google's id for that account: an HMAC-SHA-256 under the host's session secret, cut to 128 bits. Not your email and not your name. Without the secret nobody can link the hash to a Google account, and two hosts with different secrets get different hashes. Your name and email ride in your own browser's sign-in cookie, signed, so the page can show them back to you. The host never writes them down. `locus admin list` says whether an address was claimed with Google, and nothing more.
+
+**What Google learns.** That you signed in to this host, and when, as with any site that uses Google sign-in. Not your address's name, your map or anything in it.
+
+**What the host sees.** While you sign in, your name, email and Google's id pass through it in memory. It keeps only the hash.
+
+**How it works.** Google's authorization code flow, with PKCE, a state and a nonce, all checked. The host exchanges the code with Google itself, over TLS, with its client secret, then checks the ID token's issuer, audience, expiry and nonce, and that the email is verified. The token comes straight from Google over that authenticated channel, so its signature isn't checked separately; Google's OpenID Connect documentation allows this. The session is a cookie that pages can't read (`HttpOnly`), that other sites can't send in the background (`SameSite=Lax`), sent only over HTTPS when the host is on HTTPS, signed with HMAC-SHA-256, and good for 30 days. Anything changed or out of date counts as signed out. Signing in works only at the host's own domain, never at an address on it, so a map's address never gets the cookie. Signing out needs a header a form can't send. Codes, tokens and cookies are never logged.
+
+**The session secret.** It signs the cookies and keys the hashes. Set `LOCUS_SESSION_SECRET`, 32 characters or more, or let the host make one, once, and keep it in the data folder as `session-secret`, readable only by the host. Back it up with the maps. If it changes, everyone is signed out and the host forgets which Google account owns which address. The addresses still work, because recovery keys don't depend on it.
+
+**Setting it up.**
+
+1. In Google Cloud, under APIs & Services, set up the OAuth consent screen with the scopes `openid`, `email` and `profile`. Then, under Credentials, create an OAuth client of type **Web application**.
+2. Add the authorised redirect URI `https://<domain>/api/auth/google/callback`: your domain itself, not an address on it. To try it locally, add `http://localhost:4747/api/auth/google/callback` too.
+3. Give the host `LOCUS_GOOGLE_CLIENT_ID` and `LOCUS_GOOGLE_CLIENT_SECRET`. Set both or neither: one alone stops the host with the reason. Keep the secret in the environment rather than a flag, where anyone on the machine could see it in the process list.
+4. Open `https://<domain>/api/info`. It should say `"google": true`, and in hosted mode `"signinToClaim": true`.
+
+To see the whole flow without Google, `npm run preview:google` runs a local host with a stand-in Google that exists only in that script.
 
 ## Checking it yourself
 

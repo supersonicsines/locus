@@ -1,0 +1,452 @@
+/* The logo workbench, in Atlas: cool paper, ink, hairlines, one face. */
+
+@font-face {
+  font-family: 'Spline Sans Mono Variable';
+  font-style: normal;
+  font-display: block;
+  font-weight: 300 700;
+  src: url(/font.woff2) format('woff2-variations'), url(/font.woff2) format('woff2');
+}
+
+:root {
+  --paper: #e2e6ea;
+  --raised: #fcfdfd;
+  --field: #eef1f3;
+  --ink: #15191e;
+  --soft: rgba(21, 25, 30, 0.72);
+  --faint: rgba(21, 25, 30, 0.56);
+  --hair: rgba(21, 25, 30, 0.12);
+  --hair-strong: rgba(21, 25, 30, 0.26);
+  --wash: rgba(21, 25, 30, 0.045);
+  --grid: rgba(21, 25, 30, 0.05);
+  --on-ink: #fbfcfc;
+  --shadow: 0 1px 1px rgba(21, 25, 30, 0.04), 0 8px 24px -8px rgba(21, 25, 30, 0.12);
+  --focus: rgba(21, 25, 30, 0.62);
+  --track: rgba(21, 25, 30, 0.26);
+  --track-edge: rgba(21, 25, 30, 0.12);
+
+  /* The two grounds every mark is shown on, whatever the page's own theme. */
+  --ground-light: #e2e6ea;
+  --ground-dark: #0e1319;
+
+  --sans: 'Spline Sans Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --paper: #0e1319;
+  --raised: #161c24;
+  --field: #1a212a;
+  --ink: #e8e6df;
+  --soft: rgba(232, 230, 223, 0.74);
+  --faint: rgba(232, 230, 223, 0.56);
+  --hair: rgba(232, 230, 223, 0.12);
+  --hair-strong: rgba(232, 230, 223, 0.26);
+  --wash: rgba(232, 230, 223, 0.05);
+  --grid: rgba(232, 230, 223, 0.035);
+  --on-ink: #10151b;
+  --shadow: 0 1px 1px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.5);
+  --focus: rgba(232, 230, 223, 0.66);
+  --track: rgba(232, 230, 223, 0.4);
+  --track-edge: rgba(232, 230, 223, 0.28);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 96px 96px;
+  background-position: -1px -1px;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 19px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.page {
+  max-width: 1136px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+
+/* ---------- the top line ---------- */
+
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 36px 0 24px;
+}
+
+.top h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+}
+
+.top p {
+  margin: 6px 0 0;
+  color: var(--soft);
+  max-width: 62ch;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+}
+
+.seg button {
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: none;
+  color: var(--soft);
+  cursor: pointer;
+}
+
+.seg button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+/* The app's switch. */
+.switch {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--track);
+  box-shadow: inset 0 0 0 1px var(--track-edge);
+  transition: background-color 160ms ease;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--raised);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 200ms var(--ease-out);
+}
+
+[aria-checked='true'] > .switch {
+  background: var(--ink);
+}
+
+[aria-checked='true'] > .switch::after {
+  transform: translateX(12px);
+}
+
+/* ---------- a card per mark ---------- */
+
+.cards {
+  display: grid;
+  gap: 20px;
+}
+
+.card {
+  background: var(--raised);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 20px 24px 24px;
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 19px;
+  line-height: 24px;
+  font-weight: 560;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.card-head h2 .num {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.card-head .idea {
+  margin: 4px 0 0;
+  color: var(--soft);
+}
+
+.card-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  background: var(--raised);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn:hover,
+.chip:hover {
+  background: var(--wash);
+}
+
+.btn.toggle {
+  padding-right: 10px;
+}
+
+.btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.card-body {
+  display: grid;
+  grid-template-columns: 320px 320px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.plate {
+  margin: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 320px;
+  height: 320px;
+  border-radius: 10px;
+}
+
+.plate.light,
+.rung.light {
+  background: var(--ground-light);
+}
+
+.plate.dark,
+.rung.dark {
+  background: var(--ground-dark);
+}
+
+.plate svg {
+  display: block;
+  width: 280px;
+  height: 280px;
+}
+
+.ladder {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 10px;
+  align-content: start;
+}
+
+.rung {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px 12px;
+  border-radius: 10px;
+}
+
+.rung figure {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.rung svg {
+  display: block;
+}
+
+.rung figcaption {
+  font-size: 11px;
+  line-height: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rung.light figcaption {
+  color: rgba(21, 25, 30, 0.5);
+}
+
+.rung.dark figcaption {
+  color: rgba(232, 230, 223, 0.45);
+}
+
+/* A browser's tab strip, so the 16 px mark is judged where it lives. */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.strip {
+  display: flex;
+  align-items: flex-end;
+  height: 44px;
+  padding: 0 0 0 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 0;
+  text-align: left;
+}
+
+.strip.light {
+  background: #dfe3e8;
+}
+
+.strip.dark {
+  background: #1b2027;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px 8px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.strip.light .tab {
+  background: #ffffff;
+  color: #15191e;
+}
+
+.strip.dark .tab {
+  background: #2b313a;
+  color: #e8e6df;
+}
+
+.tab svg {
+  flex: none;
+  display: block;
+}
+
+.tab span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tab i {
+  font-style: normal;
+  opacity: 0.5;
+}
+
+.note {
+  margin: 28px 0 0;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .card-body {
+    grid-template-columns: 320px 320px;
+  }
+  .ladder {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .top,
+  .card-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .card-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .plate {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+  .plate svg {
+    width: 87.5%;
+    height: auto;
+  }
+}

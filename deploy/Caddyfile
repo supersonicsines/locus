@@ -1,0 +1,16 @@
+# HTTPS for Locus: your domain, and every address under it, with no wildcard certificate and no DNS plugin.
+#
+# Caddy gets a certificate for each name the first time someone visits it, and asks Locus first. Locus says yes only
+# for its own domain and for addresses someone has claimed, so nobody can make Caddy fetch certificates for made-up names.
+{
+	on_demand_tls {
+		ask http://locus:4747/api/tls/ask
+	}
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+	reverse_proxy locus:4747
+}

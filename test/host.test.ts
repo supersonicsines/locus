@@ -407,3 +407,18 @@ test('a large map stays cheap to read, and calls in a batch are counted', async 
   }
   assert.ok(limited, 'sixteen-call batches hit the limit within twenty requests')
 })
+
+test('a proxy asking for a certificate gets yes only for the domain and claimed addresses', async () => {
+  const h = host({ domain: 'example.com' })
+  const ask = async (domain: string) => (await h(new Request(`http://localhost:4747/api/tls/ask?domain=${encodeURIComponent(domain)}`))).status
+  assert.equal(await ask('example.com'), 200)
+  assert.equal(await ask('nobody.example.com'), 404)
+  assert.equal(await ask('evil.com'), 404)
+  assert.equal(await ask('acme.example.com.evil.com'), 404)
+  assert.equal(await ask(''), 404)
+  const { vault } = vaultFor('acme')
+  const r = await publish(h, vault)
+  assert.equal(r.status, 201)
+  assert.equal(await ask('acme.example.com'), 200)
+  assert.equal(await ask('ACME.example.com'), 200)
+})

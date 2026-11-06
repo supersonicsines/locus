@@ -5,6 +5,9 @@
 //
 // Two paths touch plaintext, and only while answering a request: a Bearer header
 // and a /k/ URL. Everything else handles ciphertext only.
+//
+// Signing in with Google, when it's on, says who owns which names. It never
+// decrypts anything and never stands in for a recovery key (auth.ts).
 
 import { readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize, sep } from 'node:path'
@@ -12,6 +15,7 @@ import { costsText, llmsFull, llmsTxt, lockedText, PACKAGE, pieceText, searchTex
 import { handleRpc, SERVER_VERSION } from '../core/mcp.ts'
 import { AlteredBundle, isBundleShaped, looksLikeKey, openBundle, passwordId, sha256Hex, WrongPassword } from '../core/seal.ts'
 import type { Bundle, View } from '../core/types.ts'
+import { clearSessionCookie, createAuth, sessionSecret, type Google, type GoogleEndpoints } from './auth.ts'
 import { FileStore } from './store.ts'
 
 export interface Config {
@@ -26,6 +30,14 @@ export interface Config {
   abuseContact: string
   trustProxy: boolean
   proxyHops?: number
+  /** Sign in with Google. In hosted mode a new address then needs it, and each account gets `mapsPerAccount`. */
+  google?: Google
+  /** Signs cookies and keys account ids. Without one, one is made once and kept in the data folder. */
+  sessionSecret?: string
+  mapsPerAccount?: number
+  /** Tests and the dev preview only: a stand-in Google. Never set from the CLI or the environment. */
+  googleEndpoints?: GoogleEndpoints
+  googleFetch?: typeof fetch
 }
 
 export const RESERVED = new Set(
@@ -90,6 +102,17 @@ const json = (value: unknown, status = 200, headers: Record<string, string> = {}
 const textReply = (body: string, status = 200, headers: Record<string, string> = {}) =>
   res(body, status, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...CORS, ...headers })
 
+const NO_STORE = { 'Cache-Control': 'no-store' }
+
+/** A reply that sets cookies. More than one Set-Cookie can't go through a plain record of headers. */
+function withCookies(status: number, cookies: string[], headers: Record<string, string>, body: string | null = null): Response {
+  const h = new Headers({ ...BASE_HEADERS, ...NO_STORE, ...headers })
+  for (const c of cookies) h.append('Set-Cookie', c)
+  return new Response(body, { status, headers: h })
+}
+
+const redirect = (location: string, cookies: string[] = []) => withCookies(302, cookies, { Location: location })
+
 // A small limiter. Per process, in memory, and it forgets on restart, which is fine for this.
 class Limiter {
   private hits = new Map<string, { n: number; until: number }>()
@@ -112,6 +135,7 @@ class Limiter {
 }
 
 const BAD_PASSWORDS_PER_MINUTE = 30
+const AUTH_PATHS = /^\/api\/(me|auth\/.*)$/
 // Each remote read decrypts and may search the whole map, so one map can only ask so much.
 const SITE_READS_PER_MINUTE = { hosted: 240, self: 1200 }
 const MAX_RPC_BATCH = 16
@@ -151,6 +175,12 @@ export async function powOk(name: string, nonce: string, bits: number): Promise<
 export function createHandler(config: Config) {
   const store = new FileStore(config.dataDir)
   const limiter = new Limiter()
+  const auth = config.google
+    ? createAuth({ google: config.google, secret: sessionSecret(config.dataDir, config.sessionSecret), endpoints: config.googleEndpoints, fetch: config.googleFetch })
+    : null
+  // In hosted mode with Google on, a new address needs an account, and an account has a cap. That replaces the proof of work.
+  const signinToClaim = config.hosted && !!auth
+  const mapsPerAccount = config.mapsPerAccount ?? 3
 
   function siteFromHost(host: string): string | null {
     const h = host.split(':')[0].toLowerCase()
@@ -159,6 +189,19 @@ export function createHandler(config: Config) {
     const label = h.slice(0, -config.domain.length - 1)
     if (label === 'www' || label === 'app' || !NAME.test(label)) return null
     return label
+  }
+
+  /**
+   * For a reverse proxy that gets certificates as they're needed, such as Caddy's on-demand TLS: yes for this host's own domain and
+   * for an address someone has claimed, no for anything else. So a self-hoster gets HTTPS on every address without a wildcard
+   * certificate or a DNS plugin, and nobody can make the proxy ask for certificates for names that don't exist. It says nothing an
+   * address's own bundle.json doesn't.
+   */
+  function tlsAsk(url: URL): Response {
+    const domain = (url.searchParams.get('domain') ?? '').toLowerCase()
+    if (domain === config.domain) return res('ok', 200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' })
+    const site = siteFromHost(domain)
+    return site && store.has(site) ? res('ok', 200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }) : res('no', 404, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' })
   }
 
   function proto(req: Request): string {
@@ -174,6 +217,25 @@ export function createHandler(config: Config) {
   function hostOf(req: Request): string {
     return req.headers.get('host') ?? new URL(req.url).host
   }
+
+  /** Accounts belong to the host itself, never to an address on it. */
+  function atRoot(req: Request): boolean {
+    const h = hostOf(req).split(':')[0].toLowerCase()
+    return h === config.domain || h === 'localhost' || h === '127.0.0.1'
+  }
+
+  /** A request from another site can't sign anyone out or spend their account. A missing Origin is a tool such as curl, not a page. */
+  function sameOrigin(req: Request): boolean {
+    const origin = req.headers.get('origin')
+    if (origin === null) return true
+    try {
+      return new URL(origin).host === hostOf(req)
+    } catch {
+      return false
+    }
+  }
+
+  const ownedBy = (uid: string) => store.list().filter((s) => s.meta.owner === uid).map((s) => s.name)
 
   function serveStatic(pathname: string): Response {
     let rel: string
@@ -230,8 +292,11 @@ export function createHandler(config: Config) {
         accounts: accounts(),
         donateUrl: config.donateUrl,
         abuseContact: config.abuseContact,
-        powBits: config.hosted ? config.powBits : 0,
+        powBits: config.hosted && !signinToClaim ? config.powBits : 0,
         maxBundleBytes: config.maxBundleBytes,
+        google: !!auth && atRoot(req),
+        signinToClaim,
+        mapsPerAccount: signinToClaim ? mapsPerAccount : null,
       })
     }
 
@@ -269,7 +334,9 @@ export function createHandler(config: Config) {
       // there's no await, so two claims of one name can't both win.
       const tokenHash = await sha256Hex(token)
       const claimNonce = req.headers.get('x-locus-pow') ?? ''
-      const powPassed = config.hosted && !store.has(name) ? await powOk(name, claimNonce, config.powBits) : true
+      const powPassed = config.hosted && !signinToClaim && !store.has(name) ? await powOk(name, claimNonce, config.powBits) : true
+      // Who's claiming, if anyone is signed in. Only a new name asks; an update is the publish token's alone.
+      const session = auth && !store.has(name) && sameOrigin(req) ? await auth.session(req.headers.get('cookie')) : null
       const meta = store.meta(name)
       const now = new Date().toISOString()
 
@@ -285,16 +352,25 @@ export function createHandler(config: Config) {
       }
 
       // A name is claimed by its first successful publish, so there are no empty reservations.
+      if (signinToClaim && !session) {
+        return json({ error: 'Sign in with Google to take a new address on this host.', code: 'signin' }, 401)
+      }
       if (config.hosted) {
         if (!limiter.allow(`claim:${ip}`, 6, 3_600_000)) {
           return json({ error: 'Too many new accounts from your connection. Try again in an hour.' }, 429)
         }
         if (!powPassed) return json({ error: 'Proof of work failed.', code: 'pow' }, 400)
+        if (signinToClaim) {
+          const owned = ownedBy(session!.uid).length
+          if (owned >= mapsPerAccount) {
+            return json({ error: `This Google account already has ${owned === 1 ? 'an address' : `${owned} addresses`} here, which is as many as one account can have.`, code: 'account-full', maps: owned, max: mapsPerAccount }, 403)
+          }
+        }
         if (store.count() >= config.maxAccounts) {
           return json({ error: 'Every free account is taken.', code: 'full', accounts: accounts() }, 403)
         }
       }
-      store.save(name, raw, { tokenHash, createdAt: now, updatedAt: now, version: bundle.version, bytes: size })
+      store.save(name, raw, { tokenHash, createdAt: now, updatedAt: now, version: bundle.version, bytes: size, ...(session ? { owner: session.uid } : {}) })
       return json({ ok: true, version: bundle.version, claimed: true }, 201)
     }
 
@@ -306,6 +382,44 @@ export function createHandler(config: Config) {
       if (!timingSafeEqual(meta.tokenHash, await sha256Hex(token))) return json({ error: "That recovery key doesn't match." }, 403)
       store.remove(name)
       return json({ ok: true })
+    }
+
+    return json({ error: 'not found' }, 404)
+  }
+
+  // Signing in with Google. Only at the host's own domain, never at an address on it.
+  async function handleAuth(req: Request, url: URL, ip: string): Promise<Response> {
+    const secure = proto(req) === 'https'
+    const path = url.pathname
+
+    if (path === '/api/me' && req.method === 'GET') {
+      if (!limiter.allow(`me:${ip}`, 60, 60_000)) return json({ error: 'Too many requests. Slow down.' }, 429, NO_STORE)
+      const session = auth ? await auth.session(req.headers.get('cookie')) : null
+      if (!session) return json({ signedIn: false }, 200, NO_STORE)
+      return json({ signedIn: true, name: session.name, email: session.email, maps: ownedBy(session.uid).sort() }, 200, NO_STORE)
+    }
+
+    if (path === '/api/auth/signout' && req.method === 'POST') {
+      // A header a form can't send, so another site can't sign anyone out.
+      if (req.headers.get('x-locus') !== '1' || !sameOrigin(req)) return json({ error: 'Refused.' }, 403, NO_STORE)
+      return withCookies(200, [clearSessionCookie(secure)], { 'Content-Type': 'application/json' }, JSON.stringify({ ok: true }))
+    }
+
+    if (!auth || req.method !== 'GET') return json({ error: 'not found' }, 404)
+    const failed = (why: string, cookies: string[] = []) => redirect(`/?signin=failed&why=${why}`, cookies)
+    // Google sends the browser back here, and Google is told this same address, so both ends derive it the same way.
+    const redirectUri = `${proto(req)}://${hostOf(req)}/api/auth/google/callback`
+
+    if (path === '/api/auth/google/start') {
+      if (!limiter.allow(`auth:${ip}`, 20, 60_000)) return failed('busy')
+      const { location, cookie } = await auth.start(redirectUri, url.searchParams.get('next'), secure)
+      return redirect(location, [cookie])
+    }
+
+    if (path === '/api/auth/google/callback') {
+      if (!limiter.allow(`auth:${ip}`, 20, 60_000)) return failed('busy')
+      const done = await auth.finish(url, req.headers.get('cookie'), redirectUri, secure)
+      return 'failed' in done ? failed(done.failed, done.cookies) : redirect(done.next, done.cookies)
     }
 
     return json({ error: 'not found' }, 404)
@@ -358,6 +472,9 @@ export function createHandler(config: Config) {
 
     const AGENT_PATHS = /^\/(llms\.txt|llms-full\.txt|mcp|v1\/.*)$/
     const isAgentPath = AGENT_PATHS.test(path)
+
+    // Signing in belongs to the host, not to an address on it.
+    if (AUTH_PATHS.test(path)) return json({ error: 'not found' }, 404)
 
     if (!isAgentPath && path !== '/' && path !== '/bundle.json') {
       if (path.startsWith('/assets/') || extname(path)) return serveStatic(path)
@@ -445,6 +562,8 @@ export function createHandler(config: Config) {
     const site = siteFromHost(hostOf(req))
     // The page needs this on every address, to know what it's looking at.
     if (url.pathname === '/api/info') return handleApi(req, url, ip)
+    if (url.pathname === '/api/tls/ask') return tlsAsk(url)
+    if (AUTH_PATHS.test(url.pathname)) return site || !atRoot(req) ? json({ error: 'not found' }, 404) : handleAuth(req, url, ip)
     if (site) return handleSite(req, url, site, '', ip)
 
     const pathMatch = url.pathname.match(/^\/s\/([a-z0-9-]+)(\/.*)?$/)

@@ -1,0 +1,25 @@
+name: An idea
+description: Something Locus could do, or do better.
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Locus is one screen on purpose: the map is the app, and anything that would crowd it gets cut. The best ideas make something simpler, or answer one of the four questions a glance should answer: is it live, who can read what, does anything need me, what does it cost.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What were you trying to do, and what got in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like
+    validations:
+      required: true
+  - type: textarea
+    id: else
+    attributes:
+      label: Anything you tried instead

@@ -6,15 +6,15 @@ import { PACKAGE } from '../../core/agent.ts'
 import type { Gate } from '../../core/types.ts'
 import { generateOwnerKey, looksLikeKey } from '../../core/seal.ts'
 import { shredLocally, DEFAULT_GATES } from '../../core/shred-local.ts'
-import { addPiece, askFit, clearToasts, copy, createPassword, deleteCurrentMap, downloadText, lastPublishFailure, placeNewPieces, publish, refreshServer, setCost, signIn, siteAddress, toast, updateVault } from '../actions.ts'
+import { addPiece, askFit, clearToasts, copy, createPassword, deleteCurrentMap, downloadText, lastPublishFailure, placeNewPieces, publish, refreshServer, setCost, signIn, signInWithGoogle, signinTrouble, signOut, siteAddress, toast, updateVault } from '../actions.ts'
 import { MODELS, shredWithClaude } from '../shred/claude.ts'
 import { estimateTokens, extract, type Extracted } from '../shred/extract.ts'
 import { alreadyRejected, merge } from '../shred/merge.ts'
-import { getState, setState, storage, useStore } from '../store.ts'
+import { getState, setState, storage, useStore, type PublishDraft } from '../store.ts'
 import { newId } from '../../core/seal.ts'
 import { normaliseName, type KnownService } from '../logos/lookup.ts'
 import { allServices, serviceFor, useLogosVersion } from '../logos/store.ts'
-import { Icon, plural, ServiceMark, useEscape, usePanelFocus } from './bits.tsx'
+import { Icon, listWords, plural, ServiceMark, useEscape, usePanelFocus } from './bits.tsx'
 
 function Sheet({ children, onClose, label }: { children: React.ReactNode; onClose?: () => void; label: string }) {
   useEscape(() => onClose?.(), !!onClose)
@@ -57,24 +57,48 @@ function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32)
 }
 
-function PublishSheet() {
+/** Running your own host, for when this one has no room. */
+function SelfHost() {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="code-block">
+      <code>npx -y {PACKAGE} serve</code>
+      <button className="btn btn-paper code-copy" aria-label="Copy the command" onClick={async () => { if (await copy(`npx -y ${PACKAGE} serve`, null)) setCopied(true) }}>
+        <Icon name={copied ? 'check' : 'copy'} size={13} /> {copied ? 'Copied' : 'Copy'}
+      </button>
+    </div>
+  )
+}
+
+function PublishSheet({ draft, signinFailed }: { draft?: PublishDraft; signinFailed?: string }) {
   const vault = useStore((s) => s.vault)!
   const server = useStore((s) => s.server)
+  const me = useStore((s) => s.me)
   const publishing = useStore((s) => s.publishing)
-  const [company, setCompany] = useState(vault.company.name === 'Untitled company' ? '' : vault.company.name)
-  const [name, setName] = useState(slugify(vault.company.name === 'Untitled company' ? '' : vault.company.name))
-  const [touched, setTouched] = useState(false)
+  const [company, setCompany] = useState(draft?.company ?? (vault.company.name === 'Untitled company' ? '' : vault.company.name))
+  const [name, setName] = useState(draft?.name ?? slugify(vault.company.name === 'Untitled company' ? '' : vault.company.name))
+  const [touched, setTouched] = useState(draft?.touched ?? false)
   const [availability, setAvailability] = useState<'idle' | 'checking' | 'free' | 'taken' | 'reserved' | 'invalid' | 'unreachable'>('idle')
   const [tries, setTries] = useState(0)
-  const [ownerKey] = useState(generateOwnerKey)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
+  // Back from signing in with Google, it's the key that was already saved, not a new one.
+  const [ownerKey] = useState(() => draft?.ownerKey ?? generateOwnerKey())
+  const [saved, setSaved] = useState(draft?.saved ?? false)
+  const [error, setError] = useState(signinFailed ? signinTrouble(signinFailed) : '')
   const [copiedKey, setCopiedKey] = useState(false)
   const [downloaded, setDownloaded] = useState(false)
   // The host turned the map away for its size. Pressing again can't change that, so the button says so, as it does for every other refusal.
   const [tooBig, setTooBig] = useState(false)
+  // The host wanted a Google account, or a fresh sign-in, or this account has all the addresses it can have.
+  const [needsSignin, setNeedsSignin] = useState(false)
+  const [accountFull, setAccountFull] = useState(false)
 
   const full = !!server?.accounts && server.accounts.used >= server.accounts.max
+  const cap = server?.mapsPerAccount ?? null
+  const mine = me?.signedIn ? (me.maps ?? []) : []
+  const signinFirst = !!server?.signinToClaim && (!me?.signedIn || needsSignin)
+  const capped = !!server?.signinToClaim && !!me?.signedIn && (accountFull || (cap !== null && mine.length >= cap))
+  // Going to Google and back takes what's typed here with it. The key only if it was saved, because only then does it matter that it stays the same.
+  const toGoogle = () => signInWithGoogle(undefined, { sheet: 'publish', draft: { company, name, touched, ...(saved ? { ownerKey, saved } : {}) } })
 
   useEffect(() => {
     if (!name) return setAvailability('idle')
@@ -144,8 +168,11 @@ function PublishSheet() {
     } else {
       // Undo the claim locally so another name can be tried.
       updateVault((v) => ({ ...v, site: undefined }))
-      setError(lastPublishFailure?.message ?? "Couldn't go live.")
-      setTooBig(lastPublishFailure?.code === 'too-large' || !!lastPublishFailure?.message.startsWith('This map is too big'))
+      const code = lastPublishFailure?.code
+      setError(code === 'signin' ? 'Your sign-in with Google has run out. Sign in again, and this address and recovery key stay as they are.' : (lastPublishFailure?.message ?? "Couldn't go live."))
+      setTooBig(code === 'too-large' || !!lastPublishFailure?.message.startsWith('This map is too big'))
+      setNeedsSignin(code === 'signin')
+      setAccountFull(code === 'account-full')
       void refreshServer()
     }
   }
@@ -157,12 +184,7 @@ function PublishSheet() {
         <p>
           Your map is still here, in this browser, and you can keep building it. Nobody else can read it until it's live. To go live today, run your own host on a computer with Node.js: it takes one command in a terminal, and it has no limit on accounts.
         </p>
-        <div className="code-block">
-          <code>npx -y {PACKAGE} serve</code>
-          <button className="btn btn-paper code-copy" aria-label="Copy the command" onClick={async () => { if (await copy(`npx -y ${PACKAGE} serve`, null)) setCopiedKey(true) }}>
-            <Icon name={copiedKey ? 'check' : 'copy'} size={13} /> {copiedKey ? 'Copied' : 'Copy'}
-          </button>
-        </div>
+        <SelfHost />
         <div className="actions">
           {server?.donateUrl && (
             <button className="btn btn-paper" onClick={() => setState({ sheet: { kind: 'donate' } })}>Donate</button>
@@ -173,10 +195,56 @@ function PublishSheet() {
     )
   }
 
+  if (signinFirst) {
+    // Signing in only works at the host's own domain, not at another name it answers to.
+    const domain = server?.address.replace(/^https?:\/\/\{name\}\./, '') ?? ''
+    return (
+      <Sheet label="Go live" onClose={close}>
+        <h2>Go live</h2>
+        <p>
+          This host gives each Google account {cap ? plural(cap, 'address', 'addresses') : 'a few addresses'}, so sign in with Google first. Google only tells the host who you are. It never sees your map, and your recovery key is still the only thing that updates it or brings it back.
+        </p>
+        {error && <p className="sheet-error" role="alert">{error}</p>}
+        <div className="actions">
+          <button className="btn btn-quiet" onClick={close}>Not yet</button>
+          {server?.google ? (
+            <button className="btn btn-ink" onClick={toGoogle}>Sign in with Google</button>
+          ) : (
+            <button className="btn btn-ink" disabled>Sign in at {domain}</button>
+          )}
+        </div>
+      </Sheet>
+    )
+  }
+
+  if (capped) {
+    return (
+      <Sheet label="No more addresses" onClose={close}>
+        <h2>No more addresses</h2>
+        <p>
+          Each Google account can have {plural(cap ?? mine.length, 'address', 'addresses')} on this host, and {me?.email || 'yours'} has {mine.length ? listWords(mine) : 'them'}. Your map is still here, in this browser. To go live, delete a map you don't need, sign in with another Google account, or run your own host, which has no limit.
+        </p>
+        <SelfHost />
+        <div className="actions">
+          <button className="btn btn-quiet" onClick={close}>Not yet</button>
+          <button className="btn btn-paper" onClick={toGoogle}>Use another account</button>
+          <button className="btn btn-ink" onClick={close}>Done</button>
+        </div>
+      </Sheet>
+    )
+  }
+
+  const left = cap !== null ? cap - mine.length : null
+
   return (
     <Sheet label="Go live" onClose={publishing ? undefined : close}>
       <h2>Go live</h2>
       <p>This encrypts the map on this device and puts that copy online at your address. The host, the server that keeps it online, only stores the encrypted copy, and nothing opens without a password.</p>
+      {server?.signinToClaim && me?.signedIn && (
+        <p className="hint" style={{ margin: '0 0 4px' }}>
+          Signed in with Google as {me.email}{left !== null ? `, which can take ${left === 1 ? 'one more address' : `${left} more addresses`} here` : ''}.
+        </p>
+      )}
 
       <label htmlFor="company">Company name</label>
       <input
@@ -249,11 +317,17 @@ function PublishSheet() {
   )
 }
 
-function SignInSheet() {
-  const [name, setName] = useState('')
+function SignInSheet({ signinFailed }: { signinFailed?: string }) {
+  const server = useStore((s) => s.server)
+  const me = useStore((s) => s.me)
+  // Signed in with Google, the maps this account took here are listed, so only the recovery key needs pasting.
+  const mine = me?.signedIn ? (me.maps ?? []) : []
+  const [other, setOther] = useState(false)
+  const listed = mine.length > 0 && !other
+  const [name, setName] = useState(mine.length === 1 ? mine[0] : '')
   const [key, setKey] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(signinFailed ? signinTrouble(signinFailed) : '')
   const go = async () => {
     setBusy(true)
     setError('')
@@ -265,10 +339,37 @@ function SignInSheet() {
     <Sheet label="Sign in" onClose={close}>
       <h2>Sign in</h2>
       <p>Your recovery key brings your map back from its encrypted copy. It's decrypted here, in this browser.</p>
-      <label htmlFor="si-name">Your address</label>
-      <input id="si-name" className="field" autoFocus value={name} placeholder="yourco" onChange={(e) => setName(e.target.value)} />
+      {listed ? (
+        <>
+          <label>Your maps on this host</label>
+          {mine.map((n) => (
+            <button key={n} className="choice" aria-pressed={name === n} onClick={() => setName(n)}>
+              <b>{n}</b>
+              <span>{siteAddress(n).replace(/^https?:\/\//, '')}</span>
+            </button>
+          ))}
+          <p className="hint" style={{ margin: '4px 0 0' }}>
+            <button className="text-btn" onClick={() => { setOther(true); setName('') }}>Another address</button>
+          </p>
+        </>
+      ) : (
+        <>
+          <label htmlFor="si-name">Your address</label>
+          <input id="si-name" className="field" autoFocus value={name} placeholder="yourco" onChange={(e) => setName(e.target.value)} />
+          {server?.google && !me?.signedIn && (
+            <p className="hint" style={{ margin: '6px 0 0' }}>
+              <button className="text-btn" onClick={() => signInWithGoogle(undefined, { sheet: 'signin' })}>Sign in with Google</button> to choose from the maps your account has here.
+            </p>
+          )}
+        </>
+      )}
       <label htmlFor="si-key">Recovery key</label>
-      <input id="si-key" className="field mono" value={key} placeholder="lco_" spellCheck={false} onChange={(e) => setKey(e.target.value)} />
+      <input id="si-key" className="field mono" autoFocus={listed} value={key} placeholder="lco_" spellCheck={false} onChange={(e) => setKey(e.target.value)} />
+      {me?.signedIn && (
+        <p className="hint" style={{ margin: '6px 0 0' }}>
+          Signed in with Google as {me.email}. <button className="text-btn" onClick={() => void signOut().then((ok) => { if (!ok) setError("Couldn't sign out. Check your connection and try again.") })}>Sign out</button>
+        </p>
+      )}
       {error && <p style={{ margin: '10px 0 0', color: 'var(--ink)' }} role="alert">{error}</p>}
       <div className="actions">
         <button className="btn btn-quiet" onClick={close}>Cancel</button>
@@ -789,9 +890,9 @@ export function Sheets() {
   if (!sheet) return null
   switch (sheet.kind) {
     case 'publish':
-      return <PublishSheet />
+      return <PublishSheet draft={sheet.draft} signinFailed={sheet.signinFailed} />
     case 'signin':
-      return <SignInSheet />
+      return <SignInSheet signinFailed={sheet.signinFailed} />
     case 'owner-key':
       return <OwnerKeySheet />
     case 'donate':

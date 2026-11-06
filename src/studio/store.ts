@@ -16,12 +16,36 @@ export interface ServerInfo {
   abuseContact: string
   powBits: number
   maxBundleBytes: number
+  /** Whether signing in with Google works here. Older hosts don't say. */
+  google?: boolean
+  /** Whether a new address on this host needs a Google account. */
+  signinToClaim?: boolean
+  /** How many addresses one Google account can take, when it needs one. */
+  mapsPerAccount?: number | null
+}
+
+/** Who this browser is signed in to the host as, with Google. The host only knows a keyed hash; the name and email come from this browser's own cookie. */
+export interface Me {
+  signedIn: boolean
+  name?: string
+  email?: string
+  /** The addresses this account took on this host. */
+  maps?: string[]
+}
+
+/** What was typed in the publish sheet before going to sign in with Google, so it comes back as it was. */
+export interface PublishDraft {
+  company: string
+  name: string
+  touched: boolean
+  ownerKey?: string
+  saved?: boolean
 }
 
 export type Sheet =
   | null
-  | { kind: 'publish' }
-  | { kind: 'signin' }
+  | { kind: 'publish'; draft?: PublishDraft; signinFailed?: string }
+  | { kind: 'signin'; signinFailed?: string }
   | { kind: 'donate' }
   | { kind: 'owner-key' }
   | { kind: 'shred'; files: File[]; error?: string; fromSample?: boolean }
@@ -58,6 +82,8 @@ export interface State {
   view: View | null
   siteName: string | null
   server: ServerInfo | null
+  /** Null until the host has said. */
+  me: Me | null
   selected: string | null
   /** The reader whose view of the map is showing. */
   lens: string | null
@@ -108,6 +134,7 @@ let state: State = {
   view: null,
   siteName: null,
   server: null,
+  me: null,
   selected: null,
   lens: null,
   area: null,
@@ -145,6 +172,17 @@ export function getState(): State {
 export function setState(patch: Partial<State>) {
   state = { ...state, ...patch }
   listeners.forEach((l) => l())
+}
+
+/** Runs once the state passes `ready`: now, or at the first change that makes it so. */
+export function once(ready: (s: State) => boolean, run: () => void) {
+  if (ready(state)) return run()
+  const check = () => {
+    if (!ready(state)) return
+    listeners.delete(check)
+    run()
+  }
+  listeners.add(check)
 }
 
 export function useStore<T>(select: (s: State) => T): T {
