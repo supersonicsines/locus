@@ -182,6 +182,7 @@ export const SQUIRCLE_N = 5
  * well under a hundredth of a unit.
  */
 function squircleD(n = SQUIRCLE_N, count = 24) {
+  const pt = (p) => `${R3(p[0])} ${R3(p[1])}`
   const M = 4096
   const dense = []
   for (let k = 0; k < M; k++) {
@@ -221,6 +222,8 @@ function squircleD(n = SQUIRCLE_N, count = 24) {
   return d + 'Z'
 }
 
+const R3 = (v) => Math.round(v * 1000) / 1000
+/** The tile, written to 0.001 units. */
 export const SQUIRCLE = squircleD()
 
 export const PX = { L: 2.8, M: 0.96, S: 0.48, XS: 0.32, XXS: 0.16 }
@@ -803,162 +806,7 @@ const counties = {
   },
 }
 
-/* 4. Col: a summit, a lower knoll and the pass between them, marked with the pass sign. */
-const col = {
-  id: 'col',
-  name: 'Col',
-  means: 'Locus is the pass: the one way through, where your company and an agent meet.',
-  idea: 'A summit, a lower knoll and the pass between them, marked as hiking maps mark a col: )(.',
-  period: 14,
-  introDur: 1.4,
-  palettes: {
-    light: { ground: '#fcfdfd', edge: 'rgba(21,25,30,0.14)', line: '#15191e', mark: '#15191e' },
-    dark: { ground: '#1a212a', edge: 'rgba(232,230,223,0.14)', edgeS: 'rgba(232,230,223,0.18)', line: '#e8e6df', mark: '#e8e6df' },
-  },
-  // One height field and one contour interval: `ks` are steps of `h` above (+) or below (−) the col's
-  // height. Above it a contour rings one summit; below it, it rings both. `index` is drawn at `iw`.
-  // The pass sign )( (arc radius, distance from the col to each arc's crown, half its sweep) is drawn
-  // at the index's weight, from 64 px up (the middle band has one summit ring fewer than L, so it
-  // doesn't clog). Below that the mark is one line round its point, with a dent
-  // under the col (`dent`, in units) so its base is never flat. span: how wide the outermost contour
-  // is drawn, so each size fills its tile.
-  weights: ['sw', 'iw', 'dot'],
-  bounds: { M: 64 },
-  spec: {
-    L: { ks: [2.5, 1.5, 0.5, -0.5, -1.5], index: -1.5, sw: 0.6, iw: 1.2, arc: 8, gap: 3.2, sweep: 0.6, dot: 1.6, span: 68, hb: 0.62 },
-    M: { ks: [1.5, -0.5, -1.5], index: -1.5, sw: 1.25, iw: 2.4, arc: 8, gap: 3.6, sweep: 0.6, dot: 2.4, span: 70, hb: 0.62 },
-    S: { ks: [-1.5], index: -1.5, sw: 5.2, iw: 5.2, arc: 0, dot: 4.6, sb: 14, hb: 0.72, span: 74, dent: 3 },
-    XS: { ks: [-3.5], index: -3.5, sw: 5.8, iw: 5.8, arc: 0, dot: 6.4, sb: 14, hb: 0.72, span: 74, dent: 3 },
-    XXS: { ks: [-3.5], index: -3.5, sw: 8.6, iw: 8.6, arc: 0, dot: 10.5, sb: 14, hb: 0.72, span: 74, dent: 3 },
-  },
-  // On a shallow axis, about 21°, so no size reads as a chain link.
-  A: [33, 44],
-  B: [69, 58],
-  sa: 22,
-  sb: 14,
-  hb: 0.7,
-  h: 0.13,
-  field(ha, hb, [ax, ay], [bx, by], sa, sb) {
-    const a2 = sa * sa
-    const b2 = sb * sb
-    return (x, y) => ha * Math.exp(-((x - ax) ** 2 + (y - ay) ** 2) / a2) + hb * Math.exp(-((x - bx) ** 2 + (y - by) ** 2) / b2)
-  },
-  /** A contour as n nodes round a centre: along each ray, the first place the field falls below the level. */
-  ring(F, c, level, n, a0, dent = null) {
-    return around(c[0], c[1], n, a0, (a) => {
-      const ux = Math.cos(a)
-      const uy = Math.sin(a)
-      let r = 0
-      while (r < 90 && F(c[0] + r * ux, c[1] + r * uy) >= level) r += 0.5
-      let lo = Math.max(0, r - 0.5)
-      let hi = r
-      for (let i = 0; i < 24; i++) {
-        const m = (lo + hi) / 2
-        if (F(c[0] + m * ux, c[1] + m * uy) >= level) lo = m
-        else hi = m
-      }
-      return dent ? lo - dent.depth * Math.exp(-((wrap(a - dent.at) / 0.42) ** 2)) : lo
-    })
-  },
-  /** The whole drawing at one moment, in field coordinates: the col, its height, and each contour. */
-  build(sp, t, amp) {
-    const [ax, ay] = this.A
-    const [bx, by] = this.B
-    const u = [bx - ax, by - ay]
-    const ua = Math.atan2(u[1], u[0])
-    // The summit and the knoll rise and fall in turn, by 2.5%, and the col follows.
-    const ha = 1 + 0.025 * amp * wave(t)
-    const hb = (sp.hb || this.hb) - 0.025 * amp * wave(t)
-    const F = this.field(ha, hb, this.A, this.B, this.sa, sp.sb || this.sb)
-    let lo = 0.15
-    let hi = 0.9
-    const along = (k) => F(ax + k * u[0], ay + k * u[1])
-    for (let i = 0; i < 40; i++) {
-      const m1 = lo + (hi - lo) / 3
-      const m2 = hi - (hi - lo) / 3
-      if (along(m1) < along(m2)) hi = m2
-      else lo = m1
-    }
-    const kc = (lo + hi) / 2
-    const c = [ax + kc * u[0], ay + kc * u[1]]
-    const fc = along(kc)
-    const rings = []
-    // The dent sits on the south side, straight under the col.
-    const dent = sp.dent ? { depth: sp.dent, at: ua + Math.PI / 2 } : null
-    for (const k of sp.ks) {
-      const level = fc + this.h * k
-      if (k > 0) {
-        for (const [H, toward] of [[this.A, ua], [this.B, ua + Math.PI]]) {
-          if (F(...H) < level + 0.005) continue
-          const pts = this.ring(F, H, level, 10, toward)
-          const mean = pts.reduce((a, q) => a + Math.hypot(q[0] - H[0], q[1] - H[1]), 0) / pts.length
-          // A ring too small to read fades out rather than popping.
-          rings.push({ k, pts, op: smooth(2.5, 4, mean) })
-        }
-      } else rings.push({ k, pts: this.ring(F, c, level, dent ? 32 : 24, ua + Math.PI / 2, dent), op: 1 })
-    }
-    return { c, ua, rings }
-  },
-  /** Per size: centre the outermost contour in the tile and draw it `span` units across. */
-  fit(tier) {
-    const cache = (this._fit ||= {})
-    if (cache[tier]) return cache[tier]
-    const sp = this.spec[tier]
-    const { rings } = this.build(sp, 0, 0)
-    const outer = rings.find((r) => r.k === Math.min(...sp.ks)).pts
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
-    for (const [x, y] of outer) {
-      x0 = Math.min(x0, x)
-      x1 = Math.max(x1, x)
-      y0 = Math.min(y0, y)
-      y1 = Math.max(y1, y)
-    }
-    const z = sp.span / Math.max(x1 - x0, y1 - y0)
-    const cx = (x0 + x1) / 2
-    const cy = (y0 + y1) / 2
-    return (cache[tier] = { z, map: (q) => [50 + z * (q[0] - cx), 50 + z * (q[1] - cy)] })
-  },
-  frame({ t, amp, p, tier, sp }) {
-    const s = p * this.introDur
-    const intro = p < 1
-    const { z, map } = this.fit(tier)
-    const { c: c0, ua, rings } = this.build(sp, t, amp)
-    const c = map(c0)
-    const lines = []
-    const n = sp.ks.length
-    rings.forEach(({ k, pts, op }) => {
-      const i = sp.ks.indexOf(k)
-      const w = R((k === sp.index ? sp.iw : sp.sw) * 1000) / 1000
-      // Written from the col side, the outermost first, 0.4 s each, 0.06 s apart: 0.45–1.09 s in all.
-      const draw = intro ? drawBoth(step(s, 0.45 + 0.06 * (n - 1 - i), 0.85 + 0.06 * (n - 1 - i))) : {}
-      lines.push({ el: 'path', d: curve(pts.map(map)), 'stroke-width': w, opacity: o3(op), ...draw })
-    })
-    const kids = [{ el: 'g', fill: 'none', stroke: '@line', 'stroke-linecap': 'round', kids: lines }]
-    // The point. On the intro it is the sight: a ring that closes on the col from inside the tile,
-    // fading in as it starts, and fills to become the point.
-    if (intro) {
-      const k = step(s, 0, 0.5, INOUT)
-      const fillK = smooth(0.4, 0.46, s)
-      const thin = 1 - smooth(0.44, 0.5, s)
-      kids.push({ el: 'circle', cx: R(c[0]), cy: R(c[1]), r: R(lerp(34, sp.dot, k)), fill: '@mark', 'fill-opacity': o3(fillK), stroke: '@mark', 'stroke-width': o3(Math.max(sp.sw, 0.9) * thin), opacity: o3(clamp(s / 0.12)) })
-    } else kids.push({ el: 'circle', cx: R(c[0]), cy: R(c[1]), r: R(sp.dot * 1000) / 1000, fill: '@mark' })
-    // The pass sign )(: two arcs with their backs to each other across the col, pressed last.
-    if (sp.arc) {
-      const arcAt = (side) => {
-        const o = side * (sp.gap + sp.arc)
-        const a0 = (side > 0 ? Math.PI : 0) - sp.sweep
-        const a1 = (side > 0 ? Math.PI : 0) + sp.sweep
-        return `M${pt([o + sp.arc * Math.cos(a0), sp.arc * Math.sin(a0)])}A${R(sp.arc)} ${R(sp.arc)} 0 0 1 ${pt([o + sp.arc * Math.cos(a1), sp.arc * Math.sin(a1)])}`
-      }
-      const m = intro ? press(s - 1.1) : { s: 1, o: 1 }
-      kids.push({
-        el: 'path', d: arcAt(-1) + arcAt(1), fill: 'none', stroke: '@mark', 'stroke-width': o3(sp.iw / z), 'stroke-linecap': 'round', opacity: m.o,
-        transform: `translate(${R(c[0])} ${R(c[1])}) rotate(${R((ua * 1800) / Math.PI) / 10}) scale(${R(z * m.s * 1000) / 1000})`,
-      })
-    }
-    return { kids }
-  },
-}
+/* 4. Col lives in col.js, beside this file: the one Col definition. The main page puts it in slot 04. */
 
 /* 5. Inset: the tile's own outline laid on a coast, as an atlas marks an inset. */
 const inset = {
@@ -1070,7 +918,7 @@ function summitPress(s) {
   return { s: k >= 1 ? 1 : k < 0.6 ? lerp(0.6, 1.08, OUT(k / 0.6)) : lerp(1.08, 1, INOUT((k - 0.6) / 0.4)), o: clamp(s / 0.1) }
 }
 
-export const VARIANTS = [summit, tide, counties, col, inset]
+export const VARIANTS = [summit, tide, counties, inset]
 
 /* ======================================================================
    Drawing: one tree, patched into live SVGs or written out as a file
@@ -1102,13 +950,16 @@ export function compose(v, { t = 0, amp = 0, p = 1, live = 0, tier, size, fade =
   size ||= REF[tier]
   const k = tier === 'L' ? 1 : REF[tier] / size
   const sp = specAt(v, tier, k)
-  let out = v.frame({ t, amp, p, live, tier, sp, opts })
+  let out = v.frame({ t, amp, p, live, tier, sp, opts, size })
   // A flowing mark switched off far from its still stops, then cross-fades to the still.
   if (fade > 0) {
-    const still = v.frame({ t: 0, amp: 0, p, live, tier, sp, opts })
+    const still = v.frame({ t: 0, amp: 0, p, live, tier, sp, opts, size })
     out = { ...out, kids: [{ el: 'g', opacity: R4(1 - fade), kids: out.kids }, { el: 'g', opacity: R4(fade), kids: still.kids }] }
   }
-  const edge = SMALL.has(tier) ? '@edgeS' : '@edge'
+  const edge = out.edge || (SMALL.has(tier) ? '@edgeS' : '@edge')
+  // opts.shape: 'square' fills the whole box (for an avatar, which crops its own circle), 'none' is the bare glyph.
+  if (opts.shape === 'none') return [...(out.defs ? [{ el: 'defs', kids: out.defs }] : []), ...out.kids]
+  if (opts.shape === 'square') return [...(out.defs ? [{ el: 'defs', kids: out.defs }] : []), { el: 'rect', width: 100, height: 100, fill: out.ground || '@ground' }, ...out.kids]
   // The squircle is written once and used three times: as the clip, the ground and the edge.
   return [
     { el: 'defs', kids: [{ el: 'path', id: 'tile', d: SQUIRCLE }, { el: 'clipPath', id: 'sq', kids: [{ el: 'use', href: '#tile' }] }, ...(out.defs || [])] },
@@ -1267,7 +1118,10 @@ export class Card {
       dirty = true
     }
     let moving
-    if (this.v.flow) {
+    if (this.v.once) {
+      // A mark whose only motion is its growth: the intro, and then nothing moves.
+      moving = false
+    } else if (this.v.flow) {
       const f = this.v.flow
       if (this.fade != null) {
         // Stopped between stills: cross-fade to the still over 0.4 s.

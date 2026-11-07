@@ -458,6 +458,15 @@ a {
   background: var(--wash-strong);
 }
 
+/* The mark's tile is ink on every page. On a dark page its 1 device px paper hairline holds it off the ground (site/Mark.tsx). */
+.mark-edge {
+  display: none;
+}
+
+:root[data-theme='dark'] .mark-edge {
+  display: inline;
+}
+
 /* The way home: the Locus mark, first in the card's heading, its own control behind a hairline, so it doesn't read as the company's logo. */
 .home-mark {
   position: relative;

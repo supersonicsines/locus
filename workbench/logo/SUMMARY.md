@@ -1,4 +1,16 @@
-# Locus mark: the five finals
+# Locus mark
+
+**The operator chose Col (04 below), a summit, a lower knoll and the pass between them, drawn in contour.** It then had four more rounds of design and critique of its own, which redrew it from the construction up.
+- **The studio:** `col.html`, at http://localhost:4800/col.html. It shows every drawing at every size, the growth, and the checks.
+- **The finished files:** `col/`. These are the tier SVGs, favicons, app icons and lockups. `col/CONSTRUCTION.md` says how the mark is built and where each file comes from, and `col/tiers.json` holds the drawings for the site's `Mark.tsx`.
+- **The record:** the final shots and notes are in `qa/rounds/col/final/`.
+- **Slot 04** on the main page now shows the final Col.
+
+The rest of this page is the record of the five-way choice that came before it.
+
+---
+
+# The five finals
 
 Five marks in one squircle, each drawn from a few curves. Four had five rounds of design and critique; Inset, which replaced Spur, had two. The workbench (`npm run workbench`, then http://localhost:4800) shows each one large and small, on light and dark, still and moving, with downloads. The final shots are in `qa/rounds/logo/final/`; `glyphs.png` (each mark at 16 and 32 px beside the familiar glyphs it must not be) and `bounds.png` (each mark either side of its size boundaries) are the ones to judge them by.
 

@@ -1,0 +1,1034 @@
+/* The Col studio: the mark alone, at every size, and in use. Atlas: cool paper, ink, hairlines, one face. */
+
+.studio {
+  max-width: 1280px;
+  padding: 0 24px 96px;
+}
+
+.studio .top {
+  padding: 44px 0 28px;
+  align-items: flex-end;
+}
+
+.kicker {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.studio .top h1 {
+  font-size: 34px;
+  line-height: 40px;
+  font-weight: 560;
+  letter-spacing: -0.02em;
+}
+
+.studio .top p.lede {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--soft);
+  max-width: 70ch;
+}
+
+.studio .tools {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.seg.branch button {
+  padding: 0 14px;
+}
+
+/* ---------- sections ---------- */
+
+.sec {
+  margin-top: 64px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hair);
+}
+
+.sec-head {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 16px;
+  align-items: baseline;
+  margin-bottom: 22px;
+}
+
+.sec-head .n {
+  font-size: 11px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.sec-head h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+}
+
+.sec-head p {
+  margin: 0;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.cap {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.cap b {
+  font-weight: 560;
+  color: var(--soft);
+}
+
+/* ---------- grounds ---------- */
+
+.ground {
+  position: relative;
+  border-radius: 12px;
+}
+
+.g-paper {
+  background: #f3f5f6;
+  color: #15191e;
+  box-shadow: inset 0 0 0 1px rgba(21, 25, 30, 0.08);
+}
+
+.g-ink {
+  background: #0e1319;
+  color: #e8e6df;
+  box-shadow: inset 0 0 0 1px rgba(232, 230, 223, 0.1);
+}
+
+.g-white {
+  background: #ffffff;
+  color: #000;
+}
+
+.g-black {
+  background: #000000;
+  color: #fff;
+}
+
+.ground .tag {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+
+img.m,
+svg.m {
+  display: block;
+  flex: none;
+}
+
+img.px {
+  image-rendering: pixelated;
+}
+
+/* ---------- 00 branches ---------- */
+
+.branches {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.branch-card {
+  background: var(--raised);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 16px 16px 18px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  cursor: pointer;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.branch-card[aria-pressed='true'] {
+  outline: 1.5px solid var(--ink);
+  outline-offset: 0;
+}
+
+.branch-card h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 560;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.branch-card h3 span {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.branch-card p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 16px;
+  color: var(--soft);
+  min-height: 48px;
+}
+
+.branch-card .pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.branch-card .pair .ground {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 10px;
+}
+
+.branch-card .pair svg {
+  width: 84%;
+  height: auto;
+}
+
+.branch-card .small {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+/* ---------- 01 heroes ---------- */
+
+.heroes {
+  display: grid;
+  gap: 16px;
+}
+
+.hero {
+  display: grid;
+  place-items: center;
+  height: 1120px;
+}
+
+.hero svg {
+  width: 1024px;
+  height: 1024px;
+}
+
+/* ---------- 02 ladder ---------- */
+
+.ladder2 {
+  display: grid;
+  gap: 16px;
+}
+
+.rungs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 28px 36px;
+  padding: 48px 32px 28px;
+}
+
+.rungs figure {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.rungs figcaption {
+  font-size: 11px;
+  line-height: 12px;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 03 pixels ---------- */
+
+.pixels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pixels .ground {
+  display: flex;
+  gap: 24px;
+  padding: 44px 24px 24px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.pixels figure {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.pixels figcaption {
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+/* ---------- 04 construction ---------- */
+
+.construct {
+  display: grid;
+  grid-template-columns: 560px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.construct .ground {
+  display: grid;
+  place-items: center;
+  height: 560px;
+}
+
+.construct .stack {
+  position: relative;
+  width: 512px;
+  height: 512px;
+}
+
+.construct .stack > * {
+  position: absolute;
+  inset: 0;
+  width: 512px;
+  height: 512px;
+}
+
+.legend {
+  margin: 4px 0 0;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px 16px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.legend dt {
+  color: var(--faint);
+}
+
+.legend dd {
+  margin: 0;
+}
+
+.legend-note {
+  margin: 22px 0 0;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 18px;
+  max-width: 60ch;
+}
+
+/* ---------- 05 in use ---------- */
+
+.uses {
+  display: grid;
+  gap: 16px;
+}
+
+.use-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Browser tabs, drawn plainly: neutral chrome, the mark's own tab active. */
+.browser {
+  border-radius: 12px;
+  padding: 36px 0 0;
+  overflow: hidden;
+}
+
+.browser .strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 40px;
+  padding: 0 10px;
+}
+
+.browser .t {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 200px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px 9px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.browser .t.pin {
+  width: 44px;
+  justify-content: center;
+  padding: 0;
+}
+
+.browser .t span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.browser .t i {
+  font-style: normal;
+  opacity: 0.45;
+}
+
+.browser .ph {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.browser .bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.browser .bar .url {
+  flex: 1;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.browser.light {
+  background: #dfe3e8;
+  color: #15191e;
+}
+
+.browser.light .t {
+  color: rgba(21, 25, 30, 0.62);
+}
+
+.browser.light .t.on,
+.browser.light .bar {
+  background: #ffffff;
+  color: #15191e;
+}
+
+.browser.light .bar .url {
+  background: #eef1f3;
+}
+
+.browser.light .ph {
+  background: rgba(21, 25, 30, 0.18);
+}
+
+.browser.dark {
+  background: #1b2027;
+  color: #e8e6df;
+}
+
+.browser.dark .t {
+  color: rgba(232, 230, 223, 0.6);
+}
+
+.browser.dark .t.on,
+.browser.dark .bar {
+  background: #2b313a;
+  color: #e8e6df;
+}
+
+.browser.dark .bar .url {
+  background: #1f242b;
+}
+
+.browser.dark .ph {
+  background: rgba(232, 230, 223, 0.22);
+}
+
+/* A dock and a home-screen row: the mark among blank tiles. */
+.desk {
+  border-radius: 12px;
+  height: 260px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 22px;
+  background: #c9ced5;
+}
+
+.desk.dark {
+  background: #1d2229;
+}
+
+.dock {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 6px 8px 8px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 10px 30px -10px rgba(0, 0, 0, 0.25);
+}
+
+.desk.dark .dock {
+  background: rgba(60, 66, 76, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+}
+
+.dock .slot {
+  width: 64px;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+.dock .slot .ic {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+}
+
+.dock .run {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.desk.dark .dock .run {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.dock .run.off {
+  opacity: 0;
+}
+
+.phone {
+  border-radius: 12px;
+  height: 260px;
+  display: grid;
+  align-content: center;
+  justify-content: center;
+  background: #b9c2cc;
+}
+
+.phone.dark {
+  background: #262c35;
+}
+
+.phone .row {
+  display: grid;
+  grid-template-columns: repeat(4, 60px);
+  gap: 22px 28px;
+}
+
+.phone .app {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 13px;
+  color: #ffffff;
+}
+
+.phone .app i {
+  display: block;
+  width: 34px;
+  height: 7px;
+  margin-top: 3px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* A blank tile: a placeholder app, drawn as nothing but its squircle. */
+.blank {
+  display: block;
+}
+
+/* Avatars: the mark on a full square, cropped to a circle by whatever shows it. */
+.avatars {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 48px 40px 36px;
+  border-radius: 12px;
+}
+
+.avatars .who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.avatars .who small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.avatars img,
+.avatars svg {
+  border-radius: 50%;
+}
+
+.avatars .ring {
+  box-shadow: 0 0 0 1px rgba(21, 25, 30, 0.12);
+  border-radius: 50%;
+}
+
+.g-ink .avatars .ring {
+  box-shadow: 0 0 0 1px rgba(232, 230, 223, 0.14);
+}
+
+/* The site's own header, at its real size. */
+.site {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.site-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 76px;
+  padding: 0 40px;
+}
+
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.site-nav span {
+  padding: 8px 10px;
+  opacity: 0.72;
+}
+
+.site-nav b {
+  margin-left: 8px;
+  padding: 0 14px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.site.light {
+  background: #f3f5f6;
+  color: #15191e;
+}
+
+.site.light .site-nav b {
+  background: #15191e;
+  color: #fbfcfc;
+}
+
+.site.dark {
+  background: #11171e;
+  color: #e8e6df;
+}
+
+.site.dark .site-nav b {
+  background: #e8e6df;
+  color: #10151b;
+}
+
+.site .below {
+  height: 64px;
+  border-top: 1px solid rgba(21, 25, 30, 0.08);
+  background-image: linear-gradient(rgba(21, 25, 30, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(21, 25, 30, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.site.dark .below {
+  border-top-color: rgba(232, 230, 223, 0.08);
+  background-image: linear-gradient(rgba(232, 230, 223, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(232, 230, 223, 0.04) 1px, transparent 1px);
+}
+
+/* A README, as a repository page shows it. */
+.readme {
+  border-radius: 12px;
+  padding: 40px 48px 36px;
+}
+
+.readme.light {
+  background: #ffffff;
+  color: #1f2328;
+  box-shadow: inset 0 0 0 1px #d1d9e0;
+}
+
+.readme.dark {
+  background: #0d1117;
+  color: #e6edf3;
+  box-shadow: inset 0 0 0 1px #3d444d;
+}
+
+.readme .file {
+  font-size: 12px;
+  opacity: 0.6;
+  padding-bottom: 14px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid currentColor;
+  border-bottom-color: rgba(127, 127, 127, 0.25);
+}
+
+.readme .head {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+}
+
+.readme .head p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  opacity: 0.75;
+}
+
+.readme .body {
+  margin-top: 18px;
+  font-size: 13px;
+  line-height: 20px;
+  opacity: 0.7;
+}
+
+/* The social card, at its own 1200 × 630: the true horizontal lockup at M = 150 px, x 96, its caps centred at y 270. */
+.social-wrap {
+  overflow: hidden;
+}
+
+.social {
+  width: 1200px;
+  height: 630px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: #f3f5f6;
+  color: #15191e;
+}
+
+.social-lock {
+  position: absolute;
+  left: 96px;
+  top: 195px;
+}
+
+.social-line {
+  position: absolute;
+  left: 96px;
+  top: 371px;
+  font-size: 30px;
+  line-height: 40px;
+  color: rgba(21, 25, 30, 0.72);
+}
+
+.social .foot {
+  position: absolute;
+  left: 96px;
+  right: 96px;
+  bottom: 52px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  color: rgba(21, 25, 30, 0.5);
+  border-top: 1px solid rgba(21, 25, 30, 0.14);
+  padding-top: 20px;
+}
+
+.dark-choice {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+}
+
+.dark-choice h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.construct .bar {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.site-head .lockup-svg svg {
+  display: block;
+}
+
+/* ---------- 06 lockups ---------- */
+
+.locks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.lock-plate {
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  padding: 40px;
+}
+
+.lock-plate.tall {
+  min-height: 380px;
+}
+
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 540;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.lockup.stacked {
+  flex-direction: column;
+}
+
+.lock-spec {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 32px;
+  align-items: center;
+}
+
+.lock-spec .ground {
+  padding: 56px 48px;
+  display: grid;
+  place-items: center;
+}
+
+.lock-sizes {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 28px 48px;
+  padding: 36px 40px;
+}
+
+/* ---------- 07 one ink ---------- */
+
+.inks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.inks .ground {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding: 44px 16px 24px;
+}
+
+.inks .row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+/* ---------- 08 motion ---------- */
+
+.motion {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.motion .ground {
+  display: grid;
+  place-items: center;
+  height: 560px;
+}
+
+.motion .ground svg {
+  width: 480px;
+  height: 480px;
+}
+
+.motion .bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.motion .bar p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--soft);
+}
+
+.note {
+  max-width: 80ch;
+}
+
+@media (max-width: 1100px) {
+  .branches {
+    grid-template-columns: 1fr 1fr;
+  }
+  .use-row,
+  .pixels,
+  .locks,
+  .motion {
+    grid-template-columns: 1fr;
+  }
+  .construct,
+  .lock-spec {
+    grid-template-columns: 1fr;
+  }
+  .inks {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* A lockup's box ends at the ink; let its edge pixels show. */
+.lockup-svg svg {
+  display: block;
+  overflow: visible;
+}
+
+/* The growth panel and its speeds. */
+.motion.one {
+  grid-template-columns: 600px minmax(0, 1fr);
+  align-items: start;
+}
+
+.motion.one .ground {
+  height: 600px;
+}
+
+.motion.one .ground svg {
+  width: 512px;
+  height: 512px;
+}
+
+.audits {
+  display: grid;
+  gap: 18px;
+}
+
+.audit h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.audit table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  line-height: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.audit th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--faint);
+  padding: 4px 8px 4px 0;
+  border-bottom: 1px solid var(--hair);
+}
+
+.audit td {
+  padding: 3px 8px 3px 0;
+  border-bottom: 1px solid var(--hair);
+}
+
+.legend.tiers {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+}
+
+.xrow {
+  display: flex;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.xcell {
+  display: grid;
+  place-items: center;
+  width: 176px;
+  height: 176px;
+}
+
+.avatars {
+  flex-wrap: wrap;
+}
+
+.construct .xcell {
+  width: 160px;
+  height: 160px;
+}
+
+.xrow figure {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--faint);
+}

@@ -38,7 +38,10 @@
     </main>
 
     <script type="module">
-      import { VARIANTS, Card, clock, svgFile } from './logos.js'
+      import { VARIANTS as FOUR, Card, clock, svgFile } from './logos.js'
+      import { MARK as COL, StudioCard } from './col.js'
+      // Col is defined once, in col.js, and takes slot 04.
+      const VARIANTS = [...FOUR.slice(0, 3), COL, ...FOUR.slice(3)]
 
       const params = new URLSearchParams(location.search)
       const still = params.has('still')
@@ -83,7 +86,12 @@
       }
 
       VARIANTS.forEach((v, i) => {
-        const card = new Card(v)
+        // Col draws by device pixels and on the ink tile everywhere, so its card is the studio's.
+        const card = v.id === 'col' ? new StudioCard(v) : new Card(v)
+        if (v.id === 'col') {
+          const add = card.add.bind(card)
+          card.add = (svg, size) => add(svg, size, 'dark')
+        }
         card.reduced = reduced
         cards.push(card)
 
@@ -163,6 +171,8 @@
         all.setAttribute('aria-checked', String(cards.every((c) => c.motion)))
       }
       function setMotion(card, on) {
+        // A mark that only grows has no loop: switching motion on plays its growth again.
+        if (on && !card.motion && card.v.once && !reduced && !still && card.seen) card.playIntro()
         card.motion = on
         card.button.setAttribute('aria-checked', String(on))
         syncAll()

@@ -1,6 +1,6 @@
 # Where things stand
 
-Last updated 2026-11-07, at the end of the board pass. Read this before picking the project up again.
+Last updated 2026-11-07, after Col's four rounds, at the end of the board pass. Read this before picking the project up again.
 
 ## State
 
@@ -10,7 +10,7 @@ Last updated 2026-11-07, at the end of the board pass. Read this before picking 
   - **Sign in with Google**, optional per host.
   - **What an open-source project needs**: a self-hosting guide, a Compose file with Caddy, contributing notes, a code of conduct, templates, CI, Dependabot and a changelog.
   - **Five candidate logos** in a workbench.
-  - Three critique passes on the map, three on the website, and five on the logo, each by Opus critics, with fixes and fresh screenshots each time. The record is [design/qa-rounds.md](design/qa-rounds.md).
+  - Three critique passes on the map, three on the website, and five on the logo, each by Opus critics, with fixes and fresh screenshots each time. Then the operator chose Col, and it had four more rounds of its own: a growth from nothing as its only motion, five drawings chosen by device pixels, and an export set. The record is [design/qa-rounds.md](design/qa-rounds.md).
 - `npm test` passes 158 of 158 and `npm run typecheck` is clean.
 - Git is local only. There's no remote, nothing has been pushed, and the package isn't on npm.
 - To see it: `npm run build && npm start`, then http://localhost:4747. To see sign-in without a Google client: `npm run preview:google` (port 4760). The logos: `npm run workbench` (port 4800).
@@ -22,7 +22,7 @@ Agents made each of these changes without a ruling. The recommendation is theirs
 
 | Question | Now | Recommendation |
 | --- | --- | --- |
-| **The logo** | A placeholder in `src/studio/site/Mark.tsx`, the only place the mark is drawn | Five finals in `workbench/logo/` (`npm run workbench`), summed up in [workbench/logo/SUMMARY.md](../workbench/logo/SUMMARY.md). The designer and the last critic recommend Summit; Col is the more ownable alternative. Then export the favicon and icons from the workbench |
+| **The logo** | Decided: **Col**, after four more rounds of its own. It's in the site (`src/studio/site/Mark.tsx`, from `workbench/logo/col/tiers.json`), with an `.ico` and a touch icon | The studio is `workbench/logo/col.html`; how it's built, and every exported file, is in `workbench/logo/col/`. Look at it in real browser tabs (Chrome, Safari, Firefox) and on a phone's home screen, which no agent could. Under 96 px it's still close to an ∞ cut into a pebble |
 | **Trackpad scrolling pans** (you asked for scroll to zoom in the Locus pass) | Two fingers pan and a pinch zooms, as in Miro and Figma; a mouse wheel still zooms; ⌘ or ctrl and scroll zooms on anything | Keep. Every critic who drove it called this the source of "not buttery". `wheelKind` in `MapView.ts` is where it's decided |
 | **Sign in with Google** on the public host | Off unless `LOCUS_GOOGLE_CLIENT_ID` and `LOCUS_GOOGLE_CLIENT_SECRET` are set. With hosted mode, it replaces proof of work for claiming an address | Turn it on for the public host, after a Google Cloud OAuth client and consent screen ([SELF-HOSTING.md](SELF-HOSTING.md)). Google's branding review may want the button checked |
 | **The repository's address** | `REPO_URL = ''` in `src/studio/site/frame.tsx`; the site hides its source links until it's set | Set it when the GitHub repo exists |
@@ -89,4 +89,4 @@ Locus was called Vadere until 2026-11-05. A browser that used the old build kept
 
 ## The QA harness
 
-The scripts, the screenshots of every round, and the agents' read logs and defect lists are in `qa/` in this folder. It's kept out of git on purpose (several GB, with absolute paths and working notes), so it exists only on the machine that ran it. `qa/README.md` says how to run it. The Locus pass is in `qa/rounds/locus/`; the board pass in `qa/rounds/nav/` (map and website), `qa/rounds/logo/` (the logo), `qa/rounds/site/` (the website's own iterations) and `qa/rounds/canvas/` (measurements).
+The scripts, the screenshots of every round, and the agents' read logs and defect lists are in `qa/` in this folder. It's kept out of git on purpose (several GB, with absolute paths and working notes), so it exists only on the machine that ran it. `qa/README.md` says how to run it. The Locus pass is in `qa/rounds/locus/`; the board pass in `qa/rounds/nav/` (map and website), `qa/rounds/logo/` (the logo), `qa/rounds/col/` (Col's four rounds), `qa/rounds/site/` (the website's own iterations) and `qa/rounds/canvas/` (measurements).

@@ -1,87 +1,49 @@
-// The Locus mark, and the only place it's drawn. A placeholder until the chosen variant replaces it: a squircle in ink, with a hill's
-// contour lines in paper and a small point at its summit, the spot on the map where something is.
+// The Locus mark, Col, and the only place the site draws it. A summit, a lower knoll and the col between them,
+// in contour: the col's own contour crosses itself at the pass, and the point sits on the crossing.
+// The geometry is in `mark-paths.ts`, written from the workbench's export (`workbench/logo/col/`, where
+// CONSTRUCTION.md gives the rules). Each size gets its own drawing, chosen by device pixels: below 26 the land
+// with its point cut out, below 96 the land with the col's contour cut through it, then the contours themselves.
+// The tile is ink on every page; on a dark page a 1 device px hairline of paper holds it off the ground.
 
-import { useId, useLayoutEffect, useRef } from 'react'
+import { useId, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
+import { DRAWINGS, TILE } from './mark-paths'
 
-const TAU = Math.PI * 2
+const INK = '#15191e'
+const PAPER = '#fcfdfd'
 
-/** A superellipse filling the 100-unit box: the squircle every icon sits in. */
-const SQUIRCLE = (() => {
-  const n = 5
-  const pts: string[] = []
-  for (let i = 0; i < 96; i++) {
-    const t = (i / 96) * TAU
-    const c = Math.cos(t)
-    const s = Math.sin(t)
-    pts.push(`${(50 + 50 * Math.sign(c) * Math.abs(c) ** (2 / n)).toFixed(2)} ${(50 + 50 * Math.sign(s) * Math.abs(s) ** (2 / n)).toFixed(2)}`)
-  }
-  return `M${pts.join('L')}Z`
-})()
-
-/** A closed curve through these points, as cubic Béziers (Catmull-Rom), so a ring has no corners. */
-function smoothLoop(pts: [number, number][]): string {
-  const n = pts.length
-  const at = (i: number) => pts[(i + n) % n]
-  let d = `M${at(0)[0].toFixed(2)} ${at(0)[1].toFixed(2)}`
-  for (let i = 0; i < n; i++) {
-    const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)]
-    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]
-    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]
-    d += `C${c1[0].toFixed(2)} ${c1[1].toFixed(2)} ${c2[0].toFixed(2)} ${c2[1].toFixed(2)} ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`
-  }
-  return `${d}Z`
+/** Device pixels per CSS pixel, kept current when a window moves to another screen. */
+function useDpr(): number {
+  return useSyncExternalStore(
+    (next) => {
+      if (typeof matchMedia !== 'function') return () => {}
+      const q = matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`)
+      q.addEventListener('change', next)
+      return () => q.removeEventListener('change', next)
+    },
+    () => (typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1),
+    () => 1,
+  )
 }
 
-const SUMMIT: [number, number] = [61, 39]
-
-/** One contour of the hill: a ridge running down to the lower left, so each wider ring leans further down the slope, as a real hill's do. */
-function ring(r: number, k: number): string {
-  const cx = SUMMIT[0] - k * 5.2
-  const cy = SUMMIT[1] + k * 5.6
-  const tilt = -0.55
-  const pts: [number, number][] = []
-  for (let i = 0; i < 44; i++) {
-    const t = (i / 44) * TAU
-    const rr = r * (1 + 0.13 * Math.sin(2 * t + 0.9 + k * 0.45) + 0.06 * Math.sin(3 * t + 2.3 - k * 0.5) + 0.025 * Math.sin(5 * t + k))
-    const x = Math.cos(t) * rr * 1.16
-    const y = Math.sin(t) * rr * 0.86
-    pts.push([cx + x * Math.cos(tilt) - y * Math.sin(tilt), cy + x * Math.sin(tilt) + y * Math.cos(tilt)])
-  }
-  return smoothLoop(pts)
-}
-
-/** The rings at each size. A small mark has fewer, so its lines never close up. The widest runs off the edge: the map goes on. */
-const TIERS = {
-  small: [ring(15, 0.6), ring(33, 1.8)],
-  medium: [ring(11, 0.4), ring(24, 1.4), ring(39, 2.5)],
-  large: [ring(9, 0.3), ring(19.5, 1.1), ring(31, 2), ring(45, 3)],
-}
+/** Line weights in device px, as the construction sets them, turned into units of the 100-unit box at n device px. */
+const units = (px: number, n: number) => (px * 100) / n
+const cutPx = (n: number) => Math.min(3.2, Math.max(1.5, 0.9 + 0.035 * n))
+const linePx = (name: string, n: number) => (name === 'M' ? 2.0 * (n / 96) ** 0.2 : 2.5 * (n / 280) ** 0.8)
 
 export function Mark({ size = 24, animated = false, className, title }: { size?: number; animated?: boolean; className?: string; title?: string }) {
   const clip = `mark-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const ref = useRef<SVGSVGElement>(null)
-  const rings = size <= 24 ? TIERS.small : size <= 48 ? TIERS.medium : TIERS.large
-  // Lines at least a pixel wide at any size, and a little under three units wide when large.
-  const stroke = (Math.max(1.15, size * 0.03) * 100) / size
-  const point = Math.max(3.4, (1.5 * 100) / size)
+  const n = Math.max(1, Math.round(size * useDpr()))
+  const d = [...DRAWINGS].reverse().find((x) => n >= x.from) ?? DRAWINGS[0]
+  const line = units(linePx(d.name, n), n)
 
-  // The rings come up from the summit outward, and the point lands last. Once, as the mark arrives.
+  // At the sizes the site uses the mark never grows (it grows only from 160 device px, in the workbench). It arrives
+  // once, by fading in, as the header does.
   useLayoutEffect(() => {
     const svg = ref.current
     if (!animated || !svg || matchMedia('(prefers-reduced-motion: reduce)').matches || typeof svg.animate !== 'function') return
-    const parts = [...svg.querySelectorAll<SVGElement>('[data-ring]')]
-    const anims = parts.map((el, i) =>
-      el.animate(
-        [
-          { opacity: 0, transform: 'scale(0.82)' },
-          { opacity: Number(el.style.opacity || 1), transform: 'scale(1)' },
-        ],
-        { duration: 760, delay: 140 + i * 130, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' },
-      ),
-    )
-    const dot = svg.querySelector<SVGElement>('[data-point]')
-    if (dot) anims.push(dot.animate([{ opacity: 0, transform: 'scale(2.4)' }, { opacity: 1, transform: 'scale(0.9)', offset: 0.7 }, { opacity: 1, transform: 'scale(1)' }], { duration: 420, delay: 140 + parts.length * 130 + 240, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' }))
-    return () => anims.forEach((a) => a.cancel())
+    const a = svg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, delay: 120, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' })
+    return () => a.cancel()
   }, [animated])
 
   return (
@@ -95,20 +57,26 @@ export function Mark({ size = 24, animated = false, className, title }: { size?:
       aria-label={title}
       aria-hidden={title ? undefined : true}
       focusable="false"
-      style={{ display: 'block', flex: 'none', overflow: 'visible' }}
+      style={{ display: 'block', flex: 'none' }}
     >
       <defs>
         <clipPath id={clip}>
-          <path d={SQUIRCLE} />
+          <path d={TILE} />
         </clipPath>
       </defs>
-      <path d={SQUIRCLE} style={{ fill: 'var(--ink)' }} />
-      <g clipPath={`url(#${clip})`} style={{ fill: 'none', stroke: 'var(--on-ink)', strokeWidth: stroke }}>
-        {rings.map((d, i) => (
-          <path key={i} d={d} data-ring="" style={{ opacity: 0.94 - i * 0.08, transformOrigin: `${SUMMIT[0]}px ${SUMMIT[1]}px` }} />
-        ))}
-      </g>
-      <circle data-point="" cx={SUMMIT[0]} cy={SUMMIT[1]} r={point} style={{ fill: 'var(--on-ink)', transformOrigin: `${SUMMIT[0]}px ${SUMMIT[1]}px` }} />
+      <path d={TILE} fill={INK} />
+      {/* The hairline: the tile's own edge stroked in paper and clipped to the tile, so 1 device px shows inside it. Dark pages only. */}
+      <path className="mark-edge" d={TILE} fill="none" stroke={PAPER} strokeOpacity={n <= 95 ? 0.24 : 0.16} strokeWidth={units(2, n)} clipPath={`url(#${clip})`} />
+      {d.land && <path d={d.land} fill={PAPER} />}
+      {d.cut && <path d={d.cut} fill="none" stroke={INK} strokeWidth={units(cutPx(n), n)} strokeLinecap="butt" />}
+      {d.lines && (
+        <g fill="none" stroke={PAPER} strokeWidth={line}>
+          {d.lines.map((p, i) => (
+            <path key={i} d={p} />
+          ))}
+        </g>
+      )}
+      {d.point && <circle cx={d.point.cx} cy={d.point.cy} r={d.point.r ?? 1.5 * line} fill={d.point.ink ? INK : PAPER} />}
     </svg>
   )
 }

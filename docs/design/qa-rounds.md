@@ -1323,3 +1323,31 @@ The operator, after the Locus pass: a logo, a squircle with a minimalist topogra
 **Sign in with Google** was built by an agent and read in full by the orchestrator: authorization code flow with PKCE, state and nonce in a signed short-lived cookie, the ID token's claims checked, a session cookie signed with HMAC, only a keyed hash of Google's id ever written to disk, sign-out guarded against other sites, and nothing at an address's own domain. 16 tests. Never run against real Google.
 
 **Not verified.** Real Google; real trackpads, mice and Safari; an iPhone; 120 Hz; a Docker build; a real person.
+
+## Col: four rounds to a finished mark
+
+The operator chose Col and asked for "four more rounds of intense constructive criticism and aesthetic improvements locked in to that direction": more professional, bespoke and premium, with the energy a top AI lab brings to its identity, and still topographic. One designer agent built every round; each round had a new critic. The brief, the shots, the notes and the critiques are in `<QA>/rounds/col/` (`BRIEF.md`, `r1`–`r4`, `final`).
+
+- **Round 1: three branches beside the old Col.**
+  - The designer built a studio, `workbench/logo/col.html`, that shows the mark in use: a dock, a home screen, tabs, an avatar, the site's header, a README, a social card and the lockups. Then it drew three branches: Index (the old drawing rebuilt from circles), Saddle (the col's own contour crossing itself at the pass) and Terrace (the same in filled tones).
+  - The critic carried Saddle forward. Below 40 px every branch was a familiar glyph: ∞ or a chain link, a fried egg, a dumbbell. The contexts also showed drawings no device would use, because sizes were picked by CSS px rather than device px.
+- **Round 2: one weight, the crossing in curves, and a ruling on motion.**
+  - The crossing's two straight lines became four arcs that meet the point along its axes. One line weight runs throughout, the form is centred by eye, and sizes are picked by device px.
+  - The critic found the small solid was a snowman. It proposed Col-X instead: one land with the crossing cut through it.
+  - **The operator turned motion on and saw "very fast vibrating".** Frame diffs found the cause: in the flowing loop every contour moved a fraction of a pixel every frame, all at once.
+  - The ruling: the mark grows from nothing, outward and organically, and once a line arrives it holds pixel-still. The loop went.
+- **Round 3: the growth, and the small form.**
+  - **The growth.** Rings are born at the summit, then the knoll. They meet as `)(` and close to the X, the outer rings wrap both, and the point lands last. It runs once, and nothing changes after it.
+  - **The small form.** Of three versions of Col-X, the bare X read as cancel and short arcs as a squinting face. The col's own loops cut through the land won.
+  - **The critic's finding.** Every semicircular far wall was written as one SVG arc whose chord was its diameter. The browser misplaced each centre by up to 3.6 px at 1024, so the intervals came out uneven and lines stepped backwards in the growth.
+- **Round 4: the arcs fixed, and the join on one clock.**
+  - Arcs are no wider than 90° and written to 0.001 units. Every line now sits within 0.056 px of the construction.
+  - There are no backward line-frames at 60 fps, at ×1 or ×2, and at most two lines move at once.
+  - The last critic found the middle drawing (96–159 px) read as a T-bone steak at dock size because it had only three lines. Five fixed it. It also found that an SVG favicon is grey mush on a ×1 screen, because an SVG can't tell ×1 from ×2, so the tab icon became an `.ico`.
+- **The final build.**
+  - The join's two tips reach the pass in the same frame.
+  - The export set is in `workbench/logo/col/`: tier SVGs in light, dark and one ink, the `.ico`, the touch and app icons, a maskable icon and the lockups. 399 of its 401 checks pass; the two failures are one-ink files 0.3–0.5 KB over a 4 KB limit.
+  - `CONSTRUCTION.md` gives the rules.
+  - The site draws the mark from `tiers.json`, through `scripts/mark-paths.mjs`.
+
+**Left open:** under 96 px the mark is a lopsided ∞ cut into a pebble. It's the best small form tried in four rounds, but not yet unmistakable. Real browser tabs and real devices haven't been checked; a headless browser draws no tab strip.
