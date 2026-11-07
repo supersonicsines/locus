@@ -23,8 +23,8 @@ Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `do
 - **Where a name goes depends only on the map and the zoom.** Never on the screen's edges, the panels or the camera's position, so a pan never moves or rewords anything, and words run under the cards (clipped only out of the narrow margins round them). Names are placed again when the zoom changes by `ZOOM_STEP`, never on a pan. The map changes in kind across the zoom range (`far`, the county-names form, the gathered form, items, their lines, what's in them); read the header of `MapView.ts` before changing a size.
 - **The mark is Col, and it's drawn in one place,** `src/studio/site/Mark.tsx`, from `mark-paths.ts`. That file is written by `node scripts/mark-paths.mjs` from the workbench's export, `workbench/logo/col/tiers.json`; don't edit it by hand. Change the mark in `workbench/logo/col.js` (`npm run workbench`, then `/col.html`), re-export, and run the script. `workbench/logo/col/CONSTRUCTION.md` gives the rules.
   - Each size is its own drawing, chosen by device pixels.
-  - The tile is ink on every page.
-  - The mark's only motion is its growth from nothing, from 160 device px up. No line ever creeps.
+  - Black lines on a white tile on every page, weighted like a survey sheet: fine contours, and the col's own contour (the index) at twice their width. On a light page a 1 device px ink hairline holds the tile off the ground.
+  - The mark's only motion is being drawn once, as a pen draws it, from 160 device px up. A line once drawn never moves again.
   - The tab icon is the `.ico`, because an SVG favicon can't tell a ×1 screen from a ×2 one.
 - **Google sign-in identifies an account on a host and nothing else.** It never touches a sealed map, a password or the recovery key, and the host stores only a keyed hash of the account's id (`src/server/auth.ts`). No third-party script ever runs in the Studio: sign-in is a redirect.
 - **The top line fits itself.** `useFitTop` in `src/studio/ui/Top.tsx` steps through whole shorter forms until nothing is cut, wrapped or covered. Give any new words there a short form rather than an ellipsis or a media query.

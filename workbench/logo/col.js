@@ -1,7 +1,7 @@
 /*
   Col: the Locus mark. A summit, a lower knoll and the col between them, drawn in contour; the col's own contour
   crosses itself at the pass and the point sits on the crossing. This file is its one definition: the construction,
-  the drawings per size, the growth, and the files. `construction()` writes the card, and `constructionMarkdown()` the
+  the drawings per size, the drawing-in, and the files. `construction()` writes the card, and `constructionMarkdown()` the
   geometry section of CONSTRUCTION.md, from the same numbers, so the file, the card and the doc can't disagree.
 
   The construction (at L; every other drawing states its departures in `spec`)
@@ -13,18 +13,19 @@
   - Above the col: each lobe scaled by (R + s)/R about H, 3R/8 beyond its centre; its tip rounded with ρ = 3/2 |s|,
     eased onto R above ρ = 0.55 R so a tip grows from a circle smoothly. Below the col: the figure-eight offset by s, its
     notches rounded with ρ = 7/4 s.
-  - One line weight; the point three line-widths across, the only heavy element.
+  - The line system of a survey sheet: the contours fine, the col's own contour the index at twice their weight, the
+    point 3¼ times the index across (see LINES). Black lines on a white tile.
   - Every arc in a file is a true circular arc of at most 90°, at 0.001 units, so the browser draws the construction.
 
   The drawings, by device px: L ≥ 256; L− 160–255 (the summit's −3d ring left out, H at R/4); M 96–159 (d = RA/3: the
-  outline at +d, the col's contour, the summit's −1d and −2d, the knoll's −1d, H at R/5 so the far walls keep 1.5 px clear at 96, w = 2.0 (px/96)^0.2 px);
-  Col-X 26–95 (one land, the hull at s = ¾ RA, ρ = s, the col's contour cut through it as ground, clamp(0.9 + 0.035 px,
-  1.5, 3.2) px wide); below 26 the same land with the point alone. Col-X is never without its tile.
+  outline at +d, the col's contour, the summit's −1d and −2d, the knoll's −1d, H at R/5); S 48–95 (d = RA/2: the outline,
+  the col's contour and the summit's top); Col-X 26–47 (one land in ink, the hull at s = ¾ RA, ρ = s, the col's contour
+  cut through it in paper, clamp(0.9 + 0.035 px, 1.5, 3.2) px wide); below 26 the same land with the point alone.
 
-  Motion: growth from nothing, once, at 160 device px and up; every smaller drawing is the still, and so is reduced
-  motion. The tops appear and the land rises one ring at a time per hill; the knoll's top appears as the summit reaches
-  its height; the hills' last rings close as )( and touch at C; the X holds; the rings below the col leave it, the
-  outline last; the point grows on the crossing. Then nothing moves. See `scoreOf`.
+  Motion: the mark is drawn once, at 160 device px and up; every smaller drawing is the still, and so is reduced motion.
+  The index contour first, in one stroke from the pass round the summit, through the pass and round the knoll; the
+  contours below the col follow it out of the pass; the summit's contours follow as it crosses the pass, then the
+  knoll's; the point is set on the crossing last. Then nothing moves. See `drawScore`.
 */
 
 import { Card, Mount, compose, clamp, lerp, cubicBezier, tierOf, REF, SQUIRCLE } from './logos.js'
@@ -544,21 +545,21 @@ export function units(px, tier, size) {
 }
 
 /* ======================================================================
-   Palettes. 'dark' is the ink tile (paper lines), the primary; 'light' the paper tile (ink lines).
+   Palettes. The tile is paper and the drawing ink: black lines on white, on every page.
    ====================================================================== */
 
 const INK = '#15191e'
 const PAPER = '#fcfdfd'
 const LINE_PALETTES = {
-  // The ink tile, everywhere: on light pages and dark, as the favicon, the app icon and the avatar. On a dark page it is
-  // held off the page by a hairline of paper, 1 device px: 24 % up to 95 px, 16 % above.
-  dark: { ground: INK, edge: 'rgba(252,253,253,0.16)', edgeS: 'rgba(252,253,253,0.24)', line: PAPER, mark: PAPER, cut: INK },
-  // The paper tile: kept only as a drawing surface (the construction sheet); the system doesn't use it.
-  light: { ground: PAPER, edge: 'rgba(21,25,30,0.14)', edgeS: 'rgba(21,25,30,0.2)', line: INK, mark: INK, cut: PAPER },
+  // On a light page: the paper tile held off the page by an ink hairline 1 device px wide inside its edge, like a map's
+  // neatline: 22 % up to 95 px, 16 % above.
+  light: { ground: PAPER, edge: 'rgba(21,25,30,0.16)', edgeS: 'rgba(21,25,30,0.22)', line: INK, mark: INK, cut: PAPER },
+  // On a dark page the paper tile needs no edge.
+  dark: { ground: PAPER, edge: 'none', edgeS: 'none', line: INK, mark: INK, cut: PAPER },
+  // The reverse, paper lines on an ink tile: for the rare place that needs a dark mark on a light ground.
+  reverse: { ground: INK, edge: 'none', edgeS: 'none', line: PAPER, mark: PAPER, cut: INK },
 }
-LINE_PALETTES.darkEdge = LINE_PALETTES.dark
-// The ink tile with no hairline: the 'light' files, and the comparison the export checks make.
-LINE_PALETTES.plain = { ground: INK, edge: 'none', edgeS: 'none', line: PAPER, mark: PAPER, cut: INK }
+LINE_PALETTES.plain = LINE_PALETTES.dark
 /** One ink: black on white is the tile in black with the drawing knocked out; white on black the reverse. */
 export const MONO = {
   black: { ground: '#000000', edge: 'none', edgeS: 'none', line: '#ffffff', mark: '#ffffff', cut: '#000000' },
@@ -568,240 +569,135 @@ export const MONO = {
 }
 
 /* ======================================================================
-   The mark
+   The line system
    ====================================================================== */
+
+/*
+  As on a survey sheet: the contours are fine, and one of them, the index contour, is drawn at twice their weight. Here
+  the index is the col's own contour, the figure-eight, so the crossing is the heaviest line; the point sits on it at
+  2½ times the index's width. Weights are set in device px and never fall under 1.
+*/
+export const LINES = {
+  /** A contour's width in device px at N device px. */
+  w: (N) => Math.max(1, 1.2 * (N / 256) ** 0.6),
+  index: 2,
+  dot: 3.25,
+  law: 'max(1, 1.2 (N / 256)^0.6) device px',
+}
 
 /* ======================================================================
-   The growth: the only motion
+   The drawing: the only motion
    ====================================================================== */
 
-const STEP = cubicBezier(0.33, 1, 0.68, 1) // a ring leaves the one inside it and settles into its place
-const LAND = cubicBezier(0.2, 0, 0, 1) // the point set on the crossing
-const TIP = cubicBezier(0.5, 1, 0.89, 1) // a tip growing out of a circle: ease-out quad, so its tail is short
-// A step lasts T = 0.65 (0.22 + 0.14 · clamp((px − 96) / 416)) s (0.234 s at 512 and up).
-const PACE = 0.65
-const HOLD = 0.36 // the X holds, nothing moving, before the rings below the col leave it: the only rest
-const POINT = 0.2 // the point grows on LAND, snapping like every line
-const SNAP = 0.3 // a clock ends once its line's fastest point has this many device px left to go
+/*
+  The mark is drawn once, the way a surveyor inks a sheet. The index contour comes first: the col's own figure-eight,
+  one stroke that leaves the pass, rounds the summit, crosses the pass and rounds the knoll back to it. As the pen
+  crosses the pass, the summit's contours follow it, each from its tip (the point nearest the pass) in the sense the
+  summit was drawn, then the knoll's; the two contours below the col leave the pass above it and wrap both hills; the
+  point is set on the crossing last. A pen runs at speed and lands long; a line once drawn never moves again.
+*/
+/** A cubic-bezier ease that remembers its numbers, so a file can write it as CSS. */
+const bezier = (...a) => Object.assign(cubicBezier(...a), { args: a })
+const PEN = bezier(0.4, 0, 0.16, 1) // a contour: the pen lifts off, runs, and lands long
+const PEN8 = bezier(0.36, 0, 0.2, 1) // the index contour: one gesture, an even run through the pass
+const LAND = bezier(0.2, 0, 0, 1) // the point set on the crossing
+const SNAP = 0.3 // a stroke ends once its pen has this many device px left to go
+/** Seconds. A stroke lasts base + per × its length in construction units (the summit's −1d ring is about 75). */
+const DRAW = { start: 0.08, eight: [0.5, 0.005], ring: [0.3, 0.0042], hull: [0.5, 0.005], ringLag: 0.08, ringLead: 0.06, hullLag: 0.16, hullStep: 0.12, knollLead: 0.3, point: 0.26, pointLead: 0.04 }
+const durOf = ([base, per], total) => base + per * total
 
-/* ---------- a lobe ring with its own tip ---------- */
-
-/** The scaled lobe at body level s (construction units), in its own +x frame: S, and the rule's tip rounding. */
-function lobeBody(G, who, s) {
-  const L = who === 'A' ? G.LAr : G.LB
-  const H = who === 'A' ? G.HA : G.HB
-  const k = (L.R + s) / L.R
-  const S = scaled(L, H, Math.max(k, 1e-6))
-  return { L, S, rule: S.R * tipRound((G.mu * -s) / S.R) }
-}
-/** Where the tip's apex stands from C (construction units) for a rounding ρ: the circle's near point at ρ ≥ R. */
-function apexOf(S, rho) {
-  if (rho >= S.R - 1e-9) return S.A[0] - S.R
-  const py = S.Pu[1] - S.C[1]
-  return S.Pu[0] - Math.sqrt((S.Q - rho) ** 2 - py * py) - rho
-}
-/** The largest ρ ≤ R whose apex lies within a of C (the tip clock), by bisection. */
-function rhoFor(S, a) {
-  if (apexOf(S, S.R) <= a) return S.R
-  if (apexOf(S, 0) >= a) return 0
-  let lo = 0
-  let hi = S.R
-  for (let i = 0; i < 48; i++) {
-    const m = (lo + hi) / 2
-    if (apexOf(S, m) <= a) lo = m
-    else hi = m
+/** The first fraction f of a segment list, by length: what the pen has drawn so far. */
+function trim(segs, f) {
+  if (f >= 1) return segs
+  const ls = lengths(segs)
+  const target = f * ls.reduce((a, b) => a + b, 0)
+  const out = []
+  let at = null
+  let acc = 0
+  let i = 0
+  for (const g of segs) {
+    if (g.M) {
+      at = g.M
+      out.push(g)
+      continue
+    }
+    if (g.Z) continue
+    const l = ls[i++]
+    if (acc + l <= target) {
+      out.push(g)
+      acc += l
+      at = g.L || g.A
+      continue
+    }
+    const k = l > 0 ? (target - acc) / l : 0
+    if (g.L) out.push({ L: add(at, mul(sub(g.L, at), k)) })
+    else {
+      const sw = len(sub(g.A, at)) < 1e-5 ? 0 : sweepOf(g.c, at, g.A, g.dir)
+      out.push({ A: polar(g.c, g.r, angle(g.c, at) + sw * k), c: g.c, r: g.r, dir: g.dir })
+    }
+    break
   }
-  return lo
-}
-/** The lobe ring at body level s with its apex at a from C (a == null: the card's rule), drawn in the tile's frame. */
-function lobeAt(G, who, s, a) {
-  const { S, rule } = lobeBody(G, who, s)
-  const rho = a == null ? rule : rhoFor(S, a)
-  const segs0 = lobeRing(S, rho)
-  const segs = who === 'A' ? mirrorX(segs0) : segs0
-  return { who, segs, total: sumLen(segs), R: S.R, lobeR: (who === 'A' ? G.LAr : G.LB).R }
-}
-const apexRule = (G, who, s) => {
-  const { S, rule } = lobeBody(G, who, s)
-  return apexOf(S, rule)
+  return out
 }
 
-/* ---------- the score ---------- */
-
-/** When an eased run over `dur` s, travelling `px` device px, has SNAP px or less left. */
-function snapAt(ease, dur, px) {
-  if (px <= SNAP) return 0
+/** The u in [0, 1] at which ease(u) first reaches f. */
+function uAt(ease, f) {
   let lo = 0
   let hi = 1
   for (let i = 0; i < 40; i++) {
     const m = (lo + hi) / 2
-    if ((1 - ease(m)) * px <= SNAP) hi = m
-    else lo = m
+    if (ease(m) < f) lo = m
+    else hi = m
   }
-  return hi * dur
+  return hi
 }
 
 /**
- * The score, from the still's own lines. One ring per hill moves at a time: each leaves the ring inside it and eases out
- * one interval to its own level, then holds pixel-still. The knoll's top appears as the summit reaches its height; both
- * hills' last rings close as )( and touch at C (the X); the X holds; the rings below the col leave it one at a time, the
- * outline last; the point grows last of all.
- *
- * Two clocks. A lobe ring that grows a tip (the summit's −2d → −1d, and both joins) has a body (its scale, k, on STEP
- * over T) and a tip (its apex's distance from C, on TIP). A tip growing out of a circle lasts ⅔ T × (its travel / the
- * near side's), so it leaves at the body's own speed and stays ahead of it. The join's two tips share one clock: TIP from
- * the slot's start, lasting D = ⅔ T × a0 / (n0 − n1) of the knoll's, each apex at a0 (1 − TIP(u)) of its own a0, both
- * snapping in the frame the knoll's has SNAP px left. Every other beat is one clock on STEP, lasting T · √(travel / 1.4 d),
- * where a ring below the col travels as far as its notch.
- *
- * Legato. Each clock ends when its line's fastest point has SNAP px left. A slot of one line overlaps the next one-line
- * slot by a tenth; any other slot leaves as the one before it settles. The only rest is the hold at the X.
- * Returns { beats: [{ who, a, b, t0, dur, ease, end, tip? }], point: [t0, dur], total }, levels in intervals.
+ * The score at `size` device px: per stroke its start, duration, ease and the moment it snaps whole (SNAP px left), and
+ * the point's start and length. The timing is the same at every size; only the snap depends on it.
  */
-function scoreOf(G, sp, size, z) {
-  const T = PACE * (0.22 + 0.14 * clamp((size - 96) / 416))
-  const d = G.d
-  const ppu = (z * size) / 100 // device px per construction unit
-  const topA = -G.RA / d
-  const topB = -G.RB / d
-  const up = (top) => {
-    const r = []
-    for (let n = -1; n > sp.top && n > top + 1e-9; n--) r.unshift(n)
-    return r
+function drawScore(v, tier, size) {
+  const cache = (v._score ||= {})
+  const key = tier + ':' + size
+  if (cache[key]) return cache[key]
+  const { G, sp, map } = v.geo(tier)
+  const px = (map.z * size) / 100 // device px per construction unit
+  const strokes = v.strokes(G, sp)
+  const out = {}
+  const put = (s, t0, law, ease) => {
+    const dur = durOf(law, s.total)
+    const u = uAt(ease, 1 - SNAP / (s.total * px))
+    out[s.id] = { id: s.id, t0, dur, ease, end: t0 + u * dur, px: s.total * px }
   }
-  const ringsA = up(topA)
-  const ringsB = up(topB)
-  const slots = []
-  const chain = (rings, top, who) => {
-    let from = top
-    return rings.map((n) => {
-      const bt = { who, a: from, b: n }
-      from = n
-      return bt
-    })
-  }
-  const A = chain(ringsA, topA, 'A')
-  const B = chain(ringsB, topB, 'B')
-  const lead = A.length - B.length
-  A.forEach((bt, i) => (i < lead ? slots.push([bt]) : slots.push([bt, B[i - lead]])))
-  slots.push([
-    { who: 'A', a: ringsA.length ? -1 : topA, b: 0, join: true },
-    { who: 'B', a: ringsB.length ? -1 : topB, b: 0, join: true },
-  ])
-  for (let n = 1; n <= Math.round(sp.out); n++) slots.push([{ who: 'H', a: n - 1, b: n }])
-
-  // Each beat's clocks.
-  const ref = 1.4 * d
-  const growsTip = (bt) => bt.who !== 'H' && (() => {
-    const { S, rule } = lobeBody(G, bt.who, bt.b * d)
-    return rule < S.R - 1e-9
-  })()
-  for (const slot of slots) {
-    for (const bt of slot) {
-      bt.ease = STEP
-      const travel = travelOf(G, bt.who, bt.a * d, bt.b * d)
-      if (growsTip(bt)) {
-        // The body: scale on STEP over T, snapping on its own fastest point (the circle's near side, (1 + λ) of the level).
-        bt.dur = T
-        bt.px = (1 + G.lam) * Math.abs(bt.b - bt.a) * d * ppu
-        const S0 = lobeBody(G, bt.who, bt.a * d).S
-        const S1 = lobeBody(G, bt.who, bt.b * d).S
-        const a0 = apexRule(G, bt.who, bt.a * d)
-        const a1 = apexRule(G, bt.who, bt.b * d)
-        bt.tip = { a0, a1, ease: TIP, px: Math.abs(a0 - a1) * ppu, lag: 0, n0: apexOf(S0, S0.R), n1: apexOf(S1, S1.R) }
-        bt.tip.dur = ((2 / 3) * T * (a0 - a1)) / Math.max(1e-6, bt.tip.n0 - bt.tip.n1)
-      } else {
-        const notch = bt.who === 'H' ? notchTravel(G, bt.a * d, bt.b * d) : 0
-        const reach = Math.max(travel, notch)
-        bt.dur = T * Math.sqrt(Math.max(1, reach / ref))
-        bt.px = reach * ppu
-      }
-    }
-    if (slot[0].join) {
-      // One clock for both tips: the knoll's (the tip that grows out of a circle), from the slot's start, with no lag.
-      const lead = slot.find((bt) => bt.tip && bt.tip.a0 >= bt.tip.n0 - 1e-6) || slot.find((bt) => bt.tip)
-      const D = lead.tip.dur
-      const u = snapAt(TIP, 1, lead.tip.px) // the fraction of D at which the lead tip has SNAP px left
-      for (const bt of slot) if (bt.tip) Object.assign(bt.tip, { dur: D, snapU: u })
-    }
-  }
-  // Times, legato.
-  const beats = []
-  let t = 0
-  let last = 0
-  slots.forEach((slot, i) => {
-    let settle = 0
-    let full = 0
-    for (const bt of slot) {
-      bt.t0 = t
-      bt.end = t + snapAt(bt.ease, bt.dur, bt.px)
-      if (bt.tip) {
-        bt.tip.t0 = t + bt.tip.lag
-        bt.tip.end = bt.tip.t0 + (bt.tip.snapU != null ? bt.tip.snapU * bt.tip.dur : snapAt(bt.tip.ease, bt.tip.dur, bt.tip.px))
-      }
-      settle = Math.max(settle, bt.end, bt.tip ? bt.tip.end : 0)
-      full = Math.max(full, t + bt.dur, bt.tip ? bt.tip.t0 + bt.tip.dur : 0)
-      beats.push(bt)
-    }
-    last = settle
-    const next = slots[i + 1]
-    if (slot[0].join) t = settle + HOLD
-    else if (next && slot.length === 1 && next.length === 1) t = Math.min(settle, t + 0.9 * (full - t))
-    else t = settle
-  })
-  // The point grows on the crossing from three quarters of the outline's step, so it is already visibly growing as the
-  // outline settles: no rest between them.
-  const lastBeat = beats[beats.length - 1]
-  const p0 = lastBeat.t0 + 0.75 * (lastBeat.end - lastBeat.t0)
-  const rpx = ((sp.dot ?? 3 * sp.w) / 2) * (sp.law ? (size / 280) ** 0.8 : 1)
-  const pEnd = p0 + snapAt(LAND, POINT, rpx)
-  return { T, beats, point: [p0, POINT, pEnd], total: Math.max(last, pEnd) }
+  const eight = strokes.find((s) => s.id === 'col')
+  const t8 = DRAW.start
+  put(eight, t8, DRAW.eight, PEN8)
+  const d8 = out.col.dur
+  // The moment the pen crosses the pass, the summit drawn.
+  const tx = t8 + uAt(PEN8, eight.split) * d8
+  const A = strokes.filter((s) => s.who === 'A' && s.n < 0).sort((a, b) => b.n - a.n)
+  const B = strokes.filter((s) => s.who === 'B' && s.n < 0).sort((a, b) => b.n - a.n)
+  const H = strokes.filter((s) => s.who === 'H').sort((a, b) => a.n - b.n)
+  // The summit's contours follow the pen as it crosses the pass; the knoll's as it rounds the knoll. The two below the
+  // col follow the pen out of the pass a moment behind it, round the summit in the sense it took.
+  A.forEach((s, i) => put(s, tx - DRAW.ringLead + i * DRAW.ringLag, DRAW.ring, PEN))
+  B.forEach((s, i) => put(s, t8 + d8 - DRAW.knollLead + i * DRAW.ringLag, DRAW.ring, PEN))
+  H.forEach((s, i) => put(s, t8 + DRAW.hullLag + i * DRAW.hullStep, DRAW.hull, PEN8))
+  const last = Math.max(...Object.values(out).map((s) => s.end))
+  const p0 = last - DRAW.pointLead
+  const score = { strokes: out, point: [p0, DRAW.point, p0 + DRAW.point], total: p0 + DRAW.point, tx }
+  return (cache[key] = score)
 }
 
-/** How far a line travels in one beat, in construction units: the farthest any point of its end lies from its start. */
-const _travel = new WeakMap()
-function travelOf(G, who, a, b) {
-  const cache = _travel.get(G) || new Map()
-  _travel.set(G, cache)
-  const key = who + a + ':' + b
-  if (cache.has(key)) return cache.get(key)
-  const shape = (s) => {
-    if (who === 'H' && s < 1e-3) return contour(G, 0).flatMap((p) => sample(p.segs, 0.25))
-    const L = who === 'A' ? G.LAr : G.LB
-    if (who !== 'H' && L.R + s <= 1e-6) return [who === 'A' ? [-G.HA[0], 0] : G.HB]
-    return (who === 'H' ? contour(G, s).filter((p) => p.who === 'hull') : contour(G, s).filter((p) => (p.lobe || p.who) === who)).flatMap((p) => sample(p.segs, 0.25))
+/** How much of each stroke is drawn at time t (0 to 1), and how far the point has grown. */
+function drawnAt(score, t) {
+  const f = {}
+  for (const id in score.strokes) {
+    const s = score.strokes[id]
+    f[id] = t < s.t0 ? 0 : t >= s.end ? 1 : s.ease((t - s.t0) / s.dur)
   }
-  const S = shape(a)
-  const E = shape(b)
-  let mx = 0
-  for (const p of E) {
-    let mn = Infinity
-    for (const q of S) mn = Math.min(mn, Math.hypot(p[0] - q[0], p[1] - q[1]))
-    mx = Math.max(mx, mn)
-  }
-  cache.set(key, mx)
-  return mx
-}
-
-/** How far a ring below the col's notch moves between two levels: along the bisector through C, construction units. */
-function notchTravel(G, a, b) {
-  const at = (s) => (s < 1e-3 ? 0 : Math.abs(hullRing(G, s, G.muN * s).notchTop[1]))
-  return Math.abs(at(b) - at(a))
-}
-
-/** Each beat at time t (seconds): its level s (construction units) and, with a tip clock, its apex's distance a. */
-function beatsAt(G, score, t) {
-  return score.beats.map((bt) => {
-    if (t < bt.t0) return { ...bt, s: null }
-    const e = t >= bt.end ? 1 : bt.ease(clamp((t - bt.t0) / bt.dur))
-    const out = { ...bt, s: lerp(bt.a, bt.b, e) * G.d }
-    if (bt.tip) {
-      const k = t < bt.tip.t0 ? 0 : t >= bt.tip.end ? 1 : bt.tip.ease(clamp((t - bt.tip.t0) / bt.tip.dur))
-      out.apex = lerp(bt.tip.a0, bt.tip.a1, k)
-      out.moving = t < bt.end || t < bt.tip.end
-    } else out.moving = t < bt.end
-    return out
-  })
+  const [p0, pd, pEnd] = score.point
+  return { f, m: t >= pEnd ? 1 : t <= p0 ? 0 : LAND((t - p0) / pd) }
 }
 
 /* ======================================================================
@@ -815,23 +711,29 @@ const col = {
   idea: 'The col’s own contour crosses itself at the pass and the point sits on the crossing. Every other contour is that figure-eight offset or scaled; in the smallest sizes the land is one solid and the crossing is cut through it.',
   once: true,
   period: 1,
-  introDur: 2.5,
-  introNote: 'The tops appear and the land rises: the summit’s rings are born one at a time, each leaving the one inside it and settling into place; the knoll’s top appears as the summit reaches its height; their tips reach for the pass on one clock and close as )( in the same frame, the col’s own contour. The X holds for 0.36 s, the only rest. The rings below the col leave it and wrap both hills, the outline last, and the point grows on the crossing. 2.0 s at 512 px, 1.4 s at 180. Once arrived, every line holds pixel-still.',
+  introDur: 2.6,
+  introNote: 'Drawn once, as a surveyor inks a sheet. The index contour first: the col’s own figure-eight in one stroke, from the pass round the summit, through the pass and round the knoll back to it. As the pen crosses the pass the summit’s contours follow, each from its tip, then the knoll’s; the two contours below the col leave the pass and wrap both hills; the point is set on the crossing last. About 2.4 s. A line once drawn never moves again.',
   palettes: LINE_PALETTES,
   weights: [],
-  // Device px: L from 256; L− (spec M) 160–255; M (spec S) 96–159; Col-X (spec XS) 26–95; below 26 (spec XXS) the
-  // same land with the point alone.
-  bounds: { L: 256, M: 160, S: 96, XS: 26 },
-  tierName: { L: 'L', M: 'L−', S: 'M', XS: 'X', XXS: 'X·' },
+  // Device px: L from 256; L− (spec M) 160–255; M (spec S) 96–159; S (spec SL) 48–95, the index, the outline and the
+  // summit's top; Col-X (spec XS) 26–47; below 26 (spec XXS) the same land with the point alone.
+  bounds: { L: 256, M: 160, S: 96, SL: 48, XS: 26 },
+  tierName: { L: 'L', M: 'L−', S: 'M', SL: 'S', XS: 'X', XXS: 'X·' },
+  tiers: ['XXS', 'XS', 'SL', 'S', 'M', 'L'],
+  tierOf(size) {
+    const b = this.bounds
+    return size >= b.L ? 'L' : size >= b.M ? 'M' : size >= b.S ? 'S' : size >= b.SL ? 'SL' : size >= b.XS ? 'XS' : 'XXS'
+  },
   // Per drawing: d is the interval in RA; out the outline's level and top the highest ring (exclusive), both in
   // intervals; lam is where each lobe's rings are scaled about, in R beyond its centre; span and rmax are the fit.
-  // Lines: L and L− at 2.5 px at 280 by the size^0.8 law (`law`); M at 2.0 (px/96)^0.2 px (`mlaw`); the point 3 w.
+  // Lines (L, L− and M): see LINES. The contours at w, the col's own contour as the index at 2 w, the point 2.5 × that.
   // Col-X: the land at out (in d) with its notches rounded ρ = s (sMu 1); the col's own contour cut through it as
   // ground, clamp(0.9 + 0.035 px, 1.5, 3.2) px wide; below 26 px the point alone, r = 1.3 px at 16.
   spec: {
-    L: { d: 1 / 4, out: 2, top: -4, lam: 3 / 8, span: 68, rmax: 37, w: 2.5, dot: 7.5, col: true, law: true },
-    M: { d: 1 / 4, out: 2, top: -3, lam: 1 / 4, span: 68, rmax: 37, w: 2.5, dot: 7.5, col: true, law: true },
-    S: { d: 1 / 3, out: 1, top: -3, lam: 1 / 5, span: 70, rmax: 41, w: 2.0, col: true, mlaw: true },
+    L: { d: 1 / 4, out: 2, top: -4, lam: 3 / 8, span: 68, rmax: 37, col: true },
+    M: { d: 1 / 4, out: 2, top: -3, lam: 1 / 4, span: 68, rmax: 37, col: true },
+    S: { d: 1 / 3, out: 1, top: -3, lam: 1 / 5, span: 70, rmax: 41, col: true },
+    SL: { d: 1 / 2, out: 1, top: -2, span: 72, rmax: 43, col: true },
     XS: { d: 1 / 2, out: 1.5, solid: true, sMu: 1, span: 72, rmax: 43, cut: 'loops', cutMax: 3.2 },
     XXS: { d: 1 / 2, out: 1.5, solid: true, sMu: 1, span: 72, rmax: 43, cut: 'point' },
   },
@@ -847,19 +749,14 @@ const col = {
     const fit = fitTo(outline, sp)
     return (cache[key] = { G, sOut, sp, ...fit })
   },
-  /** Line weight and point diameter, in tile units, for a drawing at `size` device px. */
+  /** A contour's width, the index contour's and the point's diameter, in tile units, at `size` device px. */
   weightOf(sp, tier, size) {
-    if (sp.wUnits) return { w: sp.wUnits, dot: sp.dotUnits ?? 3 * sp.wUnits }
-    if (sp.law) return { w: units(sp.w, 'L', size), dot: units(sp.dot, 'L', size) }
-    if (sp.mlaw) {
-      const px = sp.w * (size / 96) ** 0.2
-      return { w: (px * 100) / size, dot: (3 * px * 100) / size }
-    }
-    return { w: units(sp.w, tier, size), dot: units(sp.dot, tier, size) }
+    const w = sp.wUnits ?? (LINES.w(size) * 100) / size
+    return { w, wi: LINES.index * w, dot: LINES.dot * LINES.index * w }
   },
   /** The still's lines: [{ who: 'A' | 'B' | 'H', n }], levels in intervals; A and B at 0 are the col's own contour. */
   lines(G, sp) {
-    // In the growth's order, so the still and the growth's last frame are the same drawing, line for line.
+    // The summit's rings from its top down, the knoll's, the col's own contour, then the rings below the col.
     const out = []
     const up = (top) => {
       const r = []
@@ -876,6 +773,28 @@ const col = {
   linePaths(G, who, s) {
     if (who === 'H') return s > 1e-3 ? contour(G, s).filter((p) => p.who === 'hull') : []
     return contour(G, s).filter((p) => (p.lobe || p.who) === who)
+  },
+  /**
+   * The still's strokes, each a stable id, its segments in construction units (written the way its pen draws it: from
+   * the point nearest the pass) and its length. The col's own contour is one stroke, 'col', the index: the summit's lobe
+   * from C and back, then on through C round the knoll's; `split` is how far along it the pen crosses the pass.
+   */
+  strokes(G, sp) {
+    const cache = (G._strokes ||= new Map())
+    if (cache.has(sp)) return cache.get(sp)
+    const out = []
+    for (const l of this.lines(G, sp)) {
+      if (l.n === 0 && l.who === 'B') continue
+      if (l.n === 0) {
+        const [a, b] = contour(G, 0)
+        const segs = [...a.segs, ...b.segs.slice(1)]
+        out.push({ id: 'col', who: 'col', n: 0, index: true, segs, total: a.total + b.total, split: a.total / (a.total + b.total) })
+        continue
+      }
+      for (const part of this.linePaths(G, l.who, l.n * G.d)) out.push({ id: `${l.who}:${l.n}`, who: l.who, n: l.n, segs: part.segs, total: part.total ?? sumLen(part.segs) })
+    }
+    cache.set(sp, out)
+    return out
   },
   /** Col-X and X·'s land as one even-odd path in the tile: the hull, then the cut (the 8's two edges) or the point. */
   landD(tier, size, opts = {}) {
@@ -923,217 +842,71 @@ const col = {
       return { defs, kids, edge }
     }
 
-    const { w, dot } = this.weightOf(sp, tier, size)
-    // The growth plays only where the drawing is L or L− (160 device px and up); every smaller drawing is the still.
-    const grow = p < 1 && (tier === 'L' || tier === 'M')
-    const t = p * this.introDur
+    const { w, wi, dot } = this.weightOf(sp, tier, size)
+    // The drawing plays only where the drawing is L or L− (160 device px and up); every smaller drawing is the still.
+    const drawn = p < 1 && (tier === 'L' || tier === 'M') ? drawnAt(drawScore(this, tier, size), p * this.introDur) : null
     const lines = []
-    for (const ln of this.linesAt(tier, size, grow ? t : null, opts.over)) {
-      // A ring born at a top, in the growth, is thinner until it is three line-widths across. The still is all one weight.
-      const f = grow && ln.R != null ? clamp((ln.R * map.z - 0.25 * w) / (1.25 * w)) : 1
-      if (f < 0.002) continue
-      lines.push({ el: 'path', d: toD(ln.segs, map), 'data-line': ln.id, ...(f < 1 ? { 'stroke-width': o3(w * f) } : {}) })
+    for (const s of this.strokes(G, sp)) {
+      const f = drawn ? drawn.f[s.id] : 1
+      if (f <= 0) continue
+      lines.push({ el: 'path', d: toD(f < 1 ? trim(s.segs, f) : s.segs, map), 'data-line': s.id, ...(s.index ? { 'stroke-width': o3(wi) } : {}) })
     }
-    kids.push({ el: 'g', fill: 'none', stroke: '@line', 'stroke-width': o3(w), kids: lines })
-    // The point grows on the crossing last, from nothing, at full ink: nothing in the mark ever fades.
-    let m = 1
-    if (grow) {
-      const [p0, pd, pEnd] = scoreOf(G, sp, size, map.z).point
-      m = t >= pEnd ? 1 : LAND(clamp((t - p0) / pd))
-    }
+    // Round caps: the pen's nib while a line is being drawn. Every line of the still is closed, so the still has none.
+    kids.push({ el: 'g', fill: 'none', stroke: '@line', 'stroke-width': o3(w), 'stroke-linecap': 'round', kids: lines })
+    // The point is set on the crossing last, from nothing, at full ink: nothing in the mark ever fades.
+    const m = drawn ? drawn.m : 1
     if (m > 0.001) kids.push({ el: 'circle', cx: R3(C[0]), cy: R3(C[1]), r: o3((dot / 2) * m), fill: '@mark' })
+    void pxPerUnit
     return { kids, edge }
   },
-  /**
-   * The lines at time t of the growth (null: the still), each with a stable id (who:level it ends at), its segments in
-   * construction units, and its radius if it is a top's ring.
-   */
+  /** The still's strokes for a drawing (the files and the site read these). */
   linesAt(tier, size, t, over) {
-    const { G, sp, map } = this.geo(tier, over)
-    const d = G.d
-    const out = []
-    const score = t == null ? null : scoreOf(G, sp, size, map.z)
-    // Once the score is over, the still itself, written the same way, so nothing changes when the intro ends.
-    if (score && t >= score.total) t = null
-    if (t == null) {
-      for (const l of this.lines(G, sp)) for (const part of this.linePaths(G, l.who, l.n * d)) out.push({ id: `${l.who}:${l.n}`, who: l.who, segs: part.segs, R: part.R })
-      return out
-    }
-    for (const b of beatsAt(G, score, t)) {
-      if (b.s == null) continue
-      const parts = b.apex != null ? [lobeAt(G, b.who, b.s, b.apex)] : this.linePaths(G, b.who, b.s)
-      for (const part of parts) out.push({ id: `${b.who}:${b.b}`, who: b.who, segs: part.segs, R: part.R })
-    }
-    return out
+    const { G, sp } = this.geo(tier, over)
+    return this.strokes(G, sp)
+  },
+  /** The drawing's score at `size` device px, for the files and the site: per stroke its timing and ease. */
+  score(tier, size) {
+    return drawScore(this, tier, size)
   },
 }
 
 /**
- * The rays a line is measured along, in tile units: a top's ring from its H (every 15°, with the far wall straight away
- * from C and the tip straight at it); a ring below the col from the two lobes' centres (away from C) and from C across
- * the ridge (its two notches). Distances grow outward, so a move along a ray is signed: forward is growth.
+ * The drawing, measured on the page's own clock at `fps`: per stroke its length, start and end, its pen's top speed and
+ * its frames under 0.5 px a frame before it snaps whole; and the most strokes drawing at once.
  */
-export function raysFor(v, tier, who) {
-  const { G, map } = v.geo(tier)
-  const C = map([0, 0])
-  const ray = (o, ang, kind) => ({ o, u: [Math.cos(ang), Math.sin(ang)], kind })
-  const at = (p) => map(p)
-  const dir = (from, to) => Math.atan2(to[1] - from[1], to[0] - from[0])
-  if (who === 'A' || who === 'B') {
-    const H = who === 'A' ? at([-G.HA[0], 0]) : at(G.HB)
-    const away = dir(C, H)
-    const out = [ray(H, away, 'far'), ray(H, away + Math.PI, 'tip')]
-    for (let k = 1; k < 24; k++) if (k !== 12) out.push(ray(H, away + (k * Math.PI) / 12, 'side'))
-    return out
-  }
-  const out = []
-  for (const cen of [at(flipX(G.LAr.A)), at(G.LB.A)]) {
-    const away = dir(C, cen)
-    out.push(ray(cen, away, 'far'))
-    for (const k of [-4, -3, -2, -1, 1, 2, 3, 4]) out.push(ray(cen, away + (k * Math.PI) / 9, 'side'))
-  }
-  const ridge = dir(at(flipX(G.LAr.A)), at(G.LB.A))
-  out.push(ray(C, ridge + Math.PI / 2, 'neck'), ray(C, ridge - Math.PI / 2, 'neck'))
-  return out
-}
-
-/** Where a polyline (tile units) crosses a ray, as the farthest distance along it (null if it doesn't). */
-export function alongRay(pts, r) {
-  let best = null
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1]
-    const b = pts[i]
-    const ax = a[0] - r.o[0], ay = a[1] - r.o[1], bx = b[0] - r.o[0], by = b[1] - r.o[1]
-    const ca = -ax * r.u[1] + ay * r.u[0]
-    const cb = -bx * r.u[1] + by * r.u[0]
-    if ((ca > 0 && cb > 0) || (ca < 0 && cb < 0) || ca === cb) continue
-    const f = ca / (ca - cb)
-    const along = (ax + f * (bx - ax)) * r.u[0] + (ay + f * (by - ay)) * r.u[1]
-    if (along > 0 && (best == null || along > best)) best = along
-  }
-  return best
-}
-
-/**
- * The signed audit, from frames of drawn lines: frames is [{ t, lines: { id: polyline in tile units } }]. For each line:
- * the frames it moves, its backward moves (> 0.05 px against its growth), its fastest point and far wall per frame,
- * the most consecutive frames each spends under 0.5 px, its last move (the snap) over the one before, the frames until
- * it clears its start by a line-width, and (tops' rings) its tip's peak speed. Distances in device px.
- */
-export function signedAudit(v, tier, size, frames, w) {
-  const k = size / 100
-  const ids = [...new Set(frames.flatMap((f) => Object.keys(f.lines)))]
-  // The ring each line leaves: the one inside it, or for the first ring below the col, the col's own contour.
-  const parentsOf = (id) => {
-    const [who, n] = id.split(':')
-    const lvl = +n
-    if (who === 'H') return lvl === 1 ? ['A:0', 'B:0'] : [`H:${lvl - 1}`]
-    return ids.includes(`${who}:${lvl - 1}`) ? [`${who}:${lvl - 1}`] : []
-  }
-  const rows = []
-  for (const id of ids) {
-    const who = id.split(':')[0]
-    const rays = raysFor(v, tier, who)
-    const parents = parentsOf(id)
-    const series = []
-    const idle = []
-    for (let i = 1; i < frames.length; i++) {
-      const A = frames[i - 1].lines[id]
-      const B = frames[i].lines[id]
-      if (!A || !B) continue
-      const moves = rays.map((r) => {
-        const a = alongRay(A, r)
-        const b = alongRay(B, r)
-        return a == null || b == null ? null : { kind: r.kind, d: (b - a) * k }
-      }).filter(Boolean)
-      if (!moves.some((m) => Math.abs(m.d) > 0.01)) {
-        if (series.length) idle.push(i)
-        continue
-      }
-      // How near any part of the line is to its parent, along the same rays, in this frame.
-      let near = Infinity
-      for (const pid of parents) {
-        const P = frames[i].lines[pid]
-        if (!P) continue
-        for (const r of rays) {
-          const a = alongRay(B, r)
-          const b = alongRay(P, r)
-          if (a != null && b != null) near = Math.min(near, Math.abs(a - b) * k)
-        }
-      }
-      series.push({ i, near, fast: Math.max(...moves.map((m) => m.d)), back: Math.min(...moves.map((m) => m.d)), far: Math.min(...moves.filter((m) => m.kind === 'far').map((m) => m.d)), tip: Math.max(0, ...moves.filter((m) => m.kind === 'tip').map((m) => m.d)) })
-    }
-    if (!series.length) continue
-    // A stall: a frame with no motion between two frames of motion.
-    const lastMove = series[series.length - 1].i
-    const stalls = idle.filter((i) => i < lastMove).length
-    const run = (f) => {
-      let best = 0
-      let cur = 0
-      for (const x of series) {
-        cur = f(x) ? cur + 1 : 0
-        best = Math.max(best, cur)
-      }
-      return best
-    }
-    let travelled = 0
-    let clear = null
-    series.forEach((x, j) => {
-      travelled += Math.max(0, x.fast)
-      if (clear == null && travelled >= w * k) clear = j + 1
-    })
-    const last = series[series.length - 1]
-    const prev = series[series.length - 2]
-    rows.push({
-      id,
-      frames: series.length,
-      backward: series.filter((x) => x.back < -0.05).length,
-      worstBack: +Math.min(0, ...series.map((x) => x.back)).toFixed(2),
-      fastest: +Math.max(...series.map((x) => x.fast)).toFixed(2),
-      tipPeak: +Math.max(...series.map((x) => x.tip)).toFixed(2),
-      runUnderHalf: run((x) => x.fast > 0.01 && x.fast < 0.5),
-      farRunUnderHalf: run((x) => Number.isFinite(x.far) && x.far > 0.01 && x.far < 0.5),
-      stalls: stalls,
-      snap: +last.fast.toFixed(2),
-      beforeSnap: prev ? +prev.fast.toFixed(2) : 0,
-      framesToClear: clear,
-      // After its first 3 frames, how often its leading point speeds up more than 1.5× from one frame to the next (its
-      // last, snapping frame aside): a restart.
-      speedUps: series.filter((x, j) => j >= 3 && j < series.length - 1 && series[j - 1].fast > 0.05 && x.fast > 1.5 * series[j - 1].fast).length,
-      // The frames it spends within a line-width of its parent, anywhere along it.
-      onParent: parents.length ? series.filter((x) => x.near < w * k).length : 0,
-      // The last frame its tip moves (a lobe ring): for the join, the frame its apex reaches C.
-      tipEnd: series.filter((x) => x.tip > 0.01).map((x) => x.i).pop() ?? null,
-    })
-  }
-  return rows
-}
-
-/** The signed audit of the growth on the construction's own curves, stepped on the page's clock at 60 fps. */
 export function motionAudit(v, size, fps = 60) {
   const tier = tierOf(v, size)
-  const { G, sp, map } = v.geo(tier)
+  const { sp } = v.geo(tier)
   if (sp.solid || !(tier === 'L' || tier === 'M')) return { size, tier: v.tierName[tier], still: true }
-  const score = scoreOf(G, sp, size, map.z)
-  const frames = []
-  for (let t = 0; t <= score.total + 2 / fps; t += 1 / fps) {
-    const lines = {}
-    for (const ln of v.linesAt(tier, size, t)) lines[ln.id] = [ln.segs[0].M, ...sample(ln.segs, 0.3)].map(map)
-    frames.push({ t, lines })
-  }
-  const { w } = v.weightOf(sp, tier, size)
-  const rows = signedAudit(v, tier, size, frames, w)
+  const score = drawScore(v, tier, size)
+  const rows = []
   let maxMoving = 0
-  for (let i = 1; i < frames.length; i++) {
+  const frames = Math.ceil(score.total * fps) + 2
+  const prev = {}
+  const moving = new Array(frames).fill(0)
+  for (const id in score.strokes) {
+    const s = score.strokes[id]
+    let top = 0
+    let slow = 0
+    let last = 0
     let n = 0
-    for (const id in frames[i].lines) {
-      const a = frames[i - 1].lines[id]
-      const b = frames[i].lines[id]
-      if (a && b && (a.length !== b.length || a.some((p, j) => Math.abs(p[0] - b[j][0]) + Math.abs(p[1] - b[j][1]) > 1e-6))) n++
+    for (let i = 0; i < frames; i++) {
+      const t = i / fps
+      const f = t < s.t0 ? 0 : t >= s.end ? 1 : s.ease((t - s.t0) / s.dur)
+      const step = (f - last) * s.px
+      if (step > 1e-6) {
+        n++
+        moving[i]++
+        top = Math.max(top, step)
+        if (step < 0.5 && f < 1) slow++
+      }
+      last = f
     }
-    maxMoving = Math.max(maxMoving, n)
+    prev[id] = last
+    rows.push({ id, px: Math.round(s.px), from: +s.t0.toFixed(2), to: +s.end.toFixed(2), frames: n, top: +top.toFixed(1), slow })
   }
-  return { size, tier: v.tierName[tier], T: +score.T.toFixed(3), total: +score.total.toFixed(2), maxMoving, rows }
+  for (const m of moving) maxMoving = Math.max(maxMoving, m)
+  return { size, tier: v.tierName[tier], total: +score.total.toFixed(2), maxMoving, rows }
 }
 
 /* ======================================================================
@@ -1158,7 +931,7 @@ export class StudioCard extends Card {
     this.mounts.push({ m, tier: tierOf(this.v, px), size: px, mopts: { ...mopts, pal, mono: !!MONO[mode] } })
     return m
   }
-  /** The growth is the only motion: advance the intro, and nothing else ever moves. */
+  /** The drawing-in is the only motion: advance the intro, and nothing else ever moves. */
   step(dt, now) {
     if (this.introAt == null) return false
     this.p = clamp((now - this.introAt) / 1000 / this.v.introDur)
@@ -1187,7 +960,7 @@ export function colSvg(v, mode = 'dark', size = 1024, shape, extra = {}) {
   const pal = paletteFor(v, mode)
   const opts = { shape, pal, mono: !!MONO[mode], ...extra }
   const tier = extra.tier || tierOf(v, size)
-  const kids = compose(v, { tier, size, opts })
+  const kids = compose(v, { tier, size, opts, p: extra.p ?? 1 })
   const uid = v.id
   const val = (key, x) => {
     if (key === 'id') return `${uid}-${x}`
@@ -1253,7 +1026,7 @@ export function construction(v = col, tier = 'L') {
     ['interval', 'd = RA / 4; the summit ends 4 d up, the knoll 2 d'],
     ['above C', 'each lobe scaled by (R + s) / R about H, 3R/8 beyond its centre; its tip rounded with ρ = 3/2 |s| (eased onto R above ρ = 0.55 R, so a tip grows from a circle smoothly)'],
     ['below C', 'the figure-eight offset by s; its notches rounded with ρ = 7/4 s, half the branch beside them'],
-    ['line', `one weight, ${sp.w} px at 280 (size^0.8 in L); the point three line-widths across`],
+    ['line', `the contours fine, ${LINES.law}; the col’s own contour the index, at ${LINES.index}×; the point ${LINES.dot}× the index across`],
     ['fit', `span ${sp.span}, farthest point ${R2(far)} ≤ ${sp.rmax}; centred ⅔ of the way from box to centroid`],
     ['file', 'every arc written at 0.001 units and no wider than 90°, so the browser draws the construction (≤ 0.06 px off at 1024)'],
   ]
@@ -1268,25 +1041,31 @@ export function constructionMarkdown(v = col, { files = [] } = {}) {
   const { legend } = construction(v)
   const b = v.bounds
   const esc = (t) => t.replace(/\|/g, '\\|')
+  const px = (N) => R2(LINES.w(N))
+  const sc = drawScore(v, 'L', 512)
+  const k = (id) => sc.strokes[id]
   const L = []
   L.push('# Col: the Locus mark', '')
-  L.push('A summit, a lower knoll and the col between them, drawn in contour. The col’s own contour crosses itself at the pass, and the point sits on the crossing: Locus is the one place two heights share. Every curve is a circle or an arc tangent to one; every file is written from `workbench/logo/col.js`.', '')
-  L.push('## Geometry', '', '| | |', '| --- | --- |', ...legend.map(([k, t]) => `| ${k} | ${esc(t)} |`), '')
+  L.push('A summit, a lower knoll and the col between them, drawn in contour: black lines on white paper, as on a survey sheet. The col’s own contour crosses itself at the pass, and the point sits on the crossing: Locus is the one place two heights share. Every curve is a circle or an arc tangent to one; every file is written from `workbench/logo/col.js`.', '')
+  L.push('## Geometry', '', '| | |', '| --- | --- |', ...legend.map(([key, t]) => `| ${key} | ${esc(t)} |`), '')
   L.push('## The drawings', '', 'Chosen by device pixels (css px × devicePixelRatio).', '')
   L.push('| Drawing | Device px | What it draws |', '| --- | --- | --- |')
   L.push(`| L | ${b.L} and up | the card as above: d = RA/4; the outline at +2d and +1d below the col, the col’s own contour, the summit’s −1d, −2d and −3d rings, the knoll’s −1d; H at 3R/8 |`)
   L.push(`| L− | ${b.M}–${b.L - 1} | L without the summit’s −3d ring; H at R/4 |`)
-  L.push(`| M | ${b.S}–${b.M - 1} | d = RA/3; the outline at +1d, the col’s own contour, the summit’s −1d and −2d, the knoll’s −1d; H at R/5 (the far walls 1.6 px clear at 96) |`)
-  L.push(`| X (Col-X) | ${b.XS}–${b.S - 1} | one land, the hull at s = ¾ RA with its notches rounded ρ = s, the col’s own contour cut through it as ground; the crossing is the point |`)
+  L.push(`| M | ${b.S}–${b.M - 1} | d = RA/3; the outline at +1d, the col’s own contour, the summit’s −1d and −2d, the knoll’s −1d; H at R/5 |`)
+  L.push(`| S | ${b.SL}–${b.S - 1} | d = RA/2; the outline at +1d, the col’s own contour and the summit’s top, a circle |`)
+  L.push(`| X (Col-X) | ${b.XS}–${b.SL - 1} | one land in ink, the hull at s = ¾ RA with its notches rounded ρ = s, the col’s own contour cut through it in paper; the crossing is the point |`)
   L.push(`| X· | 16–${b.XS - 1} | the same land with the point cut alone, r = 1.3 px at 16 |`, '')
-  L.push('Col-X and X· are never shown without the ink tile: bare, their nearest neighbour is an ∞ in a pebble. The bare glyph starts at 96 px, the relief stamp at 160.', '')
-  L.push('## The line system', '', '- One line weight per drawing; the point is three line-widths across, the only heavy element.')
-  L.push('- L and L−: w = 2.5 (N / 280)^0.8 px at N device px (4.05 at 512, 1.76 at 180, 1.60 at 160).')
-  L.push('- M: w = 2.0 (N / 96)^0.2 px (2.00 at 96, 2.12 at 128, 2.21 at 159).')
-  L.push('- Col-X: the cut is clamp(0.9 + 0.035 N, 1.5, 3.2) px wide (2.02 at 32, 2.58 at 48, 3.2 from 66).')
-  L.push('- In a lockup from 96 px, the mark is the M drawing at w = 0.016 M, a sixth of the L’s stem. Nothing is drawn under 1 px.', '')
-  L.push('## Colours', '', `- Ink ${INK} and paper ${PAPER}, nothing else. The tile is ink everywhere, the favicon included.`)
-  L.push(`- On a dark page the tile has a paper hairline 1 device px wide inside its edge (the tile stroked at 200/N units, clipped to itself): stroke-opacity ${HAIR.small} up to 95 px, ${HAIR.large} above.`)
+  L.push('Col-X and X· are solid because a line under 48 device px blurs; they are never shown without the tile. The bare glyph starts at 96 px, the relief stamp at 160.', '')
+  L.push('## The line system', '')
+  L.push('As on a survey sheet: the contours are fine, and one of them, the index contour, is drawn at twice their weight. The index is the col’s own contour, so the figure-eight is the heaviest line and the crossing the heaviest place.', '')
+  L.push(`- A contour: w = ${LINES.law} (${px(96)} at 96, ${px(180)} at 180, ${px(256)} at 256, ${px(512)} at 512, ${px(1024)} at 1024). Nothing is drawn under 1 px.`)
+  L.push(`- The index: ${LINES.index} w. The point: ${LINES.dot} × the index across (${R2(LINES.dot * LINES.index * LINES.w(512))} px at 512).`)
+  L.push('- Col-X: the cut is clamp(0.9 + 0.035 N, 1.5, 3.2) px wide (2.02 at 32, 2.54 at 47).')
+  L.push('- In a lockup the mark is the drawing its device pixels get, at its own weights.', '')
+  L.push('## Colours', '', `- Ink ${INK} and paper ${PAPER}, nothing else. The tile is paper and the drawing ink, on every page, the favicon included.`)
+  L.push(`- On a light page the tile has an ink hairline 1 device px wide inside its edge, the sheet’s neatline (the tile stroked at 200/N units, clipped to itself): stroke-opacity ${HAIR.small} up to 95 px, ${HAIR.large} above. On a dark page it needs none.`)
+  L.push('- The reverse, paper on an ink tile, is kept for the rare place that needs a dark mark on a light ground.')
   L.push('- One ink: the tile in one colour with the drawing knocked out of it, so it prints on any paper.', '')
   L.push('## The lockup', '', '- Spline Sans Mono at weight 540, tracking −0.01 em, L–o −0.06 em, u–s −0.01 em; the word is outlined in the files.')
   L.push('- Horizontal: the word at 0.688 M, so its cap height is ½ M, the caps centred on the tile; the L’s stem 0.4 M from the tile.')
@@ -1294,13 +1073,13 @@ export function constructionMarkdown(v = col, { files = [] } = {}) {
   L.push('- Clear space: ½ M on every side, not drawn into the files. Smallest: M = 20 px.', '')
   L.push('## Icons', '', 'A tab icon is 16 css px on every screen, and only a bitmap can know the pixel density, so the tab icon is the ICO:', '')
   L.push('```html', '<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">', '<link rel="apple-touch-icon" href="/apple-touch-icon.png">', '<link rel="manifest" href="/site.webmanifest">', '```', '')
-  L.push('The manifest lists `icon-192.png` and `icon-512.png` (purpose "any") and `icon-512-maskable.png` (purpose "maskable"). `favicon.svg` (Col-X) is for uses drawn at 26 to 95 device px, not the tab.', '')
-  L.push('## Motion', '', 'Growth from nothing, once, for L and L− (160 device px and up); every smaller drawing, and reduced motion, is the still. No loop.', '')
-  L.push('- The tops appear and the land rises, one ring at a time per hill, each leaving the ring inside it and settling into its place; the knoll’s top appears as the summit reaches its height.')
-  L.push('- The hills’ last rings close as )( and touch at C: both tips on one clock, reaching C in the same frame. The X holds. The rings below the col leave it, the outline last, and the point grows on the crossing.')
-  L.push('- A step lasts T = 0.65 (0.22 + 0.14 clamp((N − 96) / 416)) s, 0.234 s from 512 px; a ring below the col lasts T √(its notch’s travel / 1.4 d).')
-  L.push('- Curves: STEP cubic-bezier(0.33, 1, 0.68, 1) for the rings; TIP cubic-bezier(0.5, 1, 0.89, 1) for a tip, lasting ⅔ T × (its travel / the near side’s) — for the join, D = ⅔ T × 13.5 / 5.5 (1.64 T) from the join’s start, each apex at a0 (1 − TIP(u)); LAND cubic-bezier(0.2, 0, 0, 1) for the point.')
-  L.push('- Every clock ends once its line’s fastest point has 0.3 px left (SNAP). One-line steps overlap by a tenth; the only rest is the hold, 0.36 s. The point grows over 0.20 s. About 2.0 s in all at 512 px.', '')
+  L.push('The manifest lists `icon-192.png` and `icon-512.png` (purpose "any") and `icon-512-maskable.png` (purpose "maskable"). `favicon.svg` (Col-X) is for uses drawn at 26 to 47 device px, not the tab.', '')
+  L.push('## Motion', '', `Drawn once, for L and L− (160 device px and up); every smaller drawing, and reduced motion, is the still. No loop. ${R2(sc.total)} s in all.`, '')
+  L.push(`- The index contour first, in one stroke: the pen leaves the pass at ${R2(k('col').t0)} s, rounds the summit, crosses the pass at ${R2(sc.tx)} s and rounds the knoll back to it (${R2(k('col').dur)} s, cubic-bezier(${PEN8.args.join(', ')})).`)
+  L.push(`- The two contours below the col leave the upper notch ${DRAW.hullLag} s and ${R2(DRAW.hullLag + DRAW.hullStep)} s behind the pen and follow it round the summit, then wrap the knoll (the same curve).`)
+  L.push(`- As the pen crosses the pass, the summit’s contours follow, each from its tip, ${DRAW.ringLag} s apart; the knoll’s starts ${DRAW.knollLead} s before the pen closes. Each lasts ${DRAW.ring[0]} s + ${DRAW.ring[1]} s per unit of its length, on cubic-bezier(${PEN.args.join(', ')}).`)
+  L.push(`- The point is set on the crossing last: ${DRAW.point} s, scale from 0, cubic-bezier(${LAND.args.join(', ')}).`)
+  L.push(`- A stroke is drawn by its dash, its pen a round cap, and snaps whole once it has ${SNAP} device px to go. A line once drawn never moves again. \`tiers.json\` carries the score, and \`locus-L-512-draw.svg\` plays it as CSS.`, '')
   if (files.length) {
     L.push('## Files', '', 'Every file is written by `qa/rounds/col/export.mjs` from `col.js`.', '', '| File | Comes from |', '| --- | --- |')
     for (const [f, from] of files) L.push(`| ${f} | ${esc(from)} |`)
@@ -1314,105 +1093,134 @@ export function constructionMarkdown(v = col, { files = [] } = {}) {
    ====================================================================== */
 
 const TILE = compactPath(SQUIRCLE) // the studio's 24-segment squircle, written compactly
-const HAIR = { small: 0.24, large: 0.16 } // the paper hairline's opacity on a dark page: up to 95 device px, and above
+const HAIR = { small: 0.22, large: 0.16 } // the ink hairline's opacity on a light page: up to 95 device px, and above
 
 /**
- * The mark's own elements for a file, as SVG markup in the 100-unit box: { defs, body }. kind is 'light' (the ink tile),
- * 'dark' (the ink tile with its hairline), 'square' (a full-bleed ink square, for icons the platform masks), 'oneink'
- * (one fill: the tile with the drawing knocked out of it) or 'bare' (no tile: the drawing in ink; L, L− and M only).
- * id prefixes any id, so two files inlined in one page never share one.
+ * The mark's own elements for a file, as SVG markup in the 100-unit box: { defs, body }. kind is 'light' (the paper tile
+ * with its ink hairline, for a light page), 'dark' (the paper tile alone, for a dark page), 'square' (a full-bleed paper
+ * square, for icons the platform masks), 'reverse' (paper lines on an ink tile), 'oneink' (one fill: the tile in ink with
+ * the drawing knocked out of it) or 'bare' (no tile: the drawing in ink; L, L− and M only). id prefixes any id, so two
+ * files inlined in one page never share one. `draw` adds the drawing as CSS, played once (L and L− only).
  */
-export function markParts(v, { size, tier, kind = 'light', over, pointAt, id = 'locus', lineUnits }) {
+export function markParts(v, { size, tier, kind = 'light', over, pointAt, id = 'locus', lineUnits, draw = false }) {
   tier ||= tierOf(v, size)
   const { G, sp, map } = v.geo(tier, over)
-  const d0 = G.d
-  const n = (x) => String(R3(x))
-  const P = (q) => `${n(q[0])} ${n(q[1])}`
+  const ground = kind === 'reverse' ? INK : PAPER
+  const fg = kind === 'reverse' ? PAPER : INK
   let defs = ''
   let body = ''
   // The tile.
-  if (kind === 'square') body += `<path d="M0 0H100V100H0Z" fill="${INK}"/>`
-  else if (kind === 'light' || kind === 'dark') {
-    if (kind === 'dark') {
-      defs += `<clipPath id="${id}-clip"><path d="${TILE}"/></clipPath>`
-      body += `<path d="${TILE}" fill="${INK}" stroke="${PAPER}" stroke-opacity="${size <= 95 ? HAIR.small : HAIR.large}" stroke-width="${num(200 / size)}" clip-path="url(#${id}-clip)"/>`
-    } else body += `<path d="${TILE}" fill="${INK}"/>`
-  }
+  if (kind === 'square') body += `<path d="M0 0H100V100H0Z" fill="${PAPER}"/>`
+  else if (kind === 'light') {
+    defs += `<clipPath id="${id}-clip"><path d="${TILE}"/></clipPath>`
+    body += `<path d="${TILE}" fill="${PAPER}" stroke="${INK}" stroke-opacity="${size <= 95 ? HAIR.small : HAIR.large}" stroke-width="${num(200 / size)}" clip-path="url(#${id}-clip)"/>`
+  } else if (kind === 'dark' || kind === 'reverse') body += `<path d="${TILE}" fill="${ground}"/>`
   const one = kind === 'oneink' || kind === 'bare'
   if (sp.solid) {
     if (kind === 'bare') throw new Error('The small form is never without its tile')
     const land = v.landD(tier, size, { over, pointAt })
-    if (one) body = `<path d="${TILE}${land}" fill="${INK}" fill-rule="evenodd"/>`
-    else body += `<path d="${land}" fill="${PAPER}" fill-rule="evenodd"/>`
+    if (kind === 'oneink') body = `<path d="${TILE}${land}" fill="${INK}" fill-rule="evenodd"/>`
+    else body += `<path d="${land}" fill="${fg}" fill-rule="evenodd"/>`
     return { defs, body }
   }
-  const wt = v.weightOf(lineUnits ? { ...sp, wUnits: lineUnits, dotUnits: 3 * lineUnits } : sp, tier, size)
-  const lines = v.linesAt(tier, size, null, over)
+  const wt = v.weightOf(lineUnits ? { ...sp, wUnits: lineUnits } : sp, tier, size)
+  const strokes = v.linesAt(tier, size, null, over)
   const C = map([0, 0])
-  if (!one) {
-    body += `<g fill="none" stroke="${PAPER}" stroke-width="${num(wt.w)}">${lines.map((ln) => `<path d="${toD(ln.segs, map)}"/>`).join('')}</g>`
-    body += `<circle cx="${num(C[0])}" cy="${num(C[1])}" r="${num(wt.dot / 2)}" fill="${PAPER}"/>`
+  if (kind !== 'oneink') {
+    const score = draw ? v.score(tier, size) : null
+    const anim = []
+    const path = (s) => {
+      const d = toD(s.segs, map)
+      const sw = s.index ? ` stroke-width="${num(wt.wi)}"` : ''
+      if (!score) return `<path d="${d}"${sw}/>`
+      // Drawn by its dash: the path's own length (in tile units) as dash and gap, the offset run from the length to 0.
+      const L = num(s.total * map.z + 0.5)
+      const k = score.strokes[s.id]
+      anim.push(`#${id} .${css(s.id)}{stroke-dasharray:${L} ${L};animation:${id}-d${css(s.id)} ${num(k.dur)}s ${bez(k.ease)} ${num(k.t0)}s both,${id}-on .001s ${num(k.t0)}s both}@keyframes ${id}-d${css(s.id)}{from{stroke-dashoffset:${L}}to{stroke-dashoffset:0}}`)
+      return `<path class="${css(s.id)}" d="${d}"${sw}/>`
+    }
+    const ink = kind === 'bare' ? INK : fg
+    body += `<g fill="none" stroke="${ink}" stroke-width="${num(wt.w)}" stroke-linecap="round">${strokes.map(path).join('')}</g>`
+    body += `<circle class="pt" cx="${num(C[0])}" cy="${num(C[1])}" r="${num(wt.dot / 2)}" fill="${ink}"/>`
+    if (score) {
+      const [p0, pd] = score.point
+      const style = `#${id} path,#${id} circle{transform-box:fill-box}${anim.join('')}#${id} .pt{transform-origin:center;animation:${id}-pt ${num(pd)}s ${bez(LAND)} ${num(p0)}s both}@keyframes ${id}-pt{from{transform:scale(0)}to{transform:scale(1)}}@keyframes ${id}-on{from{visibility:hidden}to{visibility:visible}}@media (prefers-reduced-motion:reduce){#${id} *{animation:none!important}}`
+      defs += `<style>${style}</style>`
+    }
     return { defs, body }
   }
   // One ink: each line as the band between its two offset edges; the col's own contour and the point as one region.
   const h = wt.w / 2 / map.z
-  let d = kind === 'oneink' ? TILE : ''
-  for (const ln of lines) {
-    if (/^[AB]:0$/.test(ln.id)) continue
-    d += toD(offsetLoop(ln.segs, h), map) + toD(offsetLoop(ln.segs, -h), map)
+  let d = TILE
+  for (const s of strokes) {
+    if (s.index) continue
+    d += toD(offsetLoop(s.segs, h), map) + toD(offsetLoop(s.segs, -h), map)
   }
-  if (sp.col) for (const loop of crossingEdges(G, h, wt.dot / 2 / map.z)) d += toD(loop, map)
-  void d0
-  void P
+  if (sp.col) for (const loop of crossingEdges(G, wt.wi / 2 / map.z, wt.dot / 2 / map.z)) d += toD(loop, map)
   body = `<path d="${d}" fill="${INK}" fill-rule="evenodd"/>`
   return { defs, body }
 }
+const css = (id) => (id === 'col' ? 'ix' : id.replace(':-', 'm').replace(':', 'p'))
+const bez = (e) => `cubic-bezier(${e.args.join(',')})`
 
 /** A tier's file: the root exactly as the checklist has it, the mark inside, nothing else. */
-export function exportSvg(v, { size, tier, kind, over, pointAt, id }) {
-  const { defs, body } = markParts(v, { size, tier, kind, over, pointAt, id })
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">${defs ? `<defs>${defs}</defs>` : ''}${body}</svg>\n`
+export function exportSvg(v, { size, tier, kind, over, pointAt, id, draw }) {
+  const { defs, body } = markParts(v, { size, tier, kind, over, pointAt, id, draw })
+  return `<svg xmlns="http://www.w3.org/2000/svg"${draw ? ` id="${id}"` : ''} viewBox="0 0 100 100" width="${size}" height="${size}">${defs ? `<defs>${defs}</defs>` : ''}${body}</svg>\n`
 }
 
 /**
  * The drawings for the site, in the still state, as data: per drawing its device-px range and its elements in the
- * 100-unit box in drawing order, with geometry, paint, role and colour token (ink-tile mode). Widths that follow a size
- * law are given as the law and its values at the drawing's own sizes.
+ * 100-unit box in drawing order, with geometry, paint, role and colour token. Line widths follow LINES, given as the law
+ * and its values at the drawing's own sizes. The drawings that are drawn in (L and L−) carry their score.
  */
 export function tiersData(v = col) {
   const b = v.bounds
-  const ranges = { XXS: [16, b.XS - 1], XS: [b.XS, b.S - 1], S: [b.S, b.M - 1], M: [b.M, b.L - 1], L: [b.L, null] }
-  const samples = { XXS: [16, 20, 22, 25], XS: [26, 32, 40, 44, 48, 52, 64, 95], S: [96, 104, 128, 159], M: [160, 180, 192, 255], L: [256, 512, 1024] }
+  const keys = v.tiers
+  const lo = { XXS: 16, XS: b.XS, SL: b.SL, S: b.S, M: b.M, L: b.L }
+  const hi = { XXS: b.XS - 1, XS: b.SL - 1, SL: b.S - 1, S: b.M - 1, M: b.L - 1, L: null }
+  const samples = { XXS: [16, 20, 22, 25], XS: [26, 32, 40, 44, 47], SL: [48, 52, 64, 80, 95], S: [96, 104, 128, 159], M: [160, 180, 192, 255], L: [256, 512, 1024] }
   const r3 = (x) => R3(x)
-  const out = { units: 'the 100 × 100 box', colours: { ink: INK, paper: PAPER }, hairline: {
-    what: 'On a dark page only: the tile path stroked in paper at stroke-width 200/N units (N = device px), clipped to the tile, so 1 device px shows inside its edge.',
+  const out = { units: 'the 100 × 100 box', colours: { ink: INK, paper: PAPER, tile: 'paper', drawing: 'ink' }, lines: {
+    contour: LINES.law, index: `${LINES.index} × the contour (the col’s own contour)`, point: `${LINES.dot} × the index, across`,
+  }, hairline: {
+    what: 'On a light page only: the tile path stroked in ink at stroke-width 200/N units (N = device px), clipped to the tile, so 1 device px shows inside its edge.',
     opacity: { 'up to 95 device px': HAIR.small, '96 and up': HAIR.large },
-    visibleUnits: Object.fromEntries([16, 20, 22, 26, 32, 40, 44, 52, 64, 95, 96, 128, 159, 160, 255, 256, 512, 1024].map((N) => [N, r3(100 / N)])),
   }, tiers: [] }
-  for (const key of ['XXS', 'XS', 'S', 'M', 'L']) {
+  for (const key of keys) {
     const { G, sp, map, sOut } = v.geo(key)
     const C = map([0, 0])
-    const els = [{ role: 'tile', type: 'path', d: TILE, paint: 'fill', colour: 'ink' }]
+    const els = [{ role: 'tile', type: 'path', d: TILE, paint: 'fill', colour: 'paper' }]
+    const base = { name: v.tierName[key], key, devicePx: [lo[key], hi[key]] }
     if (sp.solid) {
-      els.push({ role: 'land', type: 'path', d: toD(contour(G, sOut, sp.sMu)[0].segs, map), paint: 'fill', colour: 'paper' })
-      if (sp.cut === 'point') els.push({ role: 'point', type: 'circle', cx: r3(C[0]), cy: r3(C[1]), r: 8.125, paint: 'fill', colour: 'ink', note: 'the point cut out of the land: r = 1.3 px at 16 device px, held in units' })
-      else els.push({ role: 'cut', type: 'path', d: contour(G, 0).map((p) => toD(p.segs, map)).join(''), paint: 'stroke', colour: 'ink', strokeLinecap: 'butt',
+      els.push({ role: 'land', type: 'path', d: toD(contour(G, sOut, sp.sMu)[0].segs, map), paint: 'fill', colour: 'ink' })
+      if (sp.cut === 'point') els.push({ role: 'point', type: 'circle', cx: r3(C[0]), cy: r3(C[1]), r: 8.125, paint: 'fill', colour: 'paper', note: 'the point cut out of the land: r = 1.3 px at 16 device px, held in units' })
+      else els.push({ role: 'cut', type: 'path', d: contour(G, 0).map((q) => toD(q.segs, map)).join(''), paint: 'stroke', colour: 'paper', strokeLinecap: 'butt',
         strokeWidth: { law: 'clamp(0.9 + 0.035 N, 1.5, 3.2) device px, i.e. that × 100 / N units', units: Object.fromEntries(samples[key].map((N) => [N, r3((clamp(0.9 + 0.035 * N, 1.5, sp.cutMax) * 100) / N)])) },
-        note: 'the col’s own contour, stroked in ink over the land: the same picture as the land with the band knocked out (the exported files draw it that way, as one even-odd path)' })
-    } else {
-      const law = sp.law ? '2.5 (N / 280)^0.8 device px' : '2.0 (N / 96)^0.2 device px'
-      const wAt = (N) => r3(v.weightOf(sp, key, N).w)
-      for (const ln of v.linesAt(key, samples[key][0], null)) els.push({ role: 'line', id: ln.id, type: 'path', d: toD(ln.segs, map), paint: 'stroke', colour: 'paper' })
-      els.push({ role: 'point', type: 'circle', cx: r3(C[0]), cy: r3(C[1]), paint: 'fill', colour: 'paper', r: { law: '1.5 × the line width', units: Object.fromEntries(samples[key].map((N) => [N, r3(1.5 * wAt(N))])) } })
-      out.tiers.push({ name: v.tierName[key], key, devicePx: ranges[key], grows: key === 'L' || key === 'M', lineWidth: { law, units: Object.fromEntries(samples[key].map((N) => [N, wAt(N)])) }, elements: els })
+        note: 'the col’s own contour, stroked in paper over the land: the same picture as the land with the band knocked out (the exported files draw it that way, as one even-odd path)' })
+      out.tiers.push({ ...base, draws: false, elements: els })
       continue
     }
-    out.tiers.push({ name: v.tierName[key], key, devicePx: ranges[key], grows: false, elements: els })
+    const wAt = (N) => r3(v.weightOf(sp, key, N).w)
+    const strokes = v.strokes(G, sp)
+    for (const st of strokes) els.push({ role: 'line', id: st.id, ...(st.index ? { index: true } : {}), type: 'path', d: toD(st.segs, map), paint: 'stroke', colour: 'ink', length: r3(st.total * map.z) })
+    els.push({ role: 'point', type: 'circle', cx: r3(C[0]), cy: r3(C[1]), paint: 'fill', colour: 'ink', r: { law: `${LINES.dot / 2} × the index width`, units: Object.fromEntries(samples[key].map((N) => [N, r3((LINES.dot / 2) * LINES.index * wAt(N))])) } })
+    const tier = { ...base, draws: key === 'L' || key === 'M', lineWidth: { law: LINES.law, index: LINES.index, units: Object.fromEntries(samples[key].map((N) => [N, wAt(N)])) }, elements: els }
+    if (tier.draws) {
+      const sc = v.score(key, samples[key][0])
+      tier.draw = {
+        what: 'Each line drawn by its dash (dasharray = its length; dashoffset from its length to 0), its pen a round cap; hidden until it starts. The point scales from 0 about its centre. Times in seconds from the start; nothing moves after `total`.',
+        total: r3(sc.total),
+        lines: Object.fromEntries(Object.values(sc.strokes).map((k) => [k.id, { start: r3(k.t0), duration: r3(k.dur), ease: k.ease.args }])),
+        point: { start: r3(sc.point[0]), duration: r3(sc.point[1]), ease: LAND.args },
+      }
+    }
+    out.tiers.push(tier)
   }
   return out
 }
 
 /** The construction kernel, for the studio and for sketching. */
-export const kernel = { saddleGeo, lobeOf, scaled, lobeRing, hullRing, contour, circle, toD, sample, lengths, fitTo, placement, units, RIDGE, PSI, scoreOf, beatsAt, lobeAt, apexOf, rhoFor, lobeBody, crossingEdges, offsetLoop, inverse }
+export const kernel = { saddleGeo, lobeOf, scaled, lobeRing, hullRing, contour, circle, toD, sample, lengths, fitTo, placement, units, RIDGE, PSI, drawScore, drawnAt, trim, crossingEdges, offsetLoop, inverse }
 
 export { REF }

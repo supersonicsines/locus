@@ -240,6 +240,7 @@ export const tierFor = (size) => (size >= 160 ? 'L' : size >= 72 ? 'M' : size >=
 export const REF = { L: 280, M: 96, S: 48, XS: 32, XXS: 16 }
 export const BOUNDS = { L: 160, M: 72, S: 40, XS: 24 }
 export function tierOf(v, size) {
+  if (v.tierOf) return v.tierOf(size)
   const b = v.bounds ? { ...BOUNDS, ...v.bounds } : BOUNDS
   return size >= b.L ? 'L' : size >= b.M ? 'M' : size >= b.S ? 'S' : size >= b.XS ? 'XS' : 'XXS'
 }

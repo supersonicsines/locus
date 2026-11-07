@@ -1351,3 +1351,17 @@ The operator chose Col and asked for "four more rounds of intense constructive c
   - The site draws the mark from `tiers.json`, through `scripts/mark-paths.mjs`.
 
 **Left open:** under 96 px the mark is a lopsided ∞ cut into a pebble. It's the best small form tried in four rounds, but not yet unmistakable. Real browser tabs and real devices haven't been checked; a headless browser draws no tab strip.
+
+## Col: the pen pass
+
+The operator preferred the inverted colourway, black lines on white, and asked for "a more thin line style, a bit more in accordance with map design", and for an intro that "doesnt just radiate out like sonar but it actually gets drawn, but like really well". The lead made the changes in `col.js` and judged them from shots in `<QA>/rounds/col/pen/`.
+
+- **The colourway.** The tile is paper and the drawing ink, on every page and as the favicon. On a light page the tile has an ink hairline 1 device px wide, like a sheet's neatline; on a dark page the white tile needs none. The old ink tile is kept as `reverse`.
+- **The line system of a survey sheet.** The contours are fine: max(1, 1.2 (N/256)^0.6) device px, 1.8 at 512 where they had been 4.05. The col's own contour, the figure-eight, is the index contour at twice that, so the crossing is the heaviest place. The point is 3¼ times the index across. Of 2½, 3¼ and 4, 2½ was lost in the X and 4 was a blob.
+- **A new S drawing, 48–95 device px:** the index, the outline and the summit's top as lines. Beside fine lines, the solid ink land had looked heavy from 48 up. It stays below 48, where a line blurs and the favicon needs a solid.
+- **Drawn in, not grown.** The index contour goes first, in one stroke from the pass round the summit, through the pass and round the knoll. The two contours below the col follow the pen out of the pass a moment behind it. The summit's contours follow as it crosses the pass, each from its tip, then the knoll's. The point is set last.
+  - In the first version the outer lines started late and finished far from the pass, the start was slow, and the drawing took 2.4 s. Starting them behind the pen, in formation, brought it to 2.2 s, with every stroke closing near the pass.
+  - A stroke snaps whole once it has 0.3 px to go, and no pen moves under 0.5 px a frame for more than three frames at 512.
+- **One score, three players.** The studio draws each stroke as trimmed arcs. `locus-L-*-draw.svg` plays the same score as CSS dash animations inside the file, and frame for frame it matches the studio. `tiers.json` carries the score for the site.
+- **Lockups** use the mark at its own fine weights rather than a heavier line.
+

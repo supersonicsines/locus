@@ -19,7 +19,9 @@ const drawings = tiers.map((t, i) => {
     from: i === 0 ? 0 : t.devicePx[0],
     land: of('land')[0]?.d,
     cut: of('cut')[0]?.d,
-    lines: of('line').map((e) => e.d),
+    lines: of('line').filter((e) => !e.index).map((e) => e.d),
+    // The index contour, the col's own: drawn at twice a contour's width.
+    index: of('line').find((e) => e.index)?.d,
     point: point && { cx: point.cx, cy: point.cy, ...(typeof point.r === 'number' ? { r: point.r } : {}), ink: point.colour === 'ink' },
   }
 })
@@ -34,6 +36,7 @@ export type Drawing = {
   land?: string
   cut?: string
   lines?: string[]
+  index?: string
   point?: { cx: number; cy: number; r?: number; ink: boolean }
 }
 

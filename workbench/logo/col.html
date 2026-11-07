@@ -24,7 +24,7 @@
         <div>
           <p class="kicker">Locus · identity</p>
           <h1>Col</h1>
-          <p class="lede">A summit, a lower knoll and the col between them, drawn in contour. The col’s own contour crosses itself at the pass, and the point sits on the crossing: Locus is the one place two heights share, where your company and an agent meet. Every curve is a circle or the arc that joins two on a tangent. Below 96 device pixels the mark is its own drawing: one solid land with the col’s own contour cut through it. It moves once, growing from nothing, and then holds still.</p>
+          <p class="lede">A summit, a lower knoll and the col between them, drawn in contour. The col’s own contour crosses itself at the pass, and the point sits on the crossing: Locus is the one place two heights share, where your company and an agent meet. Every curve is a circle or the arc that joins two on a tangent. Black lines on a white tile, weighted as a survey sheet is: the contours fine, the col’s own contour the index at twice their weight. Below 48 device pixels the mark is its own drawing, one solid land with the col’s contour cut through it. It is drawn once, as a surveyor inks a sheet, and then holds still.</p>
         </div>
         <div class="tools">
           <button class="chip" id="motion" role="switch" aria-checked="false">Motion <span class="switch"></span></button>
@@ -37,7 +37,7 @@
 
       <div id="ctx"></div>
 
-      <p class="note cap">Every drawing on this page is chosen by device pixels, as a screen would choose it: this screen draws at ×<span id="dpr"></span>. The only motion is the growth: it plays once as the mark appears, and again when Motion is switched on; then every line holds still. With reduced motion asked for, it never plays. Every mark here is drawn by <code>col.js</code>, the same file the shots and the exports use.</p>
+      <p class="note cap">Every drawing on this page is chosen by device pixels, as a screen would choose it: this screen draws at ×<span id="dpr"></span>. The only motion is the drawing: it plays once as the mark appears, and again when Motion is switched on; then every line holds still. With reduced motion asked for, it never plays. Every mark here is drawn by <code>col.js</code>, the same file the shots and the exports use.</p>
     </main>
 
     <script type="module">
@@ -117,9 +117,8 @@
       const word = (x, y, f, fill) =>
         `<text x="${x}" y="${y}" font-size="${f}" letter-spacing="${-0.01 * f}" fill="${fill}">L<tspan dx="${-0.06 * f}">o</tspan>cu<tspan dx="${-0.01 * f}">s</tspan></text>`
       const wordInk = (f) => (4 * 0.6 - 4 * 0.01 - 0.06 - 0.01 + S_INK - LSB) * f // ink width
-      // From 96 device px up, a lockup's mark is the M drawing at w = 0.016 M (a sixth of the L's stem), the point 3 w,
-      // so the mark carries the word's weight. Below 96 it is Col-X, the solid.
-      const lockMark = (mode, px) => colSvg(v, mode, px, null, px >= 96 ? { tier: 'S', over: { wUnits: 1.6, dotUnits: 4.8 } } : {})
+      // A lockup's mark is the drawing its device pixels get, at the same fine weights as the mark alone.
+      const lockMark = (mode, px) => colSvg(v, mode, px)
       function lockup(mode, M, { kind = 'h', guides = false, on = 'light', dpr = DPR } = {}) {
         const fill = on === 'light' ? INK : PAPER
         const src = data(lockMark(mode, Math.round(M * dpr)))
@@ -161,20 +160,20 @@
 
       // 01 the mark
       host.append(
-        section('heroes', '01', 'The mark', 'At 1024 px, on a light page and a dark one. The tile is ink everywhere; on a dark page a hairline of paper, 1 device px, holds it off the page. One line weight throughout; the point, three line-widths across, is the only heavy thing in it.',
+        section('heroes', '01', 'The mark', 'At 1024 px, on a light page and a dark one. Black lines on a white tile, everywhere; on a light page an ink hairline 1 device px wide, the sheet’s neatline, holds it off the page. The contours are fine and the col’s own contour, the index, is twice their weight; the point sits on the crossing at 3¼ times the index.',
           el('div', { class: 'heroes' },
-            el('div', { class: 'ground g-paper hero', 'data-ctx': 'hero-light' }, el('span', { class: 'tag' }, 'On a light page'), mount(hero, 1024, 'dark')),
+            el('div', { class: 'ground g-paper hero', 'data-ctx': 'hero-light' }, el('span', { class: 'tag' }, 'On a light page'), mount(hero, 1024, 'light')),
             el('div', { class: 'ground g-ink hero', 'data-ctx': 'hero-dark' }, el('span', { class: 'tag' }, 'On a dark page'), mount(hero, 1024, 'dark')))),
       )
 
       // 02 sizes
       const name = (s) => v.tierName[tierOf(v, Math.round(s * DPR))]
-      const rung = (sizes) => el('div', { class: 'rungs' }, ...sizes.map((s) => el('figure', {}, mark('dark', s), el('figcaption', {}, `${s} · ${name(s)}`))))
+      const rung = (sizes, mode = 'light') => el('div', { class: 'rungs' }, ...sizes.map((s) => el('figure', {}, mark(mode, s), el('figcaption', {}, `${s} · ${name(s)}`))))
       host.append(
-        section('ladder', '02', 'Sizes', `Every size at true size on this screen (×${DPR}). The label is the drawing it gets, chosen by device pixels: L from 256, L− 160–255, M 96–159, X (the solid with the col’s contour cut through it) 26–95, X· (the solid with the point only) below 26.`,
+        section('ladder', '02', 'Sizes', `Every size at true size on this screen (×${DPR}). The label is the drawing it gets, chosen by device pixels: L from 256, L− 160–255, M 96–159, S 48–95 (the index, the outline and the summit’s top), X (the solid with the col’s contour cut through it) 26–47, X· (the solid with the point only) below 26.`,
           el('div', { class: 'ladder2' },
             el('div', { class: 'ground g-paper' }, el('span', { class: 'tag' }, 'On a light page'), rung([512, 256, 180]), rung([128, 96, 64, 48, 40, 32, 26, 24, 20, 16])),
-            el('div', { class: 'ground g-ink' }, el('span', { class: 'tag' }, 'On a dark page'), rung([512, 256, 180]), rung([128, 96, 64, 48, 40, 32, 26, 24, 20, 16])))),
+            el('div', { class: 'ground g-ink' }, el('span', { class: 'tag' }, 'On a dark page'), rung([512, 256, 180], 'dark'), rung([128, 96, 64, 48, 40, 32, 26, 24, 20, 16], 'dark')))),
       )
 
       // 03 pixels
@@ -184,7 +183,7 @@
         for (const [cls, label] of [['g-paper', 'On a light page'], ['g-ink', 'On a dark page']]) {
           const g = el('div', { class: `ground ${cls}` }, el('span', { class: 'tag' }, label))
           for (const [css, k] of [[16, 1], [16, 2], [32, 1], [32, 2]]) {
-            const url = await raster(colSvg(v, 'dark', css * k), css * k)
+            const url = await raster(colSvg(v, 'light', css * k), css * k)
             g.append(el('figure', {}, el('img', { class: 'px', width: 128, height: 128, src: url, alt: '' }), el('figcaption', {}, `${css} px at ×${k} · ${v.tierName[tierOf(v, css * k)]}`)))
           }
           pix.append(g)
@@ -213,11 +212,13 @@
                 el('dl', { class: 'legend tiers' },
                   el('dt', {}, 'L'), el('dd', {}, '256 device px and up: as above, H at 3R/8'),
                   el('dt', {}, 'L−'), el('dd', {}, '160–255: the summit’s −3d ring left out; H at R/4'),
-                  el('dt', {}, 'M'), el('dd', {}, '96–159: d = RA/3; the outline at +d, the col’s contour, the summit’s −1d and −2d, the knoll’s −1d, H at R/5; w = 2.0 (px/96)^0.2 px'),
-                  el('dt', {}, 'X'), el('dd', {}, '26–95: one land, the hull at s = ¾ RA with its notches rounded ρ = s; the col’s own contour cut through it as ground, clamp(0.9 + 0.035 px, 1.5, 3.2) px wide; no separate point, the crossing is the point. Never without its tile: bare, its nearest neighbour is an ∞ in a pebble'),
+                  el('dt', {}, 'M'), el('dd', {}, '96–159: d = RA/3; the outline at +d, the col’s contour, the summit’s −1d and −2d, the knoll’s −1d, H at R/5'),
+                  el('dt', {}, 'S'), el('dd', {}, '48–95: d = RA/2; the outline at +d, the col’s contour and the summit’s top, a circle'),
+                  el('dt', {}, 'X'), el('dd', {}, '26–47: one land in ink, the hull at s = ¾ RA with its notches rounded ρ = s; the col’s own contour cut through it in paper, clamp(0.9 + 0.035 px, 1.5, 3.2) px wide; the crossing is the point. Never without its tile'),
                   el('dt', {}, 'X·'), el('dd', {}, 'below 26: the same land with the point cut alone, r = 1.3 px at 16'),
-                  el('dt', {}, 'lockups'), el('dd', {}, 'from 96 device px, the M drawing at w = 0.016 M, a sixth of the L’s stem (the README header is the stacked lockup); below 96, Col-X'),
-                  el('dt', {}, 'motion'), el('dd', {}, 'the growth plays at 160 device px and up (L and L−); every smaller drawing is the still')),
+                  el('dt', {}, 'lines'), el('dd', {}, 'contours max(1, 1.2 (N/256)^0.6) device px; the index, the col’s own contour, 2×; the point 3¼ × the index'),
+                  el('dt', {}, 'lockups'), el('dd', {}, 'the mark is the drawing its device pixels get, at its own weights (the README header is the stacked lockup)'),
+                  el('dt', {}, 'motion'), el('dd', {}, 'the drawing plays at 160 device px and up (L and L−); every smaller drawing is the still')),
                 el('div', { class: 'xrow' }, xs(32), xs(64), xs(95))))),
         )
       }
@@ -225,9 +226,9 @@
       // 05 in use
       const tabs = (theme) => el('div', { class: `browser ${theme}`, 'data-ctx': `tabs-${theme}` },
         el('div', { class: 'strip' },
-          el('div', { class: 't pin' }, mark('dark', 16)),
+          el('div', { class: 't pin' }, mark('light', 16)),
           el('div', { class: 't' }, el('span', { class: 'ph' }), el('span', {}, 'Untitled'), el('i', {}, '×')),
-          el('div', { class: 't on' }, mark('dark', 16), el('span', {}, 'Locus · Meridian'), el('i', {}, '×')),
+          el('div', { class: 't on' }, mark('light', 16), el('span', {}, 'Locus · Meridian'), el('i', {}, '×')),
           el('div', { class: 't' }, el('span', { class: 'ph' }), el('span', {}, 'Untitled'), el('i', {}, '×'))),
         el('div', { class: 'bar' }, el('div', { class: 'url' }, 'localhost:4747/map')))
       const blank = (size, fill) => {
@@ -239,32 +240,32 @@
       }
       const dockTile = (node, run = false) => el('div', { class: 'slot' }, el('div', { class: 'ic' }, node), el('i', { class: `run ${run ? '' : 'off'}` }))
       const dock = el('div', { class: 'desk', 'data-ctx': 'dock' },
-        el('div', { class: 'dock' }, dockTile(blank(52, '#f4f5f6')), dockTile(blank(52, '#9aa3ad')), dockTile(blank(52, '#e3e6e9')), dockTile(mark('dark', 52), true), dockTile(blank(52, '#5d6670')), dockTile(blank(52, '#d0d5da')), dockTile(blank(52, '#ffffff'))))
+        el('div', { class: 'dock' }, dockTile(blank(52, '#f4f5f6')), dockTile(blank(52, '#9aa3ad')), dockTile(blank(52, '#e3e6e9')), dockTile(mark('light', 52), true), dockTile(blank(52, '#5d6670')), dockTile(blank(52, '#d0d5da')), dockTile(blank(52, '#ffffff'))))
       const app = (node, label) => el('div', { class: 'app' }, node, label ? el('span', {}, label) : el('i'))
       const phone = el('div', { class: 'phone dark', 'data-ctx': 'ios' },
         el('div', { class: 'row' },
-          app(blank(60, '#e9ecef')), app(blank(60, '#8f99a4')), app(mark('dark', 60, null, { dpr: 3 }), 'Locus'), app(blank(60, '#f6f7f8')),
+          app(blank(60, '#e9ecef')), app(blank(60, '#8f99a4')), app(mark('light', 60, null, { dpr: 3 }), 'Locus'), app(blank(60, '#f6f7f8')),
           app(blank(60, '#5a636d')), app(blank(60, '#cfd5db')), app(blank(60, '#ffffff')), app(blank(60, '#a9b1ba'))))
       const avatar = (cls, ctx) => el('div', { class: `ground ${cls} avatars`, 'data-ctx': ctx },
         el('span', { class: 'tag' }, 'Avatars: the mark on a full square, cropped to a circle'),
-        el('span', { class: 'ring' }, mark('dark', 160, 'square')),
-        el('span', { class: 'ring' }, mark('dark', 96, 'square')),
-        el('div', { class: 'who' }, el('span', { class: 'ring' }, mark('dark', 40, 'square')), el('div', {}, 'Locus', el('small', {}, 'opened a pull request'))),
-        el('div', { class: 'who' }, el('span', { class: 'ring' }, mark('dark', 24, 'square')), el('div', {}, 'Locus', el('small', {}, 'commented'))))
+        el('span', { class: 'ring' }, mark('light', 160, 'square')),
+        el('span', { class: 'ring' }, mark('light', 96, 'square')),
+        el('div', { class: 'who' }, el('span', { class: 'ring' }, mark('light', 40, 'square')), el('div', {}, 'Locus', el('small', {}, 'opened a pull request'))),
+        el('div', { class: 'who' }, el('span', { class: 'ring' }, mark('light', 24, 'square')), el('div', {}, 'Locus', el('small', {}, 'commented'))))
       const header = (theme) => el('div', { class: `site ${theme}`, 'data-ctx': `header-${theme}` },
-        el('div', { class: 'site-head' }, lockup('dark', 26, { on: theme }), el('div', { class: 'site-nav' }, el('span', {}, 'Example'), el('span', {}, 'Your maps'), el('b', {}, 'Start'))),
+        el('div', { class: 'site-head' }, lockup('light', 26, { on: theme }), el('div', { class: 'site-nav' }, el('span', {}, 'Example'), el('span', {}, 'Your maps'), el('b', {}, 'Start'))),
         el('div', { class: 'below' }))
       const readme = (theme) => el('div', { class: `readme ${theme}`, 'data-ctx': `readme-${theme}` },
         el('div', { class: 'file' }, 'README.md'),
-        el('div', { class: 'head' }, lockup('dark', 96, { kind: 's', on: theme }), el('p', {}, 'A map of your company that any agent can read. Encrypted, gated, open source.')),
+        el('div', { class: 'head' }, lockup('light', 96, { kind: 's', on: theme }), el('p', {}, 'A map of your company that any agent can read. Encrypted, gated, open source.')),
         el('div', { class: 'body' }, 'Your documents become a map of areas that AI agents read through generated passwords. Sealed areas stay sealed; the rest is live the moment you say so.'))
       const social = el('div', { class: 'social-wrap', 'data-ctx': 'social' },
         el('div', { class: 'social' },
-          el('div', { class: 'social-lock' }, lockup('dark', 150, { on: 'light', dpr: 1 })),
+          el('div', { class: 'social-lock' }, lockup('light', 150, { on: 'light', dpr: 1 })),
           el('div', { class: 'social-line' }, 'A map of your company that any agent can read.'),
           el('div', { class: 'foot' }, el('span', {}, 'Encrypted · gated · open source'), el('span', {}, 'MIT'))))
       host.append(
-        section('uses', '05', 'In use', 'Each at the drawing its device really uses: a tab’s favicon at 32 device px on a ×2 screen (X), a 52 pt Dock icon from 104 px (M), a 60 pt home-screen icon at ×3, 180 px (L−), avatars, the site’s header (the 26 px lockup, 52 device px, X), a README and the 1200 × 630 card. Other apps are blank tiles.',
+        section('uses', '05', 'In use', 'Each at the drawing its device really uses: a tab’s favicon at 32 device px on a ×2 screen (X), a 52 pt Dock icon from 104 px (M), a 60 pt home-screen icon at ×3, 180 px (L−), avatars, the site’s header (the 26 px lockup, 52 device px, S), a README and the 1200 × 630 card. Other apps are blank tiles.',
           el('div', { class: 'uses' },
             el('div', { class: 'use-row', 'data-ctx': 'tabs' }, tabs('light'), tabs('dark')),
             el('div', { class: 'use-row' }, dock, phone),
@@ -272,21 +273,21 @@
             el('div', { class: 'use-row', 'data-ctx': 'header' }, header('light'), header('dark')),
             el('div', { class: 'use-row', 'data-ctx': 'readme' }, readme('light'), readme('dark')),
             social,
-            cap('One rule: the tile is ink everywhere, the favicon included, because the tab, the app icon and the avatar are the same object. On a dark page a paper hairline 1 device px wide holds it off the page, 24 % up to 95 px and 16 % above. The paper tile is retired.'))),
+            cap('One rule: black lines on a white tile everywhere, the favicon included, because the tab, the app icon and the avatar are the same object. On a light page an ink hairline 1 device px wide holds it off the page, 22 % up to 95 px and 16 % above; on a dark page the white tile needs none.'))),
       )
 
       // 06 lockups
       host.append(
-        section('lockups', '06', 'Lockups', 'The mark beside the name, set as a logotype: Spline Sans Mono 540, tracking −0.01 em, L–o kerned −0.06 em and u–s −0.01 em. Horizontal: the caps are half the mark’s height and centred on it, the L’s stem 0.4 M from the tile. Stacked: the word at 0.4 M, its caps 0.25 M under the tile. Clear space is half the mark on every side. From 96 device px the mark is drawn at a sixth of the stem’s weight; below, it is the solid.',
+        section('lockups', '06', 'Lockups', 'The mark beside the name, set as a logotype: Spline Sans Mono 540, tracking −0.01 em, L–o kerned −0.06 em and u–s −0.01 em. Horizontal: the caps are half the mark’s height and centred on it, the L’s stem 0.4 M from the tile. Stacked: the word at 0.4 M, its caps 0.25 M under the tile. Clear space is half the mark on every side. From 96 device px the mark keeps its fine contours beside the word; below, it is the drawing its size gets.',
           el('div', { class: 'locks' },
-            el('div', { class: 'lock-spec' }, el('div', { class: 'ground g-paper', 'data-ctx': 'lockup-spec' }, lockup('dark', 120, { guides: true })),
-              el('dl', { class: 'legend' }, el('dt', {}, 'mark'), el('dd', {}, 'M, the tile’s height'), el('dt', {}, 'word'), el('dd', {}, '0.688 M, so its cap height is ½ M'), el('dt', {}, 'weight'), el('dd', {}, '540; the mark’s line 0.016 M, a sixth of the stem'), el('dt', {}, 'spacing'), el('dd', {}, '−0.01 em; L–o −0.06, u–s −0.01'), el('dt', {}, 'gap'), el('dd', {}, '0.4 M from the tile to the L’s stem'), el('dt', {}, 'align'), el('dd', {}, 'the caps centred on the tile'), el('dt', {}, 'clear space'), el('dd', {}, '½ M on every side'), el('dt', {}, 'smallest'), el('dd', {}, 'M = 20 px'))),
-            el('div', { class: 'ground g-paper lock-plate', 'data-ctx': 'lockup-h-light' }, lockup('dark', 72)),
-            el('div', { class: 'ground g-ink lock-plate', 'data-ctx': 'lockup-h-dark' }, lockup('dark', 72, { on: 'dark' })),
-            el('div', { class: 'ground g-paper lock-plate tall', 'data-ctx': 'lockup-s-light' }, lockup('dark', 128, { kind: 's' })),
-            el('div', { class: 'ground g-ink lock-plate tall', 'data-ctx': 'lockup-s-dark' }, lockup('dark', 128, { kind: 's', on: 'dark' })),
-            el('div', { class: 'ground g-paper lock-sizes', 'data-ctx': 'lockup-sizes' }, ...[20, 26, 32, 48].map((m) => lockup('dark', m)), lockup('dark', 48, { kind: 's' })),
-            el('div', { class: 'ground g-ink lock-sizes' }, ...[20, 26, 32, 48].map((m) => lockup('dark', m, { on: 'dark' })), lockup('dark', 48, { kind: 's', on: 'dark' })))),
+            el('div', { class: 'lock-spec' }, el('div', { class: 'ground g-paper', 'data-ctx': 'lockup-spec' }, lockup('light', 120, { guides: true })),
+              el('dl', { class: 'legend' }, el('dt', {}, 'mark'), el('dd', {}, 'M, the tile’s height'), el('dt', {}, 'word'), el('dd', {}, '0.688 M, so its cap height is ½ M'), el('dt', {}, 'weight'), el('dd', {}, '540; the mark at its own fine weights'), el('dt', {}, 'spacing'), el('dd', {}, '−0.01 em; L–o −0.06, u–s −0.01'), el('dt', {}, 'gap'), el('dd', {}, '0.4 M from the tile to the L’s stem'), el('dt', {}, 'align'), el('dd', {}, 'the caps centred on the tile'), el('dt', {}, 'clear space'), el('dd', {}, '½ M on every side'), el('dt', {}, 'smallest'), el('dd', {}, 'M = 20 px'))),
+            el('div', { class: 'ground g-paper lock-plate', 'data-ctx': 'lockup-h-light' }, lockup('light', 72)),
+            el('div', { class: 'ground g-ink lock-plate', 'data-ctx': 'lockup-h-dark' }, lockup('light', 72, { on: 'dark' })),
+            el('div', { class: 'ground g-paper lock-plate tall', 'data-ctx': 'lockup-s-light' }, lockup('light', 128, { kind: 's' })),
+            el('div', { class: 'ground g-ink lock-plate tall', 'data-ctx': 'lockup-s-dark' }, lockup('light', 128, { kind: 's', on: 'dark' })),
+            el('div', { class: 'ground g-paper lock-sizes', 'data-ctx': 'lockup-sizes' }, ...[20, 26, 32, 48].map((m) => lockup('light', m)), lockup('light', 48, { kind: 's' })),
+            el('div', { class: 'ground g-ink lock-sizes' }, ...[20, 26, 32, 48].map((m) => lockup('light', m, { on: 'dark' })), lockup('light', 48, { kind: 's', on: 'dark' })))),
       )
 
       // 07 one ink
@@ -300,28 +301,29 @@
             el('div', { class: 'ground g-paper' }, el('span', { class: 'tag' }, 'Stamp, 160 px and up'), mark('bare', 200, 'none', { relief: true, tier: 'L', dpr: 1.28 }), inkRow('bare', 'none', [160], { relief: true, tier: 'L', dpr: 1 })))),
       )
 
-      // 08 motion: the growth, and its speeds
+      // 08 motion: the drawing, and its pens
       const auditTable = (px) => {
         const a = motionAudit(v, px)
         const name = (id) => {
+          if (id === 'col') return 'the index, the col’s own contour'
           const [who, n] = id.split(':')
-          return who === 'H' ? `below the col, ${n}d` : `${who === 'A' ? 'summit' : 'knoll'}, ${n}d`
+          return who === 'H' ? `below the col, +${n}d` : `${who === 'A' ? 'summit' : 'knoll'}, ${n}d`
         }
         return el('div', { class: 'audit' },
-          el('h3', {}, `${px} device px (${a.tier}): ${a.total} s, at most ${a.maxMoving} lines moving at once`),
+          el('h3', {}, `${px} device px (${a.tier}): ${a.total} s, at most ${a.maxMoving} pens at once`),
           el('table', {},
-            el('thead', {}, el('tr', {}, ...['line (to)', 'frames', 'backward', 'speed-ups', 'fastest', 'tip peak', 'tip at C', 'run < 0.5 px', 'far wall run', 'snap / before', 'on parent'].map((h) => el('th', {}, h)))),
-            el('tbody', {}, ...a.rows.map((r) => el('tr', {}, el('td', {}, name(r.id)), el('td', {}, String(r.frames)), el('td', {}, String(r.backward)), el('td', {}, String(r.speedUps)), el('td', {}, String(r.fastest)), el('td', {}, r.tipPeak ? String(r.tipPeak) : '–'), el('td', {}, r.tipEnd != null && /:0$/.test(r.id) && r.id[0] !== 'H' ? `frame ${r.tipEnd}` : '–'), el('td', {}, String(r.runUnderHalf)), el('td', {}, String(r.farRunUnderHalf)), el('td', {}, `${r.snap} / ${r.beforeSnap}`), el('td', {}, String(r.onParent))))))
+            el('thead', {}, el('tr', {}, ...['line', 'length px', 'from s', 'to s', 'frames', 'top px / frame', 'frames under 0.5 px'].map((h) => el('th', {}, h)))),
+            el('tbody', {}, ...a.rows.map((r) => el('tr', {}, el('td', {}, name(r.id)), el('td', {}, String(r.px)), el('td', {}, String(r.from)), el('td', {}, String(r.to)), el('td', {}, String(r.frames)), el('td', {}, String(r.top)), el('td', {}, String(r.slow))))))
         )
       }
       const replay = el('button', { class: 'btn', html: '<svg viewBox="0 0 14 14"><path d="M2.5 7a4.5 4.5 0 1 0 1.4-3.3"/><path d="M2.6 1.6v2.6h2.6"/></svg>Replay', onclick: () => { if (!reduced) { grow.playIntro(); time.wake() } } })
       host.append(
-        section('motion', '08', 'Motion', 'Growth from nothing, once, at 160 device px and up. The tops appear and the land rises, one ring at a time per hill, each leaving the ring inside it and settling into its place, where it holds still. The hills’ last rings close as )( and touch at the point: the col’s own contour. The X holds; the rings below the col leave it and wrap both hills; the point grows last. Nothing fades, and there is no loop.',
+        section('motion', '08', 'Motion', 'Drawn once, at 160 device px and up, the way a surveyor inks a sheet: the index contour first, in one stroke from the pass round the summit, through the pass and round the knoll; the contours below the col follow the pen out of the pass and wrap both hills; the summit’s contours follow as it crosses the pass, each from its tip, then the knoll’s; the point is set on the crossing last. Nothing fades, a line once drawn never moves, and there is no loop.',
           el('div', { class: 'motion one' },
-            el('div', {}, el('div', { class: 'ground g-paper', 'data-ctx': 'motion-grow' }, el('span', { class: 'tag' }, 'The growth, 512 px'), mount(grow, 512, 'dark')), el('div', { class: 'bar' }, el('p', {}, v.introNote), replay)),
+            el('div', {}, el('div', { class: 'ground g-paper', 'data-ctx': 'motion-grow' }, el('span', { class: 'tag' }, 'The drawing, 512 px'), mount(grow, 512, 'light')), el('div', { class: 'bar' }, el('p', {}, v.introNote), replay)),
             el('div', { class: 'audits' },
-              el('p', { class: 'legend-note' }, 'Speeds from the page’s own clock at 60 frames a second. A ring scaled about H moves fastest on the side facing the pass and slowest on its far wall; a ring below the col moves the same everywhere. Signed: each line measured along rays from its own growth centre, so a move backwards would show as negative. A clock ends once its line’s fastest point has 0.3 px left. The growth plays at 160 device px and up; smaller drawings are the still.'),
-              auditTable(512), auditTable(1024)))),
+              el('p', { class: 'legend-note' }, 'Each pen’s speed from the page’s own clock at 60 frames a second: how far its head moves in a frame. A stroke snaps whole once it has 0.3 px to go, so no line ever creeps into place. The drawing plays at 160 device px and up; smaller drawings are the still.'),
+              auditTable(512), auditTable(180)))),
       )
 
       for (const c of cards) c.render()
@@ -329,12 +331,12 @@
         hero.playIntro()
         grow.playIntro()
       }
-      document.getElementById('favicon').href = data(colSvg(v, 'dark', 32))
+      document.getElementById('favicon').href = data(colSvg(v, 'light', 32))
 
       /* ---------- motion and theme ---------- */
 
       const motionBtn = document.getElementById('motion')
-      // Motion has no loop to run: switched on, it plays the growth again; off, the still holds.
+      // Motion has no loop to run: switched on, it plays the drawing again; off, the still holds.
       function setMotion(on, play = true) {
         motionOn = on
         motionBtn.setAttribute('aria-checked', String(on))
@@ -368,12 +370,12 @@
           time.freeze(true)
           for (const c of cards) Object.assign(c, reset), c.render()
         },
-        // The growth at `seconds` (the page's own clock), on one card or all.
+        // The drawing at `seconds` (the page's own clock), on one card or all.
         __setGrowth(seconds, w = 'grow') {
           time.freeze(true)
           for (const c of which(w)) Object.assign(c, reset, { p: Math.min(1, seconds / c.v.introDur) }), c.render()
         },
-        // Replay the growth in real time (for the real-time probe).
+        // Replay the drawing in real time (for the real-time probe).
         __replay(w = 'grow') {
           time.freeze(false)
           for (const c of which(w)) c.playIntro()

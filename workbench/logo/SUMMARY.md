@@ -1,7 +1,7 @@
 # Locus mark
 
-**The operator chose Col (04 below), a summit, a lower knoll and the pass between them, drawn in contour.** It then had four more rounds of design and critique of its own, which redrew it from the construction up.
-- **The studio:** `col.html`, at http://localhost:4800/col.html. It shows every drawing at every size, the growth, and the checks.
+**The operator chose Col (04 below), a summit, a lower knoll and the pass between them, drawn in contour.** It then had four more rounds of design and critique of its own, which redrew it from the construction up, and a pen pass after them: black lines on a white tile, fine contours with the col's own contour as the index line, and an intro drawn in by a pen.
+- **The studio:** `col.html`, at http://localhost:4800/col.html. It shows every drawing at every size, the drawing-in, and the checks.
 - **The finished files:** `col/`. These are the tier SVGs, favicons, app icons and lockups. `col/CONSTRUCTION.md` says how the mark is built and where each file comes from, and `col/tiers.json` holds the drawings for the site's `Mark.tsx`.
 - **The record:** the final shots and notes are in `qa/rounds/col/final/`.
 - **Slot 04** on the main page now shows the final Col.
