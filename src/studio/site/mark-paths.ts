@@ -1,5 +1,5 @@
-// The mark's geometry, written by scripts/mark-paths.mjs from workbench/logo/col/tiers.json. Don't edit by hand:
-// change the mark in workbench/logo/col.js, export it, and run the script again. Units are the 100-unit box.
+// The mark's geometry, written by brand/source/build.mjs from brand/logo/tiers.json. Don't edit by hand: change the
+// mark in brand/source/mark.js and run `npm run brand`. Units are the 100-unit box.
 
 export type Drawing = {
   name: string

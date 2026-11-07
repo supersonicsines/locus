@@ -1,0 +1,4131 @@
+/* Atlas. Cool paper, ink, hairlines. Vermilion means sealed and nothing else. Amber means it needs you now and nothing else. */
+
+/* Type: one face, one scale. 12 for meta, 13 for controls and body, 14 for reading, 16 for a lede, 19 for titles, 24 for a sheet's heading. */
+:root {
+  --alert: #f5b400;
+  --on-alert: #15191e;
+  /* Live has one colour: the live sea's blue, deeper, so the dot and the sea say the same thing. */
+  --live: #3b78b8;
+  --paper: #e2e6ea;
+  /* A field or a key on a raised sheet. It was the sea's colour once, and it didn't deepen when the sea did. */
+  --field: #eef1f3;
+  --raised: #fcfdfd;
+  --ink: #15191e;
+  --ink-rgb: 21, 25, 30;
+  --focus: rgba(21, 25, 30, 0.62);
+  --soft: rgba(21, 25, 30, 0.72);
+  --faint: rgba(21, 25, 30, 0.6);
+  --hair: rgba(21, 25, 30, 0.14);
+  --hair-strong: rgba(21, 25, 30, 0.28);
+  --wash: rgba(21, 25, 30, 0.045);
+  --wash-strong: rgba(21, 25, 30, 0.08);
+  --vermilion: #d63c27;
+  --on-ink: #fbfcfc;
+  --shadow: 0 1px 1px rgba(21, 25, 30, 0.04), 0 8px 24px -8px rgba(21, 25, 30, 0.12);
+  --shadow-high: 0 2px 4px rgba(21, 25, 30, 0.05), 0 24px 60px -16px rgba(21, 25, 30, 0.22);
+  --scrim: rgba(226, 230, 234, 0.62);
+
+  /* The one face, and the one place it's named. The map's canvas text reads this too. */
+  --sans: 'Spline Sans Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --gutter: 16px;
+  /* The height of what stands in the top line, and the widths of the two cards. Offsets below are built from these. */
+  --bar: 40px;
+  /* The card folded to its heading: two lines, with the room round them. What stands under it starts below this. */
+  --fold-h: 60px;
+  --left-w: 296px;
+  --side-w: 396px;
+  --panel-radius: 12px;
+  --control-radius: 8px;
+}
+
+:root[data-theme='dark'] {
+  --live: #7fb0e0;
+  /* Still amber, a step deeper, so on dark it doesn't outshine everything else on the screen. */
+  --alert: #dea400;
+  --paper: #0e1319;
+  --field: #0e1319;
+  --raised: #161c24;
+  --ink: #e8e6df;
+  --ink-rgb: 232, 230, 223;
+  --focus: rgba(232, 230, 223, 0.66);
+  --soft: rgba(232, 230, 223, 0.74);
+  --faint: rgba(232, 230, 223, 0.6);
+  --hair: rgba(232, 230, 223, 0.13);
+  --hair-strong: rgba(232, 230, 223, 0.28);
+  --wash: rgba(232, 230, 223, 0.05);
+  --wash-strong: rgba(232, 230, 223, 0.09);
+  --vermilion: #ea5a44;
+  --on-ink: #10151b;
+  --shadow: 0 1px 1px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.5);
+  --shadow-high: 0 2px 4px rgba(0, 0, 0, 0.35), 0 28px 70px -16px rgba(0, 0, 0, 0.7);
+  --scrim: rgba(14, 19, 25, 0.62);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 19px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+p,
+.need-text,
+.hint {
+  text-wrap: pretty;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  /* A press that drags off a button shouldn't select its words, and a long press on a phone shouldn't either. */
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* One family, on every control: rest, hover is a wash or a darker edge, press is a little more of that and a small give, on is a one-pixel ink edge or an ink fill, focus is one ring. */
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* Anything with no corners of its own gets a small one, so a ring is never a hard box. */
+:where(button, a):focus-visible {
+  border-radius: 4px;
+}
+
+/* A row's ring stands inside it, because a list clips anything outside. */
+.reader-row:focus-visible,
+.menu-item:focus-visible,
+.catalog-item:focus-visible,
+.cmdk-item:focus-visible,
+.link-item:focus-visible,
+.gate-row:focus-visible,
+.company-btn:focus-visible,
+.left-about:focus-visible,
+.tab:focus-visible,
+.segmented button:focus-visible,
+.cart-notes button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Ink on ink can't be seen, so this ring stands outside. */
+.segmented button[aria-pressed='true']:focus-visible {
+  outline-offset: 1px;
+}
+
+/* The card's own corner, not a box across it. */
+.company-btn:focus-visible {
+  border-radius: var(--panel-radius) 6px 6px 6px;
+}
+
+/* A switch's row is the button, and its ring belongs on the switch. */
+[role='switch']:focus-visible:not(.lens-chip) {
+  outline: none;
+}
+
+[role='switch']:focus-visible .switch {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--wash-strong);
+}
+
+.map-canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+  touch-action: none;
+  outline: none;
+}
+
+/* Panels: paper floating over the map. */
+
+.panel {
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--shadow);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--control-radius);
+  white-space: nowrap;
+  transition: transform 140ms var(--ease-out), background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn.is-held {
+  opacity: 0.45;
+}
+
+.btn:disabled {
+  cursor: default;
+}
+
+/* Not yet is an instruction, not a dead button, so its words stay easy to read. */
+.btn-ink:disabled {
+  background: color-mix(in srgb, var(--ink) 34%, var(--raised));
+  border-color: transparent;
+  color: var(--on-ink);
+}
+
+.btn-paper:disabled {
+  opacity: 0.5;
+}
+
+.btn-quiet:disabled {
+  opacity: 0.5;
+}
+
+/* Busy keeps its colour, because it's what you just pressed. */
+.btn-ink[aria-busy='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.btn-flush {
+  margin-left: -14px;
+}
+
+.btn-paper {
+  background: var(--raised);
+  border: 1px solid var(--hair);
+}
+
+.btn-ink {
+  background: var(--ink);
+  color: var(--on-ink);
+  border: 1px solid var(--ink);
+}
+
+.btn-quiet {
+  color: var(--soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-paper:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ink) 3.5%, var(--raised));
+    border-color: var(--hair-strong);
+  }
+  .btn-ink:hover:not(:disabled) {
+    opacity: 0.88;
+  }
+  .btn-quiet:hover:not(:disabled) {
+    background: var(--wash);
+    color: var(--ink);
+  }
+}
+
+.btn-paper:active:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 6.5%, var(--raised));
+  border-color: var(--hair-strong);
+}
+
+.btn-ink:active:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-quiet:active:not(:disabled) {
+  background: var(--wash-strong);
+  color: var(--ink);
+}
+
+/* On: a menu that's open, the same as anything else that's on, and still on with the pointer over it. */
+.btn-paper[aria-expanded='true']:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 30px;
+  border-radius: 6px;
+  color: var(--soft);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover {
+    background: var(--wash);
+    color: var(--ink);
+  }
+}
+
+.icon-btn:active {
+  background: var(--wash-strong);
+  color: var(--ink);
+}
+
+.field {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  background: var(--field);
+  border: 1px solid var(--hair);
+  border-radius: var(--control-radius);
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+/* A focused field says so quietly, so the sheet's heaviest mark stays its main button. */
+.field:focus {
+  border-color: var(--hair-strong);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+
+.field:focus-visible {
+  outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .field:hover:not(:focus) {
+    border-color: var(--hair-strong);
+  }
+}
+
+.field::placeholder {
+  color: var(--faint);
+}
+
+.mono {
+  font-family: var(--sans);
+}
+
+.label {
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--hair-strong);
+  transition: background-color 160ms ease;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--raised);
+  transition: transform 180ms var(--ease-out);
+}
+
+.switch[aria-checked='true'] {
+  background: var(--ink);
+}
+
+.switch[aria-checked='true']::after {
+  transform: translateX(12px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [role='switch']:hover .switch:not([aria-checked='true']) {
+    background: rgba(var(--ink-rgb), 0.42);
+  }
+  [role='switch']:hover .switch[aria-checked='true'] {
+    opacity: 0.86;
+  }
+}
+
+[role='switch']:active .switch::after {
+  width: 16px;
+}
+
+[role='switch']:active .switch[aria-checked='true']::after {
+  transform: translateX(10px);
+}
+
+.reader-area[role='switch']:active .switch::after {
+  width: 14px;
+}
+
+.reader-area[role='switch']:active .switch[aria-checked='true']::after {
+  transform: translateX(8px);
+}
+
+/* Left: the company, and who can read its map. */
+
+.left-col {
+  position: fixed;
+  top: var(--gutter);
+  left: var(--gutter);
+  bottom: var(--gutter);
+  width: var(--left-w);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.left-col > * {
+  pointer-events: auto;
+}
+
+.left {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.left-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 10px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.company-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 7px 12px 14px;
+  text-align: left;
+  border-radius: var(--panel-radius) 0 0 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .company-btn:hover {
+    background: var(--wash);
+  }
+}
+
+.company-btn:active {
+  background: var(--wash-strong);
+}
+
+/* The mark's tile is ink on every page. On a dark page its 1 device px paper hairline holds it off the ground (site/Mark.tsx). */
+.mark-edge {
+  display: inline;
+}
+
+:root[data-theme='dark'] .mark-edge {
+  display: none;
+}
+
+/* The way home: the Locus mark, first in the card's heading, its own control behind a hairline, so it doesn't read as the company's logo. */
+.home-mark {
+  position: relative;
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 14px;
+  margin-right: 2px;
+  border-right: 1px solid var(--hair);
+  border-radius: var(--panel-radius) 0 0 0;
+  transition: opacity 120ms ease;
+}
+
+/* Under the mark, so it never lies over the company's name beside it. */
+.home-tip {
+  position: absolute;
+  left: 6px;
+  top: calc(100% + 6px);
+  z-index: 2;
+  padding: 3px 8px;
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.home-mark:focus-visible .home-tip {
+  opacity: 1;
+}
+
+.start-own-dot {
+  margin: 0 7px;
+  color: var(--faint);
+}
+
+.home-mark:focus-visible {
+  outline-offset: -2px;
+  border-radius: var(--panel-radius) 6px 6px 6px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-mark:hover > svg {
+    opacity: 0.8;
+  }
+  .home-mark:hover .home-tip {
+    opacity: 1;
+  }
+}
+
+.home-mark:active > svg {
+  opacity: 0.7;
+}
+
+.home-mark + .company-btn {
+  padding-left: 12px;
+  border-radius: 0;
+}
+
+/* Folded, the heading also says what's inside. Open, what's inside says so itself. */
+.company-stack {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.company-fold {
+  display: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 15px;
+}
+
+.company-fold.is-ask {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.company-fold.is-ask svg {
+  vertical-align: -1px;
+}
+
+.company-name {
+  min-width: 0;
+  font-family: var(--sans);
+  font-size: 19px;
+  line-height: 25px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-btn svg {
+  flex: none;
+  margin-left: auto;
+  color: var(--soft);
+}
+
+.tag {
+  flex: none;
+  padding: 0 7px;
+  border: 1px solid var(--hair-strong);
+  border-radius: 4px;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.left-about {
+  display: block;
+  margin: 0;
+  text-wrap: pretty;
+  padding: 12px 14px 2px;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 19px;
+  text-align: left;
+}
+
+.left-about.is-live {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.left-about.is-live span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.left-about.is-live svg {
+  flex: none;
+  color: var(--soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .left-about.is-live:hover svg {
+    color: var(--ink);
+  }
+}
+
+.left-title {
+  padding: 14px 14px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19px;
+  /* A label, in the one voice labels have everywhere, the map's headings included. */
+  color: var(--soft);
+  letter-spacing: 0.03em;
+}
+
+.reader-list {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 7px;
+}
+
+.reader {
+  border-radius: 7px;
+}
+
+.reader.is-on {
+  background: var(--wash);
+}
+
+.reader-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 7px;
+  border-radius: 7px;
+  text-align: left;
+  transition: background-color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .reader:not(.is-on) .reader-row:hover {
+    background: var(--wash);
+  }
+}
+
+.reader:not(.is-on) .reader-row:active {
+  background: var(--wash-strong);
+}
+
+.reader-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.reader-count .need-mark {
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+}
+
+.reader-more {
+  padding: 0 7px 10px 37px;
+}
+
+.reader-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  height: 30px;
+  text-align: left;
+}
+
+.reader-area .switch {
+  width: 26px;
+  height: 16px;
+  border-radius: 8px;
+}
+
+.reader-area .switch::after {
+  width: 12px;
+  height: 12px;
+}
+
+.reader-area .switch[aria-checked='true']::after {
+  transform: translateX(10px);
+}
+
+.reader-area.in-panel {
+  height: 38px;
+}
+
+.side-label {
+  margin-bottom: 8px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.reader-setup {
+  width: 100%;
+  height: 30px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.reader-none {
+  margin: 0;
+  padding: 2px 7px 7px;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.left-foot {
+  padding: 2px 7px 7px;
+}
+
+.reader-add {
+  width: 100%;
+  height: 38px;
+  justify-content: flex-start;
+  padding: 0 7px 0 12px;
+  gap: 13px;
+  color: var(--soft);
+}
+
+
+/* What someone reading with a password sees instead. */
+
+.gate-list {
+  overflow-y: auto;
+  padding: 0 7px 7px;
+}
+
+.gate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  padding: 0 7px;
+  border-radius: 6px;
+  text-align: left;
+  transition: background-color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gate-row:hover {
+    background: var(--wash);
+  }
+}
+
+.gate-row.is-hot {
+  background: var(--wash);
+}
+
+.gate-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gate-count {
+  flex: none;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+/* Top: the bar between the left card and the screen's edge. The status takes the middle of what's free, and gives way first. */
+
+.top-bar {
+  position: fixed;
+  top: var(--gutter);
+  left: calc(var(--left-w) + var(--gutter) * 2);
+  right: var(--gutter);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  z-index: 11;
+  pointer-events: none;
+}
+
+.top-bar > * {
+  pointer-events: auto;
+}
+
+.status-slot {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+/* The one thing worth saying right now, as loud as it deserves. */
+
+.status {
+  min-height: 40px;
+  padding: 8px 14px;
+  line-height: 21px;
+  white-space: nowrap;
+}
+
+.status b {
+  font-weight: 500;
+}
+
+.status .quiet {
+  color: var(--soft);
+}
+
+.status-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  border-radius: 3px;
+}
+
+.status-open .quiet {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-open svg {
+  flex: none;
+  color: var(--soft);
+}
+
+/* What else is waiting, each beside the mark it wears on the map. Only where there's room: under this it's a count. */
+.status-parts {
+  display: none;
+}
+
+.status-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-parts .need-mark {
+  width: 15px;
+  height: 15px;
+  font-size: 12px;
+}
+
+.status-open .status-parts .need-mark.is-look {
+  width: 7px;
+  height: 7px;
+  margin: 0 1px;
+}
+
+/* What else is waiting, spelled out beside its marks, until the top line needs the room (fit-2 in Top.tsx). */
+.top-bar:not(.fit-2) .status:not(:has(.status-do)) .has-parts .status-parts {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+  margin-left: 4px;
+}
+
+.top-bar:not(.fit-2) .status:not(:has(.status-do)) .has-parts .status-more,
+.top-bar:not(.fit-2) .status:not(:has(.status-do)) .has-parts .quiet {
+  display: none;
+}
+
+.top-bar:not(.fit-2) .status:not(.is-now) .has-parts > .need-mark {
+  display: none;
+}
+
+.top-bar:not(.fit-2) .status:not(.is-now) .status-part {
+  color: var(--soft);
+}
+
+/* Amber means it needs you now and nothing else, so it stops where that sentence stops, whether what's left is spelled out or counted. What's left waits on the same ground as every other control. */
+.status.is-now:has(.has-more) {
+  background: var(--raised);
+  border-color: var(--hair);
+  color: var(--ink);
+  padding: 0 12px 0 0;
+  box-shadow: var(--shadow);
+}
+
+.status.is-now .has-more {
+  gap: 14px;
+  align-self: stretch;
+}
+
+.status.is-now .has-more .status-head {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -1px 0 -1px -1px;
+  padding: 0 14px;
+  background: var(--alert);
+  color: var(--on-alert);
+  border-radius: var(--panel-radius) 0 0 var(--panel-radius);
+}
+
+.top-bar:not(.fit-2) .status.is-now:not(:has(.status-do)) .has-parts .status-parts {
+  margin-left: 0;
+}
+
+.top-bar:not(.fit-2) .status.is-now .status-part {
+  color: var(--soft);
+}
+
+.top-bar:not(.fit-2) .status.is-now .status-parts .need-mark {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+/* Nothing to say: hardly any weight. It still needs a ground of its own, because a county's border running through it reads as struck out. */
+/* Its own centre on the row's, though it's smaller than the controls beside it. */
+@media (min-width: 981px) {
+  .status.is-clear {
+    margin-top: 3px;
+  }
+}
+
+.status.is-clear {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  min-height: 30px;
+  padding: 4px 12px 4px 10px;
+  color: var(--soft);
+  font-size: 13px;
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  border-radius: var(--control-radius);
+}
+
+/* The one loud thing on the page. Amber, because vermilion means sealed. */
+.status.is-now {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--alert);
+  border-color: transparent;
+  color: var(--on-alert);
+  box-shadow: 0 1px 2px rgba(21, 25, 30, 0.12), 0 10px 26px -8px rgba(160, 110, 0, 0.5);
+}
+
+.status.is-now .status-open {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Only a heading where amber stops short of the whole bar. Everywhere else it isn't there. */
+.status-head {
+  display: contents;
+}
+
+/* However long the names, the words give way before the button does. */
+.status.is-now .status-open b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status.is-now .status-more {
+  flex: none;
+}
+
+.status.is-now .has-more .status-more {
+  color: var(--soft);
+}
+
+.status.is-now .status-open svg {
+  color: inherit;
+}
+
+.status.is-now .need-mark {
+  background: var(--on-alert);
+  color: var(--alert);
+}
+
+.status.is-now .status-more {
+  opacity: 0.72;
+}
+
+.status.is-now:has(.status-do) {
+  padding-right: 5px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.status-do {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 5px;
+  background: var(--on-alert);
+  color: #fbfcfc;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* A picked reader can still read something you've closed, so while their picture is up it's the bar's whole message. */
+.status.is-now.is-lens {
+  gap: 10px;
+}
+
+.status.is-now.is-lens .status-done {
+  background: rgba(21, 25, 30, 0.12);
+}
+
+.lens-still {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.lens-still-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 6px 0 2px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--alert) 22%, var(--raised));
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.status.is-lens {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 7px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.status.is-lens > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-done {
+  flex: none;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 5px;
+  background: var(--wash-strong);
+  font-size: 13px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .status-done:hover {
+    background: rgba(var(--ink-rgb), 0.12);
+  }
+  .status-open:hover b {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  .status-do:hover {
+    opacity: 0.88;
+  }
+}
+
+/* Top right. */
+
+.top-right {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The cost is the button: the number answers the question, and clicking it spreads the prices over the map. */
+.dollar-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  height: 40px;
+  padding: 7px 14px 0;
+  /* A surface of its own on the map, so it has a surface's corners, like the status beside it. */
+  border-radius: var(--panel-radius);
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms var(--ease-out);
+}
+
+.dollar-toggle:active {
+  transform: scale(0.97);
+}
+
+.dollar-toggle[aria-pressed='true'] {
+  border-color: var(--ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dollar-toggle:hover {
+    background: color-mix(in srgb, var(--ink) 3.5%, var(--raised));
+    border-color: var(--hair-strong);
+  }
+  .dollar-toggle[aria-pressed='true']:hover {
+    border-color: var(--ink);
+  }
+}
+
+.cost-figure {
+  font-family: var(--sans);
+  font-size: 19px;
+  line-height: 23px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The unread dot again: there's something to look at in here, when you have a minute. */
+.cost-others {
+  color: var(--soft);
+  font-size: 14px;
+}
+
+.cost-per {
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.cost-none {
+  align-self: center;
+  margin-top: -6px;
+}
+
+.add-menu {
+  position: relative;
+}
+
+.add-menu .menu {
+  top: calc(100% + 8px);
+  right: 0;
+  transform-origin: top right;
+}
+
+.top-right > .add-menu > .btn {
+  height: 40px;
+  box-shadow: var(--shadow);
+}
+
+/* Whether it's live is a fact, not a button, so the fact is always there and the button only when there's something to do. */
+
+.live-state {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 4px 0 14px;
+  /* A surface of its own on the map, so it has a surface's corners, like the status beside it. */
+  border-radius: var(--panel-radius);
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+
+.live-state.is-current {
+  padding-right: 14px;
+}
+
+.live-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.live-state .go-live {
+  height: 30px;
+  margin-left: 10px;
+  padding: 0 13px;
+  box-shadow: none;
+}
+
+.live-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--live);
+}
+
+/* Not live: an empty ring, like a radio button nobody has pressed. */
+.is-not-live .live-dot,
+.live-dot.is-off {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--faint);
+}
+
+/* Live, but behind: the same colour, not filled in. Whole means readers have all of it. */
+.has-changes .live-dot {
+  background: none;
+  box-shadow: inset 0 0 0 2px var(--live);
+}
+
+/* Readers are behind, so the whole pill goes to ink. It's the one thing here that's still different at a glance, and it isn't a warning. */
+.live-state.has-changes:not(.is-current) {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.live-state.has-changes:not(.is-current) .live-changes,
+.live-state.has-changes:not(.is-current) .live-changes svg {
+  color: var(--on-ink);
+}
+
+.live-state.has-changes:not(.is-current) .go-live {
+  background: var(--on-ink);
+  border-color: var(--on-ink);
+  color: var(--ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .live-state.has-changes:not(.is-current) .go-live:hover:not(:disabled) {
+    background: var(--on-ink);
+    border-color: var(--on-ink);
+    opacity: 0.86;
+  }
+}
+
+.live-state.has-changes:not(.is-current) .go-live:active:not(:disabled) {
+  background: var(--on-ink);
+  border-color: var(--on-ink);
+  opacity: 0.74;
+}
+
+.live-state.has-changes:not(.is-current) .go-live[aria-busy='true'] {
+  background: var(--on-ink);
+  border-color: var(--on-ink);
+  color: var(--ink);
+}
+
+.is-not-live .live-word {
+  color: var(--soft);
+}
+
+/* Right: peek and share share a slot. */
+
+.side {
+  position: fixed;
+  top: calc(var(--gutter) + var(--bar) + 8px);
+  right: var(--gutter);
+  /* As tall as what it holds, up to the foot of the screen. The rest of the height is map. */
+  max-height: calc(100dvh - var(--gutter) * 2 - var(--bar) - 8px);
+  width: var(--side-w);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 11;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 260ms var(--ease-drawer), opacity 180ms ease;
+}
+
+@starting-style {
+  .side {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+}
+
+.side-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 10px 10px 18px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.side-head .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.side-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.side-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--hair);
+}
+
+.title-input {
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  padding: 0;
+  font-family: var(--sans);
+  font-size: 19px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 120ms ease;
+}
+
+.title-input:focus {
+  border-bottom-color: var(--ink);
+}
+
+.text-btn {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hair-strong);
+  font-size: inherit;
+  transition: text-decoration-color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .text-btn:hover,
+  .cart-note button:hover,
+  .source-note a:hover,
+  .menu-note a:hover {
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 1.5px;
+  }
+  .title-input:hover:not(:focus) {
+    border-bottom-color: var(--hair-strong);
+  }
+}
+
+.side-foot .btn-quiet {
+  padding-left: 4px;
+}
+
+.piece-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.piece-title {
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  resize: none;
+  font-family: var(--sans);
+  font-size: 24px;
+  line-height: 29px;
+  overflow: hidden;
+  display: block;
+}
+
+.piece-summary {
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  resize: none;
+  color: var(--soft);
+  font-size: 14px;
+  line-height: 21px;
+  overflow: hidden;
+  display: block;
+}
+
+.piece-body {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 24px;
+  cursor: text;
+  min-height: 52px;
+  border-radius: 4px;
+}
+
+/* Nothing written yet is one quiet line, not the panel's biggest space. */
+.piece-body.placeholder {
+  min-height: 24px;
+  font-size: 13px;
+}
+
+.piece-body.is-readonly {
+  cursor: default;
+}
+
+.piece-body > :first-child {
+  margin-top: 0;
+}
+
+.piece-body p {
+  margin: 0 0 10px;
+}
+
+.piece-body ul,
+.piece-body ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.piece-body code {
+  font-family: var(--sans);
+  font-size: 13px;
+  background: var(--wash);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.piece-body h3,
+.piece-body h4 {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 16px;
+  margin: 14px 0 6px;
+}
+
+.piece-body-edit {
+  width: 100%;
+  min-height: 140px;
+  background: none;
+  border: 0;
+  outline: none;
+  resize: none;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 24px;
+  padding: 0;
+  display: block;
+}
+
+.placeholder {
+  color: var(--faint);
+}
+
+/* You can write in these. Nothing else on the page says so, so the pointer does. */
+.piece-title,
+.piece-summary,
+button.piece-body {
+  border-radius: 4px;
+  transition: background-color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  textarea.piece-title:hover,
+  textarea.piece-summary:hover,
+  button.piece-body:hover {
+    background: var(--wash);
+    box-shadow: 0 0 0 4px var(--wash);
+  }
+  textarea.piece-title:focus,
+  textarea.piece-summary:focus {
+    background: none;
+  }
+}
+
+/* Where the caret is, the same line as a reader's name when you're writing in it. */
+textarea.piece-title:focus,
+textarea.piece-summary:focus {
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+.side:focus {
+  outline: none;
+}
+
+button.piece-body {
+  display: block;
+  width: 100%;
+  text-align: left;
+  /* It's writing that happens to open an editor, and someone may want to copy it. */
+  user-select: text;
+}
+
+/* What's the matter with an item, when you point at it. */
+.map-tip {
+  position: fixed;
+  z-index: 20;
+  max-width: 300px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 18px;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+@starting-style {
+  .map-tip {
+    opacity: 0;
+  }
+}
+
+.map-tip b {
+  display: block;
+  font-weight: 500;
+}
+
+.props {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--hair);
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 16px;
+  align-items: center;
+}
+
+.props dt {
+  color: var(--soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.props dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prop-input {
+  width: 100%;
+  padding: 2px 7px;
+  margin-left: -7px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  outline: none;
+  text-overflow: ellipsis;
+  transition: background-color 100ms ease, border-color 100ms ease;
+}
+
+.prop-input:focus {
+  border-color: var(--ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .prop-input:hover {
+    background: var(--wash);
+  }
+}
+
+.select {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 2px 7px;
+  margin-left: -7px;
+  max-width: 100%;
+  cursor: pointer;
+  transition: background-color 100ms ease, border-color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .select:hover {
+    background: var(--wash);
+  }
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.select option {
+  background: var(--raised);
+  color: var(--ink);
+}
+
+.link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 7px;
+  margin-left: -6px;
+  border-radius: 5px;
+  text-align: left;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link-item:hover {
+    background: var(--wash);
+  }
+}
+
+.link-item:active {
+  background: var(--wash-strong);
+}
+
+.link-item .note {
+  margin-left: auto;
+  flex: none;
+  color: var(--faint);
+  font-family: var(--sans);
+  font-size: 12px;
+}
+
+.section-title {
+  margin: 18px 0 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hair);
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.callout {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: var(--wash);
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.callout.has-mark {
+  display: flex;
+  gap: 10px;
+}
+
+.callout.is-now {
+  background: color-mix(in srgb, var(--alert) 22%, var(--raised));
+}
+
+.callout .need-actions .btn {
+  height: 28px;
+}
+
+.callout .actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.callout-note {
+  margin: 6px 0 0;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.callout .btn {
+  height: 28px;
+  padding: 0 11px;
+  font-size: 13px;
+}
+
+.money-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+/* The price is a figure, not a second title: the top line's size. */
+.money-big {
+  font-family: var(--sans);
+  font-size: 19px;
+  line-height: 26px;
+}
+
+.money-big .per {
+  color: var(--soft);
+  font-size: 14px;
+}
+
+.source-note {
+  margin: 6px 0 0;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/* Share. */
+
+.key-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 12px;
+  background: var(--field);
+  border: 1px solid var(--hair);
+  border-radius: var(--control-radius);
+}
+
+.key-box code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--sans);
+  font-size: 12px;
+  user-select: all;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--wash);
+  border-radius: 7px;
+}
+
+.tab {
+  flex: 1;
+  height: 28px;
+  padding: 0 4px;
+  border-radius: 5px;
+  color: var(--soft);
+  font-size: 13px;
+  white-space: nowrap;
+  transition: color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover {
+    color: var(--ink);
+  }
+}
+
+.tab[aria-selected='true'] {
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--hair);
+}
+
+.code-block {
+  margin: 8px 0 0;
+  padding: 12px;
+  background: var(--field);
+  border: 1px solid var(--hair);
+  border-radius: 7px;
+}
+
+.code-block code {
+  display: block;
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A command breaks between its words, not inside them. */
+.code-block .tok {
+  white-space: nowrap;
+}
+
+.more-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 0 2px;
+  border-top: 1px solid var(--hair);
+  color: var(--soft);
+  font-size: 13px;
+  text-align: left;
+  transition: color 100ms ease;
+}
+
+.more-toggle svg {
+  transition: transform 160ms var(--ease-out);
+}
+
+.more-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .more-toggle:hover {
+    color: var(--ink);
+  }
+}
+
+.code-copy {
+  height: 28px;
+  padding: 0 11px;
+  gap: 6px;
+}
+
+/* Copy is the whole job in here, so it stays at the top of the box, where the box's own length can't push it out of sight. */
+.code-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.code-block .code-copy {
+  order: -1;
+  align-self: flex-end;
+  margin: 0 0 6px;
+}
+
+/* JSON keeps its shape. It scrolls sideways sooner than losing its indents to the left margin. */
+.code-block.is-shaped code {
+  white-space: pre;
+  overflow-x: auto;
+  overflow-wrap: normal;
+}
+
+.steps.is-single {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tab-note {
+  margin: 10px 0 0;
+}
+
+.steps {
+  margin: 10px 0 0;
+  padding: 0 0 0 20px;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.steps li {
+  margin: 0 0 8px;
+  padding-left: 2px;
+}
+
+.steps li::marker {
+  color: var(--soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.step-note {
+  margin: 2px 0 0;
+}
+
+code.inline {
+  font-family: var(--sans);
+  font-size: 12px;
+}
+
+.select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.select-wrap .select {
+  margin: 0;
+  padding: 3px 24px 3px 10px;
+  border-color: var(--hair);
+}
+
+.select-wrap svg {
+  position: absolute;
+  right: 6px;
+  pointer-events: none;
+}
+
+.start-own {
+  margin: 6px 14px 0;
+  align-self: flex-start;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.shred-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--soft);
+}
+
+.live-changes {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: opacity 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .live-changes:hover {
+    opacity: 0.72;
+  }
+}
+
+.changes {
+  /* It sits inside the pill, which goes to ink when readers are behind, and the list inherits from it. */
+  color: var(--ink);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  padding: 14px 16px;
+  z-index: 30;
+  white-space: normal;
+  font-size: 13px;
+  line-height: 19px;
+  transform-origin: top right;
+  transition: opacity 120ms ease, transform 160ms var(--ease-out);
+}
+
+@starting-style {
+  .changes {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.changes p {
+  margin: 0 0 6px;
+  color: var(--soft);
+}
+
+.changes ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.changes li {
+  padding: 2px 0;
+  overflow-wrap: anywhere;
+}
+
+.changes .quiet {
+  color: var(--soft);
+}
+
+.row-between {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.hint {
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.exposure {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--alert) 22%, var(--raised));
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.exposure .btn {
+  margin-top: 8px;
+  height: 30px;
+}
+
+/* What an agent sees. */
+
+/* It covers the land, and all that would be left in the gaps round it is stray bits of coast. */
+.map-canvas {
+  transition: opacity 180ms ease;
+}
+
+body:has(.agent-view) .map-canvas {
+  opacity: 0;
+}
+
+.agent-note {
+  display: block;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 17px;
+}
+
+.agent-view {
+  position: fixed;
+  top: calc(var(--gutter) + var(--bar) + 8px);
+  right: calc(var(--side-w) + var(--gutter) * 2);
+  bottom: var(--gutter);
+  left: calc(var(--left-w) + var(--gutter) * 2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 12;
+}
+
+.agent-text {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 20px;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.area-closed {
+  margin: 0 0 4px;
+  color: var(--vermilion);
+}
+
+/* Needs. */
+
+.needs-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  /* Under the pill's own edge, so the list's marks stand under the pill's. */
+  left: 0;
+  width: min(500px, calc(100vw - 24px));
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  padding: 7px;
+  box-shadow: var(--shadow-high);
+  transition: opacity 120ms ease, transform 160ms var(--ease-out);
+}
+
+@starting-style {
+  .needs-panel {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* What a dot on the map means, said once, where a finger can read it too. */
+.need-group {
+  margin: 6px 0 0;
+  padding: 10px 12px 2px;
+  border-top: 1px solid var(--hair);
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.need {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 7px;
+}
+
+/* A quiet need shouldn't spend a whole line on its way out. */
+.need.is-look .need-actions {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  margin: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .need.clickable:hover {
+    background: var(--wash);
+    cursor: pointer;
+  }
+}
+
+.need > .svc-tile {
+  margin-top: 1px;
+}
+
+.need-mark {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 1px 1px 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.need-mark.is-now {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  background: var(--alert);
+  color: var(--on-alert);
+  font-size: 13px;
+}
+
+/* The unread dot, as on the map. */
+.need-mark.is-look {
+  width: 8px;
+  height: 8px;
+  margin: 5px 5px 0;
+}
+
+.status-open .need-mark {
+  margin: 0;
+}
+
+.status-open .need-mark.is-look {
+  margin: 0 2px;
+}
+
+.need-text {
+  min-width: 0;
+}
+
+.need-kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 2px;
+}
+
+.need-kind .svc-tile {
+  box-shadow: 0 0 0 0.5px var(--hair-strong);
+}
+
+.need-quote {
+  margin: 6px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--hair-strong);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--soft);
+}
+
+.need-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.need-actions .btn {
+  height: 25px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.need-actions .btn-quiet:first-child {
+  margin-left: -8px;
+}
+
+.needs-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--soft);
+}
+
+/* Bottom right: zoom. */
+
+.bottom-right {
+  position: fixed;
+  right: var(--gutter);
+  bottom: var(--gutter);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 9;
+}
+
+.zoom {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 2px;
+}
+
+.zoom .icon-btn {
+  width: 26px;
+  height: 28px;
+}
+
+.zoom .pct:active {
+  background: var(--wash-strong);
+}
+
+.zoom .pct {
+  min-width: 42px;
+  text-align: center;
+  color: var(--soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  border-radius: 4px;
+  height: 22px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .zoom .pct:hover {
+    background: var(--wash);
+    color: var(--ink);
+  }
+  .zoom-whole:hover {
+    background: var(--wash);
+    color: var(--ink);
+  }
+}
+
+.zoom-whole {
+  height: 24px;
+  margin: 0 2px 0 4px;
+  padding: 0 10px;
+  border-left: 1px solid var(--hair);
+  border-radius: 0 4px 4px 0;
+  color: var(--soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* The cartouche: a chart's scale box. */
+
+.cartouche {
+  flex: none;
+  width: 100%;
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.cartouche-inner {
+  padding: 14px 14px 12px;
+}
+
+.cart-per {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.cart-also {
+  display: none;
+}
+
+/* The same mark a price with a note wears on the map, so the two explain each other. */
+.price-mark {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 5px 1.5px 1px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+.segmented {
+  display: inline-flex;
+  flex: none;
+  /* One width for every switch of two, so stacked ones line up on both edges. */
+  width: 112px;
+  padding: 1px;
+  border: 1px solid var(--hair);
+  border-radius: 5px;
+}
+
+.segmented button {
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--soft);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .segmented button:not([aria-pressed='true']):hover {
+    background: var(--wash);
+    color: var(--ink);
+  }
+}
+
+.segmented button:not([aria-pressed='true']):active {
+  background: var(--wash-strong);
+}
+
+.cart-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--soft);
+}
+
+.cart-notes {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 136px;
+  overflow-y: auto;
+}
+
+.cart-notes button {
+  display: block;
+  width: 100%;
+  padding: 4px 0;
+  border-top: 1px solid var(--hair);
+  text-align: left;
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cart-notes button:hover {
+    background: var(--wash);
+  }
+}
+
+.cart-note button {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+.cart-style {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--soft);
+}
+
+.town-legend {
+  position: absolute;
+  left: 100%;
+  bottom: 0;
+  margin-left: 8px;
+  padding: 12px 14px;
+  white-space: nowrap;
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cartouche:hover .town-legend {
+    display: block;
+  }
+}
+
+.town-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--soft);
+  margin-top: 4px;
+}
+
+.town-legend-row i {
+  display: block;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+}
+
+/* Menus. */
+
+.menu {
+  position: absolute;
+  min-width: 240px;
+  padding: 5px;
+  z-index: 30;
+  box-shadow: var(--shadow-high);
+  transform-origin: top left;
+  transition: opacity 120ms ease, transform 160ms var(--ease-out);
+}
+
+@starting-style {
+  .menu {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 5px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .menu-item:hover {
+    background: var(--wash);
+  }
+}
+
+.menu-item:active {
+  background: var(--wash-strong);
+}
+
+.menu-item .meta {
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.menu-item.is-on {
+  font-weight: 500;
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 5px 3px;
+  background: var(--hair);
+}
+
+.menu-note {
+  padding: 7px 10px 8px;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 18px;
+  white-space: normal;
+  max-width: 280px;
+}
+
+/* A service's tile. Same shape as on the map. The tile stays light in dark mode, so a dark mark never vanishes. */
+
+.svc-tile {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(21, 25, 30, 0.14);
+}
+
+.reader-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.svc-tile img {
+  display: block;
+  animation: logo-in 180ms ease-out;
+}
+
+:root[data-theme='dark'] .svc-tile {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* A monogram is plainly not a logo: paper, a hairline, and the first letter. */
+
+.svc-tile.svc-mono {
+  background: var(--field);
+  color: var(--soft);
+  font-family: var(--sans);
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(21, 25, 30, 0.26);
+}
+
+:root[data-theme='dark'] .svc-tile.svc-mono {
+  box-shadow: inset 0 0 0 1px rgba(232, 230, 223, 0.3);
+}
+
+@keyframes logo-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .svc-tile img {
+    animation: none;
+  }
+}
+
+/* Command palette. Opens instantly, because it opens a hundred times a day. */
+
+.cmdk {
+  position: fixed;
+  top: 14vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 24px));
+  max-height: 64vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 40;
+  box-shadow: var(--shadow-high);
+}
+
+.cmdk input {
+  width: 100%;
+  height: 52px;
+  padding: 0 18px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  outline: none;
+  font-size: 16px;
+}
+
+.cmdk input::placeholder {
+  color: var(--faint);
+}
+
+.cmdk-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 5px;
+}
+
+.cmdk-group {
+  padding: 10px 12px 3px;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.cmdk-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.cmdk-item[aria-selected='true'] {
+  background: var(--wash-strong);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmdk-item:not([aria-selected='true']):hover {
+    background: var(--wash);
+  }
+}
+
+.cmdk-item .title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmdk-item .title small {
+  margin-left: 8px;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.cmdk-item .meta {
+  flex: none;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.kbd {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* Sheets. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 35;
+  transition: opacity 180ms ease;
+}
+
+@starting-style {
+  .scrim {
+    opacity: 0;
+  }
+}
+
+.cmdk-scrim {
+  z-index: 39;
+}
+
+.sheet:focus,
+.needs-panel:focus {
+  outline: none;
+}
+
+.sheet-wrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 36;
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.sheet {
+  width: min(460px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  box-shadow: var(--shadow-high);
+  pointer-events: auto;
+  transition: opacity 180ms ease, transform 240ms var(--ease-out);
+}
+
+@starting-style {
+  .sheet {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+
+.sheet-inner {
+  padding: 24px 24px 20px;
+}
+
+/* A sheet has the floor. What's behind it stays behind it, or an empty map's big words poke out at its sides. */
+body:has(.sheet) .empty > * {
+  visibility: hidden;
+}
+
+.sheet h2 {
+  margin: 0 0 12px;
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 30px;
+}
+
+.sheet p {
+  margin: 0 0 14px;
+  color: var(--soft);
+  line-height: 20px;
+}
+
+.sheet .actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 12px 0 0;
+  background: var(--raised);
+}
+
+.sheet label {
+  display: block;
+  margin: 12px 0 5px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.address-field {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  background: var(--field);
+  border: 1px solid var(--hair);
+  border-radius: var(--control-radius);
+  transition: border-color 120ms ease;
+}
+
+.address-field:focus-within {
+  border-color: var(--ink);
+}
+
+.address-field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 12px;
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.address-field span {
+  flex: none;
+  padding-right: 12px;
+  color: var(--faint);
+}
+
+.field-note {
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--soft);
+  min-height: 17px;
+}
+
+/* Something's wrong, so it doesn't look like help text. */
+.field-note.is-wrong,
+.sheet p.hint[role='alert'] {
+  color: var(--ink);
+}
+
+.sheet p.sheet-aside {
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+
+.sheet p.sheet-error {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  background: var(--wash);
+  border-radius: 7px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.owner-key {
+  display: block;
+  padding: 14px;
+  margin: 4px 0 10px;
+  background: var(--field);
+  border: 1px solid var(--hair);
+  border-radius: 7px;
+  font-family: var(--sans);
+  /* The one string here that has to be copied exactly, so it isn't set like the sentences round it. */
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  word-break: break-all;
+  user-select: all;
+}
+
+.file-list {
+  max-height: min(180px, 20vh);
+  overflow-y: auto;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--hair);
+  border-radius: 7px;
+}
+
+.file-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.file-row:last-child {
+  border-bottom: 0;
+}
+
+.file-row span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-row span:last-child {
+  flex: none;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.choice {
+  display: block;
+  width: 100%;
+  padding: 13px 14px;
+  margin-bottom: 6px;
+  text-align: left;
+  border: 1px solid var(--hair);
+  border-radius: 7px;
+  transition: border-color 120ms ease, transform 140ms var(--ease-out);
+}
+
+.choice:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .choice:hover {
+    border-color: var(--hair-strong);
+    background: var(--wash);
+  }
+}
+
+.choice[aria-pressed='true'],
+.choice[aria-pressed='true']:hover {
+  border-color: var(--ink);
+  background: none;
+}
+
+.choice b {
+  display: block;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.choice span {
+  display: block;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.catalog-list {
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.catalog-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 5px;
+  text-align: left;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .catalog-item:hover {
+    background: var(--wash);
+  }
+}
+
+.catalog-item:active {
+  background: var(--wash-strong);
+}
+
+.catalog-item .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.catalog-item .meta {
+  flex: none;
+  color: var(--faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* First run. */
+
+.empty {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 26px;
+  text-align: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.empty > * {
+  pointer-events: auto;
+}
+
+.empty-word {
+  position: fixed;
+  top: 20px;
+  left: 24px;
+  font-family: var(--sans);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.empty h1 {
+  margin: 0;
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: clamp(38px, 6.4vw, 72px);
+  line-height: 1.06;
+  letter-spacing: -0.012em;
+  max-width: 13em;
+}
+
+.empty p {
+  margin: 20px 0 26px;
+  max-width: 46ch;
+  text-wrap: balance;
+  color: var(--soft);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* Each sentence balances on its own, so the wrap doesn't split one across lines to even them out. */
+/* One paragraph, balanced as one, so the lede is even lines under the headline rather than two blocks. */
+.empty p span {
+  display: inline;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.empty-actions .btn {
+  height: 38px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+.empty-note {
+  margin-top: 16px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.empty-foot {
+  position: fixed;
+  bottom: 18px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.empty-foot button,
+.empty-foot a {
+  color: var(--soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hair-strong);
+  transition: color 100ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .empty-foot button:hover,
+  .empty-foot a:hover {
+    color: var(--ink);
+    text-decoration-color: currentColor;
+  }
+}
+
+.empty.blank h1 {
+  font-size: clamp(26px, 3.4vw, 40px);
+  line-height: 1.12;
+}
+
+.empty.blank p {
+  margin: 10px 0 18px;
+}
+
+/* Locked address. */
+
+.lock {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 5;
+}
+
+.lock-card {
+  width: min(400px, 100%);
+  background: var(--raised);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  box-shadow: var(--shadow-high);
+}
+
+.lock-inner {
+  padding: 26px 26px 22px;
+  text-align: center;
+}
+
+.lock-card img {
+  display: block;
+  margin: 0 auto 12px;
+}
+
+.lock-card h1 {
+  margin: 0 0 4px;
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.lock-card p {
+  margin: 0 0 16px;
+  color: var(--soft);
+}
+
+.lock-card .btn {
+  width: 100%;
+  margin-top: 8px;
+  height: 40px;
+}
+
+.lock-error {
+  margin-top: 8px;
+  min-height: 18px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.lock-note {
+  margin: 14px 0 0 !important;
+  color: var(--faint) !important;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/* Dropping. */
+
+.drop-hint {
+  position: fixed;
+  inset: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--ink);
+  border-radius: 10px;
+  background: var(--scrim);
+  font-family: var(--sans);
+  font-size: 24px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.shred-strip {
+  position: fixed;
+  bottom: var(--gutter);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 24px));
+  padding: 12px 16px;
+  z-index: 15;
+}
+
+.shred-strip .line {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.shred-strip .line span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shred-strip .line span:last-child {
+  flex: none;
+  color: var(--soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.shred-bar {
+  height: 2px;
+  margin-top: 8px;
+  background: var(--hair);
+  overflow: hidden;
+}
+
+.shred-bar i {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transition: width 400ms var(--ease-out);
+}
+
+/* Toasts. */
+
+.toasts {
+  position: fixed;
+  bottom: var(--gutter);
+  left: var(--gutter);
+  right: var(--gutter);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* A box in a reader's panel comes straight after a button. */
+.side .exposure {
+  margin: 12px 0 0;
+}
+
+.toast span {
+  text-wrap: pretty;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(100%, 680px);
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--on-ink);
+  border-radius: 8px;
+  box-shadow: var(--shadow-high);
+  pointer-events: auto;
+  transition: opacity 180ms ease, transform 220ms var(--ease-out);
+}
+
+@starting-style {
+  .toast {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* With a panel open, a message stays in the map's half, clear of the panel's words and above the zoom control. */
+body:has(.side) .toasts {
+  right: calc(372px + var(--gutter) * 2);
+  bottom: 56px;
+}
+
+/* What a reader reads fills the map's half, so while a message is up the text ends above it, and the message doesn't lie on the lines you came to check. */
+@media (min-width: 721px) {
+  body:has(.agent-view) .toasts {
+    bottom: var(--gutter);
+  }
+  body:has(.toast) .agent-view {
+    bottom: 64px;
+  }
+}
+
+/* First arrival: above the line with the way to sign in. */
+body:has(.empty-foot) .toasts {
+  bottom: 56px;
+}
+
+.toast button {
+  flex: none;
+  white-space: nowrap;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Narrower screens. The Studio is for laptops, but it must not break. */
+
+/* The top line's steps, as Top.tsx's useFitTop takes them: each gives up what's least needed, until nothing is cut or covered. */
+.form-short,
+.per-short {
+  display: none;
+}
+
+.top-bar.fit-1 .cost-per .optional {
+  display: none;
+}
+
+.top-bar.fit-6 .cost-others {
+  display: none;
+}
+
+/* Where the other currencies have given way, a + still says there's more to the bill than this. */
+.cost-more {
+  display: none;
+  margin-left: 1px;
+  color: var(--soft);
+}
+
+.top-bar.fit-6 .cost-more {
+  display: inline;
+}
+
+.top-bar.fit-2 .status.is-lens .optional {
+  display: none;
+}
+
+.top-bar.fit-5 .status .status-more,
+.top-bar.fit-5 .status .quiet,
+.top-bar.fit-5 .status .optional {
+  display: none;
+}
+
+.top-bar.fit-4 .form-long,
+.top-bar.fit-3 .per-long {
+  display: none;
+}
+
+.top-bar.fit-4 .form-short,
+.top-bar.fit-3 .per-short {
+  display: inline;
+}
+
+@media (max-width: 980px) {
+  .agent-view {
+    left: var(--gutter);
+    right: var(--gutter);
+    z-index: 13;
+  }
+  /* The card folds away to its heading, so the map has the width. Clicking the heading opens it. */
+  .left {
+    max-height: 60px;
+    overflow: hidden;
+  }
+  .left .left-head {
+    min-height: 58px;
+  }
+  /* Folded, the heading is two lines, with the same room above the first as below the second. */
+  .left:not(.is-open) .company-btn {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+  .left:not(.is-open) .company-fold {
+    display: block;
+  }
+  .left:not(.is-open) .company-name {
+    line-height: 23px;
+  }
+  /* Folded means folded. Or Tab walks through rows nobody can see, and scrolls the heading out of its own card. */
+  .left:not(.is-open) > :not(.left-head) {
+    visibility: hidden;
+  }
+  .left.is-open {
+    max-height: calc(100dvh - 24px);
+    overflow: visible;
+    z-index: 14;
+  }
+  .phone-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+  }
+  /* The zoom control takes the foot of a narrow window, and a long message would reach it. */
+  .toasts {
+    bottom: 56px;
+  }
+  /* In a narrow window a panel and these can't all stand on what's left of the map, and the panel is what was asked for. */
+  body:has(.side) .bottom-right,
+  body:has(.side) .cartouche {
+    display: none;
+  }
+  .empty-foot {
+    flex-direction: column;
+    align-items: center;
+  }
+  /* Beside the open card, so what needs you and the way out of a reader's view don't go when it opens. */
+  body:has(.left.is-open) .status {
+    left: calc(var(--left-w) + var(--gutter) * 2);
+    max-width: calc(100vw - var(--left-w) - var(--gutter) * 3);
+  }
+}
+
+.left.is-folding {
+  overflow: hidden;
+}
+
+@media (min-width: 1101px) and (max-width: 1360px) {
+  .side:has(.lens-chips) {
+    width: calc(var(--side-w) - 40px);
+  }
+  /* What a reader reads stands beside that panel, so it narrows with it. */
+  .agent-view {
+    right: calc(var(--side-w) - 40px + var(--gutter) * 2);
+  }
+}
+
+/* A reader's panel holds what the card holds about them, so the card folds to its heading, at any width. As under 980, and for the same reasons. */
+.left.is-folded {
+  max-height: 60px;
+  overflow: hidden;
+}
+.left.is-folded .left-head {
+  min-height: 58px;
+}
+.left.is-folded:not(.is-open) .company-btn {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.left.is-folded:not(.is-open) .company-fold {
+  display: block;
+}
+.left.is-folded:not(.is-open) .company-name {
+  line-height: 23px;
+}
+.left.is-folded:not(.is-open) > :not(.left-head) {
+  visibility: hidden;
+  /* What's in the card stays until the fold has closed over it. */
+  transition: visibility 0s linear 240ms;
+}
+.left.is-folded.is-open {
+  max-height: calc(100dvh - 24px);
+  overflow: visible;
+  z-index: 14;
+}
+.left.is-folded .phone-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+body:has(.left.is-folded) .agent-view {
+  left: var(--gutter);
+}
+/* Clear of the folded heading, which stands a little lower than the top row's controls. */
+@media (min-width: 721px) {
+  body:has(.left.is-folded) .agent-view {
+    top: 66px;
+  }
+}
+
+@media (max-width: 1240px) {
+  /* Too narrow to share a line: the status drops under the controls. */
+  .top-bar,
+  .status-slot {
+    display: contents;
+  }
+  .top-right {
+    position: fixed;
+    top: var(--gutter);
+    right: var(--gutter);
+    z-index: 11;
+  }
+  .status {
+    position: fixed;
+    top: calc(var(--gutter) + var(--bar) + 6px);
+    left: calc(var(--left-w) + var(--gutter) * 2);
+    right: var(--gutter);
+    width: fit-content;
+    max-width: calc(100vw - var(--left-w) - var(--gutter) * 3);
+    z-index: 11;
+  }
+  .needs-panel {
+    position: fixed;
+    top: calc(var(--gutter) + var(--bar) * 2 + 10px);
+    z-index: 12;
+  }
+  /* Under the line, not across it. */
+  .side {
+    top: calc(var(--gutter) + var(--bar) * 2 + 14px);
+    max-height: calc(100dvh - var(--gutter) * 2 - var(--bar) * 2 - 14px);
+  }
+}
+
+@media (max-width: 980px) {
+  /* Under the folded card, not across its edge. */
+  .status {
+    top: calc(var(--gutter) + var(--fold-h) + 8px);
+    left: var(--gutter);
+    max-width: calc(100vw - var(--gutter) * 2);
+  }
+  .needs-panel {
+    top: calc(var(--gutter) + var(--fold-h) + var(--bar) + 16px);
+  }
+  .side {
+    top: calc(var(--gutter) + var(--fold-h) + var(--bar) + 18px);
+    max-height: calc(100dvh - var(--gutter) * 2 - var(--fold-h) - var(--bar) - 18px);
+  }
+}
+
+@media (max-width: 720px) {
+  .left-col {
+    width: auto;
+    right: var(--gutter);
+  }
+  .left {
+    align-self: flex-start;
+    width: calc(100vw - var(--top-right-w, 144px) - var(--gutter) * 3);
+  }
+  .left.is-open {
+    width: calc(100vw - var(--gutter) * 2);
+    max-height: calc(100dvh - 90px);
+  }
+  /* Here the card has the whole width, and it holds the same things. */
+  body:has(.left.is-open) .status {
+    visibility: hidden;
+  }
+  /* No price beside it, so the name has the whole line. */
+  body:not(:has(.dollar-toggle)) .left {
+    width: calc(100vw - var(--gutter) * 2);
+  }
+  /* A phone is for checking on the map and answering it. What you do there sits under your thumb: add on the left, going live on the right. */
+  .left-col {
+    bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+  .add-menu {
+    position: fixed;
+    left: var(--gutter);
+    bottom: calc(var(--gutter) + env(safe-area-inset-bottom));
+    z-index: 11;
+  }
+  .add-menu .menu {
+    top: auto;
+    bottom: 48px;
+    left: 0;
+    right: auto;
+    transform-origin: bottom left;
+  }
+  .live-state {
+    position: fixed;
+    right: var(--gutter);
+    bottom: calc(var(--gutter) + env(safe-area-inset-bottom));
+    z-index: 11;
+    height: 42px;
+  }
+  .top-right > .add-menu > .btn {
+    height: 42px;
+  }
+  .live-state .go-live {
+    height: 38px;
+  }
+  .changes {
+    top: auto;
+    bottom: calc(100% + 8px);
+    transform-origin: bottom right;
+  }
+  .shred-strip,
+  .toasts {
+    bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+  /* A panel or a reader's sheet holds the bottom of the screen, so a message goes over the map above it, under the header and the line that says what needs you. */
+  body:has(.side) .toasts,
+  body:has(.lens-sheet) .toasts {
+    top: calc(var(--gutter) + var(--fold-h) + var(--bar) + 20px);
+    right: var(--gutter);
+    bottom: auto;
+  }
+  body:has(.zoom:not(.is-fit)) .toasts {
+    bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+  /* Over the heading, which nobody needs while reading. Lower down it covered the text's close and copy. */
+  body:has(.agent-view) .toasts {
+    top: var(--gutter);
+    bottom: auto;
+  }
+  body:has(.empty-foot) .toasts {
+    bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+  /* While a reader is picked, the sheet holds everything, and the map above it is what they can see. */
+  .reader-more,
+  .status.is-lens {
+    display: none;
+  }
+  body:has(.lens-sheet) .add-menu,
+  body:has(.lens-sheet) .live-state {
+    display: none;
+  }
+  .needs-panel {
+    top: calc(var(--gutter) + var(--fold-h) + var(--bar) + 16px);
+    max-height: calc(100dvh - var(--gutter) * 2 - var(--fold-h) - var(--bar) - 16px);
+  }
+  .status .optional-phone,
+  .status .optional {
+    display: none;
+  }
+  .cartouche-inner {
+    padding: 10px 12px 8px;
+  }
+  /* Rings and Discs aren't offered on a phone. */
+  .cart-style {
+    display: none;
+  }
+  .cart-also {
+    display: inline;
+  }
+  .cart-note {
+    margin-top: 6px;
+  }
+  .left-col {
+    z-index: 12;
+  }
+  .status {
+    left: var(--gutter);
+    right: var(--gutter);
+    top: calc(var(--gutter) + var(--fold-h) + 8px);
+    width: auto;
+    max-width: none;
+    font-size: 13px;
+    white-space: normal;
+  }
+  .status-open {
+    flex-wrap: wrap;
+    text-align: left;
+    gap: 2px 10px;
+  }
+  /* The mark stays beside the first line, however many lines the words take. */
+  .status.is-now .status-open {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+  }
+  .status.is-now .status-open .need-mark {
+    flex: none;
+    margin-top: 2px;
+  }
+  .status.is-now .status-open b {
+    white-space: normal;
+    overflow: visible;
+  }
+  /* A sheet from the foot of the screen, edge to edge. With a gutter round it, slivers of the map showed down its sides, and the pill behind it showed at a corner. */
+  .side {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 64dvh;
+    z-index: 20;
+    border-width: 1px 0 0;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .agent-view {
+    top: 12dvh;
+    z-index: 22;
+  }
+  .cost-others {
+    display: none;
+  }
+  /* A little tighter, so it clears the company's card and the name there isn't cut. */
+  .dollar-toggle {
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+  .empty-word {
+    left: 18px;
+  }
+  /* Pinch does the zooming. All a phone needs is the way back, and only once there's somewhere to come back from. */
+  .bottom-right {
+    right: var(--gutter) !important;
+    bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+  .zoom .icon-btn {
+    display: none;
+  }
+  .zoom.is-fit {
+    display: none;
+  }
+  /* A number says nothing about what pressing it does. Here it's only the way back. */
+  .zoom .pct {
+    padding: 0 12px;
+    font-size: 0;
+  }
+  .zoom .pct::after {
+    content: 'Whole map';
+    font-size: 13px;
+  }
+  .zoom-whole {
+    display: none;
+  }
+}
+
+.panel-go-live {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .panel-go-live {
+    display: inline-flex;
+  }
+}
+
+/* The sheet that holds a picked reader, on a phone. */
+.lens-sheet {
+  position: fixed;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: calc(var(--gutter) + env(safe-area-inset-bottom));
+  z-index: 16;
+  padding: 12px 14px 14px;
+  box-shadow: var(--shadow-high);
+}
+
+/* In a narrow window rather than on a phone, it's a sheet of its own size in the middle, clear of the zoom in the corner. */
+@media (min-width: 721px) {
+  .lens-sheet {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+}
+
+.lens-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+}
+
+.lens-head .grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lens-note {
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.lens-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 0 10px;
+}
+
+.lens-chip {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--hair-strong);
+  border-radius: 18px;
+  transition: background-color 120ms ease, color 120ms ease, transform 140ms var(--ease-out);
+}
+
+.lens-chip:active {
+  transform: scale(0.97);
+}
+
+.lens-chip[aria-checked='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.lens-sheet > .btn {
+  width: 100%;
+  height: 44px;
+}
+
+/* A mouse doesn't need a finger's room, and beside a panel's other controls a tall pill is the loudest thing in it. */
+@media (pointer: fine) {
+  .side .lens-chip {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+}
+
+/* A finger needs more room than a pointer, and an input under 16px makes a phone zoom the page. */
+@media (pointer: coarse) {
+  /* At that size a small menu beside its label is the loudest thing in the sheet, so it takes the shape of a field. */
+  .row-between:has(> .select-wrap) {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 4px;
+  }
+  .select-wrap,
+  .select-wrap .select {
+    width: 100%;
+  }
+  .select-wrap .select {
+    min-height: 48px;
+  }
+  .btn {
+    min-height: 44px;
+  }
+  .icon-btn {
+    width: 40px;
+    height: 44px;
+  }
+  .reader-row,
+  .menu-item,
+  .catalog-item,
+  .link-item {
+    min-height: 48px;
+  }
+  .reader-area {
+    height: 48px;
+  }
+  .tab {
+    height: 48px;
+  }
+  .segmented button {
+    height: 48px;
+    padding: 0 14px;
+  }
+  .need-actions .btn,
+  .callout .btn,
+  .lens-chip,
+  .btn {
+    min-height: 48px;
+  }
+  .need-actions .btn,
+  .callout .btn {
+    height: 48px;
+  }
+  .lens-chip {
+    height: 48px;
+  }
+  /* A finger's size, reaching into the toast's own padding so the toast stays the same height. */
+  .toast button {
+    min-height: 48px;
+    margin: -6px -6px -6px 0;
+    padding: 0 12px;
+  }
+  .code-block .code-copy {
+    min-height: 40px;
+    height: 40px;
+  }
+  /* A finger's button needs its own line, or it lands on the words beside it. */
+  .need.is-look .need-actions {
+    position: static;
+    margin-top: 4px;
+  }
+  .status-do,
+  .status-done {
+    height: 40px;
+  }
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* A button inside a pill has to stay inside it. */
+@media (pointer: coarse) and (max-width: 720px) {
+  .live-state {
+    height: 50px;
+  }
+  .live-state .go-live {
+    min-height: 38px;
+    height: 38px;
+  }
+  .top-right > .add-menu > .btn {
+    height: 50px;
+  }
+}
+
+@media (pointer: coarse) and (min-width: 721px) {
+  .live-state .go-live {
+    min-height: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Arriving. As the land is inked in, the cards come in from the edges they belong to, after the land has started and before the last of it is up. Once, on mount: what swaps in later is only ever the inside of these. */
+
+@keyframes arrive-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes arrive-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes arrive-from-below {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.arriving .left-col {
+  animation: arrive-from-left 640ms var(--ease-out) 300ms backwards;
+}
+
+.arriving .status-slot {
+  animation: arrive-from-top 560ms var(--ease-out) 420ms backwards;
+}
+
+.arriving .top-right {
+  animation: arrive-from-top 560ms var(--ease-out) 360ms backwards;
+}
+
+.arriving .bottom-right {
+  animation: arrive-from-below 560ms var(--ease-out) 700ms backwards;
+}
+
+@keyframes arrive-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* On its own line the status has no slot round it to carry it in, so it comes in itself. */
+@media (max-width: 1240px) {
+  .arriving .status {
+    animation: arrive-from-top 560ms var(--ease-out) 420ms backwards;
+  }
+}
+
+/* On a phone, adding and going live stand at the foot of the screen. A transform on the group would carry them in from the top and drop them there at the end, so the group only fades, and they rise from the foot with the zoom. */
+@media (max-width: 720px) {
+  .arriving .top-right {
+    animation-name: arrive-fade;
+  }
+  .arriving .live-state,
+  .arriving .add-menu {
+    animation: arrive-from-below 560ms var(--ease-out) 700ms backwards;
+  }
+}
+
+/* The first page reads top to bottom, so it comes up in that order. */
+.empty > * {
+  animation: arrive-from-below 720ms var(--ease-out) backwards;
+}
+
+.empty > :nth-child(1) {
+  animation-delay: 140ms;
+}
+
+.empty > :nth-child(2) {
+  animation-delay: 230ms;
+}
+
+.empty > :nth-child(3) {
+  animation-delay: 320ms;
+}
+
+.empty > :nth-child(4) {
+  animation-delay: 410ms;
+}
+
+.empty > :nth-child(n + 5) {
+  animation-delay: 500ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arriving .left-col,
+  .arriving .status-slot,
+  .arriving .status,
+  .arriving .top-right,
+  .arriving .live-state,
+  .arriving .add-menu,
+  .arriving .bottom-right,
+  .empty > * {
+    animation: none;
+  }
+}
+
+/* Waiting for you to say yes isn't urgent, so it isn't amber, but it's yours to do, so its count carries ink and weight. */
+.top-bar:not(.fit-2) .status:not(.is-now) .status-part.is-decide {
+  color: var(--ink);
+}
+
+.status-part b {
+  font-weight: 600;
+}
+
+/* Which areas a reader can read is said by fill, and by a tick, so it doesn't rest on telling a filled chip from an outlined one. */
+.lens-chip[aria-checked='true']::before {
+  content: '✓';
+  margin-right: 6px;
+}
+
+/* On a phone the folded heading has no room for a tag beside the name, so "Sample" joins the line under it. */
+/* "Sample" is said in words on the folded card's second line, never as a chip beside the name. */
+.fold-sample {
+  display: inline;
+}
+
+/* A list that runs on fades at its foot, so it doesn't look as if it ends at the panel's edge. A gradient that sticks to the bottom, not a mask, because a mask would take the panel's shadow with it. */
+.needs-panel::after,
+.catalog-list::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 24px;
+  margin-top: -24px;
+  background: linear-gradient(to bottom, transparent, var(--raised));
+  pointer-events: none;
+}
+
+.needs-panel::after {
+  bottom: -7px;
+}
+
+.piece-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* At the narrowest phones the folded card can't hold the name and search side by side with the price. Search is in the open card and on ⌘K. */
+@media (max-width: 380px) {
+  .left:not(.is-open) .left-head > .icon-btn {
+    display: none;
+  }
+}
+
+.per-short {
+  margin-left: -4px;
+}
+
+/* Add stands alone in the top line, so it's a surface there too. */
+.top-right > .add-menu > .btn {
+  border-radius: var(--panel-radius);
+}
+
+/* The company menu is the card's own body while it's open, not a second card inside it. */
+.company-menu {
+  border: 0;
+  left: 1px !important;
+  right: 1px !important;
+  border-radius: 0 0 var(--panel-radius) var(--panel-radius);
+  box-shadow: 0 18px 24px -18px rgba(var(--ink-rgb), 0.25);
+}
+
+/* Centred lines break into even lengths, never a long line over a short one. */
+.empty p,
+.empty-note,
+.lock-card p,
+.sheet-intro {
+  text-wrap: balance;
+}
+
+.segmented button {
+  flex: 1;
+}
+
+/* The tail of what else is waiting sits on the same line as the urgent sentence, whatever the phone does to the sentence's own line. */
+.status.is-now .has-more .status-more {
+  align-self: center;
+}
+
+.status-x {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--on-alert);
+}
+
+.needs-close {
+  display: none;
+}
+
+/* Up to 980 the folded card is the size of what it says, and "Sample" joins its second line, so the price beside it has room. */
+@media (max-width: 980px) {
+  .left:not(.is-open) {
+    width: max-content;
+    max-width: calc(100vw - var(--top-right-w, 0px) - var(--gutter) * 3);
+  }
+  .fold-sample {
+    display: inline;
+  }
+  .left:not(.is-open) .company-btn > .tag {
+    display: none;
+  }
+  body:has(.top-bar.fit-7) .fold-sample ~ .fold-sep,
+  body:has(.top-bar.fit-7) .fold-sample ~ .fold-count {
+    display: none;
+  }
+  body:has(.top-bar.fit-8) .left:not(.is-open) .left-head > .icon-btn {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .needs-close {
+    display: flex;
+    width: 100%;
+    margin-top: 10px;
+  }
+  .add-menu .menu {
+    bottom: calc(100% + 8px);
+  }
+}
+
+/* On the narrowest phones, "Seeing the map as" gives way to the reader's name. */
+@media (max-width: 400px) {
+  .lens-lead {
+    display: none;
+  }
+  .lens-who::before {
+    content: 'As ';
+  }
+}
+
+/* The chevron after what else is waiting stands on that line too, not at the pill's top corner. */
+.status.is-now .has-more > svg {
+  align-self: center;
+}
+
+/* Fixed under the header in a narrow window, the needs list keeps the gutters every other surface keeps. */
+@media (max-width: 980px) {
+  .needs-panel {
+    left: var(--gutter);
+    width: calc(100vw - var(--gutter) * 2);
+  }
+}
+
+.sheet p,
+.need-group {
+  text-wrap: pretty;
+}
+
+/* In a reader's view the urgent sentence's Update stands on the amber, and the way out of the view on the white beside it. */
+.status.is-lens .status-head .status-do {
+  margin-left: 6px;
+}
+
+.status.is-lens .has-more .status-x {
+  color: var(--soft);
+}
+
+/* The last thing the top line gives up: "Not live" beside "Go live", which says it already. */
+.top-bar.fit-9 .live-state.is-not-live .live-word {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .cost-more {
+    display: inline;
+  }
+}
+
+/* The zoom pill: where you are close in, and a button that can't go further steps back. */
+.zoom-where {
+  padding: 0 10px 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--soft);
+  white-space: nowrap;
+  border-right: 1px solid var(--hair);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zoom .icon-btn[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
+}

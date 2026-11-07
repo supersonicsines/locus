@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="brand/logo/mark/locus-mark-128-dark.svg">
+  <img src="brand/logo/mark/locus-mark-128-light.svg" alt="" width="64" height="64">
+</picture>
+
 # Locus
 
 **A map of your company that any agent can read.**
@@ -107,6 +112,7 @@ npm run typecheck
 - `src/server`: the host.
 - `src/cli`: the `locus` command.
 - `src/studio`: the map and the website. A static React app; the map is drawn on one canvas.
+- `brand`: the brand pack. Open `brand/index.html` for the brand book; `brand/README.md` says which logo, colour or font file is for what. `npm run brand` writes it from its sources.
 
 Contributions are welcome: [CONTRIBUTING.md](CONTRIBUTING.md) says how, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) how we treat each other, and [CHANGELOG.md](CHANGELOG.md) what's changed. Report a security problem privately, as [docs/SECURITY.md](docs/SECURITY.md#reporting-a-problem) says, never in a public issue.
 

@@ -1,0 +1,693 @@
+{
+  "$description": "The Locus brand pack. Written by brand/source/build.mjs; README.md says the same for people. Paths are relative to this file.",
+  "name": "Locus",
+  "meaning": "Latin for “place”: the spot on a map where something is.",
+  "tagline": "A map of your company that any agent can read.",
+  "description": "A map of your company that any agent can read. Encrypted, gated, open source.",
+  "names": {
+    "product": "Locus, with a capital L, in running text as in the lockup.",
+    "package": "locus-harness on npm; the command it installs is locus.",
+    "never": "npx locus: that name on npm belongs to someone else. Write npx -y locus-harness."
+  },
+  "book": "index.html",
+  "rules": [
+    "Never redraw, trace, recolour, stretch, rotate or add effects to the mark. Take a file from logo/.",
+    "Each size is its own drawing: use the file drawn for the size you need (by device pixels), never a large one scaled down.",
+    "Black lines on a white tile, on every page. On a light page use the light files (they carry a 1 device px hairline); on a dark page, the dark ones.",
+    "The mark is ink and paper only. Vermilion means sealed, amber urgent and blue live, and none of them ever enters the mark.",
+    "Clear space is half the mark’s height on every side. The smallest mark is 16 px; the smallest lockup has a 20 px mark.",
+    "One face, Spline Sans Mono. Hierarchy comes from size, weight, case and ink, never a second family.",
+    "The mark’s only motion is being drawn once (logo/motion/). Nothing loops, glows or bounces."
+  ],
+  "colour": {
+    "alert": {
+      "light": "#f5b400",
+      "dark": "#dea400",
+      "means": "Amber: urgent, it needs you now, and nothing else.",
+      "css": "var(--alert)"
+    },
+    "on-alert": {
+      "light": "#15191e",
+      "dark": "#15191e",
+      "means": "Text on amber.",
+      "css": "var(--on-alert)"
+    },
+    "live": {
+      "light": "#3b78b8",
+      "dark": "#7fb0e0",
+      "means": "Blue: live, and nothing else. The live dot, and the sea when a copy is live.",
+      "css": "var(--live)"
+    },
+    "paper": {
+      "light": "#e2e6ea",
+      "dark": "#0e1319",
+      "means": "The Studio’s ground: the sea round the map.",
+      "css": "var(--paper)"
+    },
+    "field": {
+      "light": "#eef1f3",
+      "dark": "#0e1319",
+      "means": "A field or a key on a raised sheet.",
+      "css": "var(--field)"
+    },
+    "raised": {
+      "light": "#fcfdfd",
+      "dark": "#161c24",
+      "means": "Paper that floats over the map: cards, sheets, menus. The mark’s tile is this paper.",
+      "css": "var(--raised)"
+    },
+    "ink": {
+      "light": "#15191e",
+      "dark": "#e8e6df",
+      "means": "Text, lines and the mark. Everything is ink or a share of it.",
+      "css": "var(--ink)"
+    },
+    "ink-rgb": {
+      "light": "21, 25, 30",
+      "dark": "232, 230, 223",
+      "means": "Ink as r, g, b, for shares of it.",
+      "css": "var(--ink-rgb)"
+    },
+    "focus": {
+      "light": "rgba(21, 25, 30, 0.62)",
+      "dark": "rgba(232, 230, 223, 0.66)",
+      "means": "The focus ring.",
+      "css": "var(--focus)"
+    },
+    "soft": {
+      "light": "rgba(21, 25, 30, 0.72)",
+      "dark": "rgba(232, 230, 223, 0.74)",
+      "means": "Secondary text.",
+      "css": "var(--soft)"
+    },
+    "faint": {
+      "light": "rgba(21, 25, 30, 0.6)",
+      "dark": "rgba(232, 230, 223, 0.6)",
+      "means": "Tertiary text: meta, numbers beside labels.",
+      "css": "var(--faint)"
+    },
+    "hair": {
+      "light": "rgba(21, 25, 30, 0.14)",
+      "dark": "rgba(232, 230, 223, 0.13)",
+      "means": "Hairlines: borders, rules, dividers.",
+      "css": "var(--hair)"
+    },
+    "hair-strong": {
+      "light": "rgba(21, 25, 30, 0.28)",
+      "dark": "rgba(232, 230, 223, 0.28)",
+      "means": "A hairline that is on: hover, pressed, chosen.",
+      "css": "var(--hair-strong)"
+    },
+    "wash": {
+      "light": "rgba(21, 25, 30, 0.045)",
+      "dark": "rgba(232, 230, 223, 0.05)",
+      "means": "A hover’s tint.",
+      "css": "var(--wash)"
+    },
+    "wash-strong": {
+      "light": "rgba(21, 25, 30, 0.08)",
+      "dark": "rgba(232, 230, 223, 0.09)",
+      "means": "A press’s tint, inline code.",
+      "css": "var(--wash-strong)"
+    },
+    "vermilion": {
+      "light": "#d63c27",
+      "dark": "#ea5a44",
+      "means": "Sealed, and nothing else: a sealed area, its wax seal.",
+      "css": "var(--vermilion)"
+    },
+    "on-ink": {
+      "light": "#fbfcfc",
+      "dark": "#10151b",
+      "means": "Text on an ink fill.",
+      "css": "var(--on-ink)"
+    },
+    "scrim": {
+      "light": "rgba(226, 230, 234, 0.62)",
+      "dark": "rgba(14, 19, 25, 0.62)",
+      "means": "Behind a sheet.",
+      "css": "var(--scrim)"
+    },
+    "page": {
+      "light": "#f3f5f6",
+      "dark": "#11171e",
+      "means": "The website’s page.",
+      "css": "var(--page)"
+    },
+    "sea": {
+      "light": "#e2e6ea",
+      "dark": "#0c1117",
+      "means": "The map’s sea.",
+      "css": "var(--sea)"
+    },
+    "land": {
+      "light": "#fcfdfd",
+      "dark": "#1a212a",
+      "means": "The map’s land.",
+      "css": "var(--land)"
+    },
+    "sealed-land": {
+      "light": "#fcf1ee",
+      "dark": "#2a1d1e",
+      "means": "Land in a sealed area.",
+      "css": "var(--sealed-land)"
+    },
+    "live-sea": {
+      "light": "#cbdfef",
+      "dark": "#0c1c2c",
+      "means": "The sea while a copy is live: the one moment blue floods the map.",
+      "css": "var(--live-sea)"
+    },
+    "vermilion-ink": {
+      "light": "#c4351f",
+      "dark": "#ea5a44",
+      "means": "Vermilion as text: a sealed area’s words.",
+      "css": "var(--vermilion-ink)"
+    },
+    "vermilion-rgb": {
+      "light": "214, 60, 39",
+      "dark": "234, 90, 68",
+      "means": "Vermilion as r, g, b.",
+      "css": "var(--vermilion-rgb)"
+    },
+    "wax-shadow": {
+      "light": "rgba(90, 18, 10, 0.55)",
+      "dark": "rgba(40, 6, 2, 0.8)",
+      "means": "The shadow under a wax seal.",
+      "css": "var(--wax-shadow)"
+    },
+    "grid": {
+      "light": "rgba(21, 25, 30, 0.055)",
+      "dark": "rgba(232, 230, 223, 0.045)",
+      "means": "The faint grid on a map plate.",
+      "css": "var(--grid)"
+    },
+    "dash": {
+      "light": "rgba(21, 25, 30, 0.36)",
+      "dark": "rgba(232, 230, 223, 0.4)",
+      "means": "County borders: dashed hairlines between areas.",
+      "css": "var(--dash)"
+    },
+    "term": {
+      "light": "#15191e",
+      "dark": "#080b0f",
+      "means": "A terminal’s ground: commands to copy.",
+      "css": "var(--term)"
+    },
+    "term-edge": {
+      "light": "transparent",
+      "dark": "rgba(232, 230, 223, 0.12)",
+      "means": "A terminal’s edge, on dark pages.",
+      "css": "var(--term-edge)"
+    },
+    "term-ink": {
+      "light": "#e8e6df",
+      "dark": "#e8e6df",
+      "means": "Text in a terminal.",
+      "css": "var(--term-ink)"
+    },
+    "term-soft": {
+      "light": "rgba(232, 230, 223, 0.5)",
+      "dark": "rgba(232, 230, 223, 0.5)",
+      "means": "A terminal’s prompt.",
+      "css": "var(--term-soft)"
+    },
+    "reader": {
+      "light": "#0f8a7e",
+      "dark": "#0f8a7e",
+      "means": "A reader’s colour on the website’s graphics.",
+      "css": "var(--reader)"
+    }
+  },
+  "type": {
+    "face": "Spline Sans Mono",
+    "family": "'Spline Sans Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+    "files": "fonts/",
+    "licence": "fonts/OFL.txt",
+    "weights": {
+      "400": "text and headings",
+      "500": "labels, a name, a button that matters",
+      "540": "the logotype"
+    },
+    "scale": {
+      "12": "meta, eyebrows (upper case, +0.08 em)",
+      "13": "controls and body in the Studio",
+      "14": "reading",
+      "15": "body on the website",
+      "16": "a lede in the Studio",
+      "17": "a lede on the website",
+      "19": "titles",
+      "24": "a sheet’s heading",
+      "24–32": "a section’s heading on the website",
+      "34–56": "the website’s headline (−0.04 em)"
+    },
+    "advance": "Monospaced: every character is 0.6 em wide."
+  },
+  "motion": {
+    "mark": {
+      "total": 2.18,
+      "files": "logo/motion/",
+      "score": "logo/tiers.json → tiers[].draw"
+    },
+    "easing": {
+      "out": "var(--ease-out)",
+      "drawer": "var(--ease-drawer)"
+    }
+  },
+  "files": [
+    {
+      "path": "logo/mark/locus-mark-1024-light.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; on a light page: the paper tile with its ink hairline",
+      "size": 1024,
+      "kind": "light"
+    },
+    {
+      "path": "logo/mark/locus-mark-1024-dark.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; on a dark page: the paper tile alone",
+      "size": 1024,
+      "kind": "dark"
+    },
+    {
+      "path": "logo/mark/locus-mark-1024-reverse.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; the reverse, paper lines on an ink tile",
+      "size": 1024,
+      "kind": "reverse"
+    },
+    {
+      "path": "logo/mark/locus-mark-1024-oneink.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; one ink: the tile in ink with the drawing knocked out, for print, stamps and lasers",
+      "size": 1024,
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/mark/locus-mark-1024-bare.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; the drawing alone, no tile, in ink",
+      "size": 1024,
+      "kind": "bare"
+    },
+    {
+      "path": "logo/mark/locus-mark-512-light.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; on a light page: the paper tile with its ink hairline",
+      "size": 512,
+      "kind": "light"
+    },
+    {
+      "path": "logo/mark/locus-mark-512-dark.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; on a dark page: the paper tile alone",
+      "size": 512,
+      "kind": "dark"
+    },
+    {
+      "path": "logo/mark/locus-mark-512-reverse.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; the reverse, paper lines on an ink tile",
+      "size": 512,
+      "kind": "reverse"
+    },
+    {
+      "path": "logo/mark/locus-mark-512-oneink.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; one ink: the tile in ink with the drawing knocked out, for print, stamps and lasers",
+      "size": 512,
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/mark/locus-mark-512-bare.svg",
+      "group": "mark",
+      "use": "the full sheet, for 256 device px and up; the drawing alone, no tile, in ink",
+      "size": 512,
+      "kind": "bare"
+    },
+    {
+      "path": "logo/mark/locus-mark-180-light.svg",
+      "group": "mark",
+      "use": "L−, for 160–255 device px: the touch icon, a 96 pt icon at ×2; on a light page: the paper tile with its ink hairline",
+      "size": 180,
+      "kind": "light"
+    },
+    {
+      "path": "logo/mark/locus-mark-180-dark.svg",
+      "group": "mark",
+      "use": "L−, for 160–255 device px: the touch icon, a 96 pt icon at ×2; on a dark page: the paper tile alone",
+      "size": 180,
+      "kind": "dark"
+    },
+    {
+      "path": "logo/mark/locus-mark-180-reverse.svg",
+      "group": "mark",
+      "use": "L−, for 160–255 device px: the touch icon, a 96 pt icon at ×2; the reverse, paper lines on an ink tile",
+      "size": 180,
+      "kind": "reverse"
+    },
+    {
+      "path": "logo/mark/locus-mark-180-oneink.svg",
+      "group": "mark",
+      "use": "L−, for 160–255 device px: the touch icon, a 96 pt icon at ×2; one ink: the tile in ink with the drawing knocked out, for print, stamps and lasers",
+      "size": 180,
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/mark/locus-mark-128-light.svg",
+      "group": "mark",
+      "use": "M, for 96–159 device px: a 64 px icon at ×2, a dock icon; on a light page: the paper tile with its ink hairline",
+      "size": 128,
+      "kind": "light"
+    },
+    {
+      "path": "logo/mark/locus-mark-128-dark.svg",
+      "group": "mark",
+      "use": "M, for 96–159 device px: a 64 px icon at ×2, a dock icon; on a dark page: the paper tile alone",
+      "size": 128,
+      "kind": "dark"
+    },
+    {
+      "path": "logo/mark/locus-mark-128-reverse.svg",
+      "group": "mark",
+      "use": "M, for 96–159 device px: a 64 px icon at ×2, a dock icon; the reverse, paper lines on an ink tile",
+      "size": 128,
+      "kind": "reverse"
+    },
+    {
+      "path": "logo/mark/locus-mark-128-oneink.svg",
+      "group": "mark",
+      "use": "M, for 96–159 device px: a 64 px icon at ×2, a dock icon; one ink: the tile in ink with the drawing knocked out, for print, stamps and lasers",
+      "size": 128,
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/mark/locus-mark-128-bare.svg",
+      "group": "mark",
+      "use": "M, for 96–159 device px: a 64 px icon at ×2, a dock icon; the drawing alone, no tile, in ink",
+      "size": 128,
+      "kind": "bare"
+    },
+    {
+      "path": "logo/mark/locus-mark-64-light.svg",
+      "group": "mark",
+      "use": "S, for 48–95 device px: a 32 px icon at ×2; on a light page: the paper tile with its ink hairline",
+      "size": 64,
+      "kind": "light"
+    },
+    {
+      "path": "logo/mark/locus-mark-64-dark.svg",
+      "group": "mark",
+      "use": "S, for 48–95 device px: a 32 px icon at ×2; on a dark page: the paper tile alone",
+      "size": 64,
+      "kind": "dark"
+    },
+    {
+      "path": "logo/mark/locus-mark-64-reverse.svg",
+      "group": "mark",
+      "use": "S, for 48–95 device px: a 32 px icon at ×2; the reverse, paper lines on an ink tile",
+      "size": 64,
+      "kind": "reverse"
+    },
+    {
+      "path": "logo/mark/locus-mark-64-oneink.svg",
+      "group": "mark",
+      "use": "S, for 48–95 device px: a 32 px icon at ×2; one ink: the tile in ink with the drawing knocked out, for print, stamps and lasers",
+      "size": 64,
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/mark/locus-mark-32-light.svg",
+      "group": "mark",
+      "use": "X, for 26–47 device px: the solid land, its crossing cut through; on a light page: the paper tile with its ink hairline",
+      "size": 32,
+      "kind": "light"
+    },
+    {
+      "path": "logo/mark/locus-mark-32-dark.svg",
+      "group": "mark",
+      "use": "X, for 26–47 device px: the solid land, its crossing cut through; on a dark page: the paper tile alone",
+      "size": 32,
+      "kind": "dark"
+    },
+    {
+      "path": "logo/mark/locus-mark-32-reverse.svg",
+      "group": "mark",
+      "use": "X, for 26–47 device px: the solid land, its crossing cut through; the reverse, paper lines on an ink tile",
+      "size": 32,
+      "kind": "reverse"
+    },
+    {
+      "path": "logo/mark/locus-mark-32-oneink.svg",
+      "group": "mark",
+      "use": "X, for 26–47 device px: the solid land, its crossing cut through; one ink: the tile in ink with the drawing knocked out, for print, stamps and lasers",
+      "size": 32,
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/mark/locus-mark-16-light.svg",
+      "group": "mark",
+      "use": "X·, for 16–25 device px: the solid land and the point; on a light page: the paper tile with its ink hairline",
+      "size": 16,
+      "kind": "light"
+    },
+    {
+      "path": "logo/mark/locus-mark-16-dark.svg",
+      "group": "mark",
+      "use": "X·, for 16–25 device px: the solid land and the point; on a dark page: the paper tile alone",
+      "size": 16,
+      "kind": "dark"
+    },
+    {
+      "path": "logo/mark/locus-mark-16-reverse.svg",
+      "group": "mark",
+      "use": "X·, for 16–25 device px: the solid land and the point; the reverse, paper lines on an ink tile",
+      "size": 16,
+      "kind": "reverse"
+    },
+    {
+      "path": "logo/mark/locus-mark-16-oneink.svg",
+      "group": "mark",
+      "use": "X·, for 16–25 device px: the solid land and the point; one ink: the tile in ink with the drawing knocked out, for print, stamps and lasers",
+      "size": 16,
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/motion/locus-mark-1024-draw.svg",
+      "group": "motion",
+      "use": "the mark drawn in once by its own CSS, then still; reduced motion shows the still",
+      "size": 1024
+    },
+    {
+      "path": "logo/motion/locus-mark-512-draw.svg",
+      "group": "motion",
+      "use": "the mark drawn in once by its own CSS, then still; reduced motion shows the still",
+      "size": 512
+    },
+    {
+      "path": "logo/motion/locus-mark-180-draw.svg",
+      "group": "motion",
+      "use": "the mark drawn in once by its own CSS, then still; reduced motion shows the still",
+      "size": 180
+    },
+    {
+      "path": "logo/lockup/locus-lockup-horizontal-light.svg",
+      "group": "lockup",
+      "use": "horizontal lockup for a light page, drawn for a mark of 48 css px and up",
+      "kind": "light"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-stacked-light.svg",
+      "group": "lockup",
+      "use": "stacked lockup for a light page, drawn for a mark of 48 css px and up",
+      "kind": "light"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-horizontal-light-small.svg",
+      "group": "lockup",
+      "use": "horizontal lockup for a light page, drawn for a 26 px mark (a site header)",
+      "kind": "light"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-stacked-light-small.svg",
+      "group": "lockup",
+      "use": "stacked lockup for a light page, drawn for a 26 px mark (a site header)",
+      "kind": "light"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-horizontal-dark.svg",
+      "group": "lockup",
+      "use": "horizontal lockup for a dark page, drawn for a mark of 48 css px and up",
+      "kind": "dark"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-stacked-dark.svg",
+      "group": "lockup",
+      "use": "stacked lockup for a dark page, drawn for a mark of 48 css px and up",
+      "kind": "dark"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-horizontal-dark-small.svg",
+      "group": "lockup",
+      "use": "horizontal lockup for a dark page, drawn for a 26 px mark (a site header)",
+      "kind": "dark"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-stacked-dark-small.svg",
+      "group": "lockup",
+      "use": "stacked lockup for a dark page, drawn for a 26 px mark (a site header)",
+      "kind": "dark"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-horizontal-oneink.svg",
+      "group": "lockup",
+      "use": "horizontal lockup for print, in one ink, drawn for a mark of 48 css px and up",
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-stacked-oneink.svg",
+      "group": "lockup",
+      "use": "stacked lockup for print, in one ink, drawn for a mark of 48 css px and up",
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-horizontal-oneink-small.svg",
+      "group": "lockup",
+      "use": "horizontal lockup for print, in one ink, drawn for a 26 px mark (a site header)",
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/lockup/locus-lockup-stacked-oneink-small.svg",
+      "group": "lockup",
+      "use": "stacked lockup for print, in one ink, drawn for a 26 px mark (a site header)",
+      "kind": "oneink"
+    },
+    {
+      "path": "logo/icon/favicon-16.png",
+      "group": "icon",
+      "use": "the tab icon at ×1",
+      "size": 16
+    },
+    {
+      "path": "logo/icon/favicon-32.png",
+      "group": "icon",
+      "use": "the tab icon at ×2",
+      "size": 32
+    },
+    {
+      "path": "logo/icon/favicon-48.png",
+      "group": "icon",
+      "use": "the tab icon at ×3, Windows",
+      "size": 48
+    },
+    {
+      "path": "logo/icon/favicon.ico",
+      "group": "icon",
+      "use": "the tab icon: 16, 32 and 48 px frames, so each screen gets its own drawing"
+    },
+    {
+      "path": "logo/icon/favicon.svg",
+      "group": "icon",
+      "use": "Col-X as SVG, for uses drawn at 26–47 device px; not the tab icon"
+    },
+    {
+      "path": "logo/icon/apple-touch-icon.png",
+      "group": "icon",
+      "use": "the iOS home-screen icon: full bleed and opaque, iOS rounds it",
+      "size": 180
+    },
+    {
+      "path": "logo/icon/icon-192.png",
+      "group": "icon",
+      "use": "a web app manifest icon, purpose any",
+      "size": 192
+    },
+    {
+      "path": "logo/icon/icon-512.png",
+      "group": "icon",
+      "use": "a web app manifest icon, purpose any",
+      "size": 512
+    },
+    {
+      "path": "logo/icon/icon-512-maskable.png",
+      "group": "icon",
+      "use": "a web app manifest icon, purpose maskable: the form inside the safe zone",
+      "size": 512
+    },
+    {
+      "path": "logo/social/locus-social-light.png",
+      "group": "social",
+      "use": "the 1200 × 630 link card (og:image), light"
+    },
+    {
+      "path": "logo/social/locus-social-dark.png",
+      "group": "social",
+      "use": "the 1200 × 630 link card (og:image), dark"
+    },
+    {
+      "path": "logo/tiers.json",
+      "group": "data",
+      "use": "every drawing’s geometry, colours and widths, and the drawing’s score, for code"
+    },
+    {
+      "path": "logo/CONSTRUCTION.md",
+      "group": "data",
+      "use": "the rules the mark is built by"
+    },
+    {
+      "path": "fonts/spline-sans-mono-latin-ext-wght-normal.woff2",
+      "group": "font",
+      "use": "Spline Sans Mono, variable weight 300–700"
+    },
+    {
+      "path": "fonts/spline-sans-mono-latin-wght-normal.woff2",
+      "group": "font",
+      "use": "Spline Sans Mono, variable weight 300–700"
+    },
+    {
+      "path": "fonts/OFL.txt",
+      "group": "font",
+      "use": "the face’s licence, the SIL Open Font License 1.1: it travels with the files"
+    },
+    {
+      "path": "fonts/fonts.css",
+      "group": "font",
+      "use": "the @font-face rules; the family is named once, as --sans in tokens.css"
+    },
+    {
+      "path": "tokens/tokens.css",
+      "group": "tokens",
+      "use": "every colour, the face, radii, shadows and easing as CSS custom properties, light and dark"
+    },
+    {
+      "path": "tokens/tokens.json",
+      "group": "tokens",
+      "use": "the same, as Design Tokens Community Group JSON, with each one’s meaning"
+    },
+    {
+      "path": "ui/styles.css",
+      "group": "ui",
+      "use": "a copy of src/studio/styles.css, the Studio’s stylesheet: every component’s real rules"
+    },
+    {
+      "path": "ui/site.css",
+      "group": "ui",
+      "use": "a copy of src/studio/site/site.css, the website’s stylesheet"
+    },
+    {
+      "path": "ui/screens/map.png",
+      "group": "ui",
+      "use": "the Studio, as the README shows it"
+    },
+    {
+      "path": "ui/screens/seal.png",
+      "group": "ui",
+      "use": "the Studio, as the README shows it"
+    },
+    {
+      "path": "ui/screens/towns.png",
+      "group": "ui",
+      "use": "the Studio, as the README shows it"
+    }
+  ]
+}

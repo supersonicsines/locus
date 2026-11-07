@@ -1361,7 +1361,25 @@ The operator preferred the inverted colourway, black lines on white, and asked f
 - **A new S drawing, 48–95 device px:** the index, the outline and the summit's top as lines. Beside fine lines, the solid ink land had looked heavy from 48 up. It stays below 48, where a line blurs and the favicon needs a solid.
 - **Drawn in, not grown.** The index contour goes first, in one stroke from the pass round the summit, through the pass and round the knoll. The two contours below the col follow the pen out of the pass a moment behind it. The summit's contours follow as it crosses the pass, each from its tip, then the knoll's. The point is set last.
   - In the first version the outer lines started late and finished far from the pass, the start was slow, and the drawing took 2.4 s. Starting them behind the pen, in formation, brought it to 2.2 s, with every stroke closing near the pass.
-  - A stroke snaps whole once it has 0.3 px to go, and no pen moves under 0.5 px a frame for more than three frames at 512.
+  - A stroke snaps whole once it has 0.3 px to go. A pen moves under 0.5 px a frame only as it lands: for at most four frames at 512 px and eleven at 180.
 - **One score, three players.** The studio draws each stroke as trimmed arcs. `locus-L-*-draw.svg` plays the same score as CSS dash animations inside the file, and frame for frame it matches the studio. `tiers.json` carries the score for the site.
 - **Lockups** use the mark at its own fine weights rather than a heavier line.
+
+## The brand pack
+
+The operator asked for the logo page to become the first page of a brand book: a pack, and a folder other agents can find and take elements from, with the website's interface and the face in it, and the workbench and the logo's drafts gone.
+
+- **`brand/` is the pack.**
+  - `index.html` is the book. Its chapters are the mark, colour, type, the interface, the map, words and files.
+  - `brand.json` is the same for agents, and `README.md` says which file is for what.
+  - `logo/` holds the mark per size and kind, the drawn-in SVGs, the lockups, the icons, the link cards, `tiers.json` and `CONSTRUCTION.md`.
+  - `tokens/` holds `tokens.css` and Design Tokens JSON, `fonts/` the face and its OFL licence, and `ui/` the app's stylesheets and screenshots.
+- **Single sources.**
+  - The mark's one definition moved from the workbench to `brand/source/mark.js`, with the studio code taken out. Its files came out byte for byte the same, 41 of 41.
+  - The tokens and the interface are read from `src/studio/styles.css` and `site.css`, so the book renders the website's real components, not a copy of them.
+  - `npm run brand` writes everything, and also the site's `mark-paths.ts` and icons. Before, the export script lived in the uncommitted QA folder.
+  - PNGs are drawn by resvg, a dev dependency, so no browser is needed.
+- **The face as outlines.** `source/outlines.json` holds printable ASCII at weights 400 and 540, from fontTools, so the lockups and the new 1200 × 630 link cards don't need the font installed.
+- **`test/brand.test.ts`** fails when the pack, the app's stylesheets, the site's mark paths and icons, or `brand.json` disagree. Changing one token in `styles.css` made it fail, as it should.
+- **Removed:** `workbench/` (the five-candidate page, the Col studio and their shared code), `scripts/workbench.mjs`, `scripts/mark-paths.mjs` and `npm run workbench`.
 

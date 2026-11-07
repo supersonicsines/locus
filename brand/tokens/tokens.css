@@ -1,0 +1,116 @@
+/* Locus design tokens. Written by brand/source/build.mjs from src/studio/styles.css and src/studio/site/site.css,
+   where they are defined; don't edit this copy. Light on :root; dark under [data-theme='dark'], and under the system's
+   dark setting unless a page chooses light. Vermilion means sealed, amber urgent, blue live, and nothing else. */
+
+:root {
+  --alert: #f5b400;
+  --on-alert: #15191e;
+  --live: #3b78b8;
+  --paper: #e2e6ea;
+  --field: #eef1f3;
+  --raised: #fcfdfd;
+  --ink: #15191e;
+  --ink-rgb: 21, 25, 30;
+  --focus: rgba(21, 25, 30, 0.62);
+  --soft: rgba(21, 25, 30, 0.72);
+  --faint: rgba(21, 25, 30, 0.6);
+  --hair: rgba(21, 25, 30, 0.14);
+  --hair-strong: rgba(21, 25, 30, 0.28);
+  --wash: rgba(21, 25, 30, 0.045);
+  --wash-strong: rgba(21, 25, 30, 0.08);
+  --vermilion: #d63c27;
+  --on-ink: #fbfcfc;
+  --shadow: 0 1px 1px rgba(21, 25, 30, 0.04), 0 8px 24px -8px rgba(21, 25, 30, 0.12);
+  --shadow-high: 0 2px 4px rgba(21, 25, 30, 0.05), 0 24px 60px -16px rgba(21, 25, 30, 0.22);
+  --scrim: rgba(226, 230, 234, 0.62);
+  --sans: 'Spline Sans Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --panel-radius: 12px;
+  --control-radius: 8px;
+  --page: #f3f5f6;
+  --sea: #e2e6ea;
+  --land: #fcfdfd;
+  --sealed-land: #fcf1ee;
+  --live-sea: #cbdfef;
+  --vermilion-ink: #c4351f;
+  --vermilion-rgb: 214, 60, 39;
+  --wax-shadow: rgba(90, 18, 10, 0.55);
+  --grid: rgba(21, 25, 30, 0.055);
+  --dash: rgba(21, 25, 30, 0.36);
+  --term: #15191e;
+  --term-edge: transparent;
+  --term-ink: #e8e6df;
+  --term-soft: rgba(232, 230, 223, 0.5);
+  --reader: #0f8a7e;
+}
+
+:root[data-theme='dark'] {
+  --alert: #dea400;
+  --live: #7fb0e0;
+  --paper: #0e1319;
+  --field: #0e1319;
+  --raised: #161c24;
+  --ink: #e8e6df;
+  --ink-rgb: 232, 230, 223;
+  --focus: rgba(232, 230, 223, 0.66);
+  --soft: rgba(232, 230, 223, 0.74);
+  --faint: rgba(232, 230, 223, 0.6);
+  --hair: rgba(232, 230, 223, 0.13);
+  --hair-strong: rgba(232, 230, 223, 0.28);
+  --wash: rgba(232, 230, 223, 0.05);
+  --wash-strong: rgba(232, 230, 223, 0.09);
+  --vermilion: #ea5a44;
+  --on-ink: #10151b;
+  --shadow: 0 1px 1px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.5);
+  --shadow-high: 0 2px 4px rgba(0, 0, 0, 0.35), 0 28px 70px -16px rgba(0, 0, 0, 0.7);
+  --scrim: rgba(14, 19, 25, 0.62);
+  --page: #11171e;
+  --sea: #0c1117;
+  --land: #1a212a;
+  --sealed-land: #2a1d1e;
+  --live-sea: #0c1c2c;
+  --vermilion-ink: #ea5a44;
+  --vermilion-rgb: 234, 90, 68;
+  --wax-shadow: rgba(40, 6, 2, 0.8);
+  --grid: rgba(232, 230, 223, 0.045);
+  --dash: rgba(232, 230, 223, 0.4);
+  --term: #080b0f;
+  --term-edge: rgba(232, 230, 223, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --alert: #dea400;
+    --live: #7fb0e0;
+    --paper: #0e1319;
+    --field: #0e1319;
+    --raised: #161c24;
+    --ink: #e8e6df;
+    --ink-rgb: 232, 230, 223;
+    --focus: rgba(232, 230, 223, 0.66);
+    --soft: rgba(232, 230, 223, 0.74);
+    --faint: rgba(232, 230, 223, 0.6);
+    --hair: rgba(232, 230, 223, 0.13);
+    --hair-strong: rgba(232, 230, 223, 0.28);
+    --wash: rgba(232, 230, 223, 0.05);
+    --wash-strong: rgba(232, 230, 223, 0.09);
+    --vermilion: #ea5a44;
+    --on-ink: #10151b;
+    --shadow: 0 1px 1px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.5);
+    --shadow-high: 0 2px 4px rgba(0, 0, 0, 0.35), 0 28px 70px -16px rgba(0, 0, 0, 0.7);
+    --scrim: rgba(14, 19, 25, 0.62);
+    --page: #11171e;
+    --sea: #0c1117;
+    --land: #1a212a;
+    --sealed-land: #2a1d1e;
+    --live-sea: #0c1c2c;
+    --vermilion-ink: #ea5a44;
+    --vermilion-rgb: 234, 90, 68;
+    --wax-shadow: rgba(40, 6, 2, 0.8);
+    --grid: rgba(232, 230, 223, 0.045);
+    --dash: rgba(232, 230, 223, 0.4);
+    --term: #080b0f;
+    --term-edge: rgba(232, 230, 223, 0.12);
+  }
+}

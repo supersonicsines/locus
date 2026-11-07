@@ -1,7 +1,7 @@
 // The Locus mark, Col, and the only place the site draws it. A summit, a lower knoll and the col between them,
 // in contour: the col's own contour crosses itself at the pass, and the point sits on the crossing.
-// The geometry is in `mark-paths.ts`, written from the workbench's export (`workbench/logo/col/`, where
-// CONSTRUCTION.md gives the rules). Each size gets its own drawing, chosen by device pixels: below 26 the land
+// The geometry is in `mark-paths.ts`, written by `npm run brand` from the brand pack (`brand/logo/tiers.json`;
+// `brand/logo/CONSTRUCTION.md` gives the rules). Each size gets its own drawing, chosen by device pixels: below 26 the land
 // with its point cut out, below 48 the land with the col's contour cut through it, then the contours themselves.
 // Black lines on a white tile on every page, weighted like a survey sheet: the contours fine, the col's own contour
 // (the index) twice their width. On a light page a 1 device px ink hairline holds the tile off the ground.
@@ -41,8 +41,8 @@ export function Mark({ size = 24, animated = false, className, title }: { size?:
   const d = [...DRAWINGS].reverse().find((x) => n >= x.from) ?? DRAWINGS[0]
   const line = units(linePx(n), n)
 
-  // At the sizes the site uses the mark never grows (it grows only from 160 device px, in the workbench). It arrives
-  // once, by fading in, as the header does.
+  // At the sizes the site uses the mark is never drawn in (that plays only from 160 device px: brand/logo/motion/). It
+  // arrives once, by fading in, as the header does.
   useLayoutEffect(() => {
     const svg = ref.current
     if (!animated || !svg || matchMedia('(prefers-reduced-motion: reduce)').matches || typeof svg.animate !== 'function') return
