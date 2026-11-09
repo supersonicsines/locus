@@ -36,7 +36,7 @@ Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `do
 
 - `npm run build && npm start`, then open http://localhost:4747
 - `npm test`, `npm run typecheck`
-- `docs/LAUNCH.md` is the plan for deploying on Railway, and `docs/SELF-HOSTING.md` is the guide for everyone else (Compose with Caddy in `compose.yaml` and `deploy/`).
+- **Production is https://locus.spot on Railway, and merging to `main` deploys it** once CI passes. A change that would break running hosts, or the sealed format, needs a thought for the maps already published there. `docs/LAUNCH.md` has the settings, and `docs/SELF-HOSTING.md` is the guide for everyone else (Compose with Caddy in `compose.yaml` and `deploy/`).
 - `npm run preview:google` runs a host with a stand-in Google on port 4760, to see the sign-in flow without a Google client.
 - What an agent reads lives in `src/core/agent.ts`, and every reader shares it, so the Studio preview can't drift.
 - Judge visual changes from screenshots, not from the DOM or the code. `docs/design/qa-rounds.md` records every round so far. The harness that takes them is in `qa/`, which isn't in git and may not exist on your machine; `qa/README.md` explains it where it does.

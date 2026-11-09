@@ -37,3 +37,26 @@ jobs:
           docker run -d --name locus -p 4747:4747 locus
           for i in $(seq 1 30); do curl -sf http://localhost:4747/api/info && exit 0; sleep 1; done
           docker logs locus; exit 1
+
+  # A push to main that passes every check goes live on locus.spot. The token can deploy this one Railway project and nothing
+  # else, and only main can read it.
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check, docker]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://locus.spot
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: npx -y @railway/cli@5.71.0 up --ci --service 2bb74352-0016-4c80-894e-fea82bb9244a
+      - name: The live host answers
+        run: |
+          for i in $(seq 1 30); do curl -sf https://locus.spot/api/info && exit 0; sleep 10; done
+          exit 1
