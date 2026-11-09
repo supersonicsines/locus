@@ -14,6 +14,9 @@ Everything notable that changes in a release. The format follows [Keep a Changel
 
 - The brand pack, `brand/`: a brand book (`brand/index.html`) covering the mark, colour, type, the interface, the map's look and words; every logo file, link cards, design tokens (CSS and Design Tokens JSON), the face with its licence, and `brand.json` for agents. `npm run brand` writes it, and a test keeps it in step with the app.
 
+### Fixed
+- The mark's tile is the same on every version of Node, so the brand test passes on Node 22 as well as 24. It moved by under a hundredth of a unit.
+
 ### Changed
 - The logo workbench is gone. Its four other candidates are recorded in `docs/design/qa-rounds.md`.
 - Scrolling, pinching and dragging follow the input exactly; mouse-wheel notches glide; a thrown drag carries on and slows.

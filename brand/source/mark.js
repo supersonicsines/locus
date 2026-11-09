@@ -923,7 +923,8 @@ export function constructionMarkdown(v = col, { files = [] } = {}) {
 /**
  * The tile: a squircle, |x|^5 + |y|^5 = 1, on the 100-unit box, as `count` cubic segments: nodes evenly spaced along
  * the edge, each control point on the edge's own tangent a third of the way to the next node (a Hermite fit), so 24
- * segments hold it to well under a hundredth of a unit.
+ * segments hold it to well under a hundredth of a unit. The tangent comes from the curve's equation, not from
+ * neighbouring samples, so which sample a node falls beside can't change it, and every Node draws the same tile.
  */
 function squircleD(n = 5, count = 24) {
   const pt = (p) => `${R3(p[0])} ${R3(p[1])}`
@@ -951,10 +952,14 @@ function squircleD(n = 5, count = 24) {
     const f = (target - len[j]) / (len[j + 1] - len[j])
     const p = dense[j]
     const q = dense[(j + 1) % M]
-    const a = dense[(j - 2 + M) % M]
-    const b = dense[(j + 3) % M]
-    const tl = Math.hypot(b[0] - a[0], b[1] - a[1])
-    nodes.push({ p: [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f], t: [(b[0] - a[0]) / tl, (b[1] - a[1]) / tl] })
+    const at = [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]
+    // The normal is the gradient of |u|^n + |v|^n; the tangent is it turned a quarter, the way the edge runs.
+    const u = (at[0] - 50) / 50
+    const v = (at[1] - 50) / 50
+    const gu = Math.sign(u) * Math.abs(u) ** (n - 1)
+    const gv = Math.sign(v) * Math.abs(v) ** (n - 1)
+    const tl = Math.hypot(gu, gv)
+    nodes.push({ p: at, t: [-gv / tl, gu / tl] })
   }
   const h = total / count / 3
   let d = `M${pt(nodes[0].p)}`

@@ -11,7 +11,7 @@ Last updated 2026-11-09, when the repository went public on GitHub. Before that,
   - **What an open-source project needs**: a self-hosting guide, a Compose file with Caddy, contributing notes, a code of conduct, templates, CI, Dependabot and a changelog.
   - **The brand pack**, `brand/`: a brand book, every logo file, tokens, the face and a manifest for agents, written by `npm run brand` and checked against the app by a test. The logo workbench and its four other candidates are gone; the record is in [design/qa-rounds.md](design/qa-rounds.md).
   - Three critique passes on the map, three on the website, and five on the logo, each by Opus critics, with fixes and fresh screenshots each time. Then the operator chose Col, and it had four more rounds of its own: a growth from nothing as its only motion, five drawings chosen by device pixels, and an export set. After that the operator asked for black lines on white, a finer, map-like line and an intro that is drawn rather than grown, and got them: the pen pass. The record is [design/qa-rounds.md](design/qa-rounds.md).
-- `npm test` passes 163 of 163 and `npm run typecheck` is clean.
+- `npm test` passes 163 of 163 on Node 22 and 24, and `npm run typecheck` is clean. The Docker image was first built by CI on 2026-11-09; it builds, starts and answers.
 - The repository is public at https://github.com/supersonicsines/locus, and every commit is authored `supersonicsines`. The package isn't on npm yet.
 - To see it: `npm run build && npm start`, then http://localhost:4747. To see sign-in without a Google client: `npm run preview:google` (port 4760). The brand: open `brand/index.html`; rebuild it with `npm run brand`.
 - [LAUNCH.md](LAUNCH.md) is the plan for going public on Railway; [SELF-HOSTING.md](SELF-HOSTING.md) is the guide for everyone else.
@@ -64,7 +64,6 @@ Also open:
 - Real Safari, a real phone, Windows, or a screen reader. Playwright's WebKit and Firefox passed in the polish programme, as did a touch emulation at 390 wide and a real Chrome. The Locus pass and the board pass were judged in Chrome only.
 - A real Claude run in the browser with a key. The browser path is tested against a mock. The prompts and schemas were tested with real Claude through `claude -p`.
 - Claude Code or Claude.ai reading a hosted address over the internet, and the hosted mode in public.
-- A Docker build. There's no Docker on the machine that did this work. The CI in `.github/workflows/ci.yml` builds and starts the image, so the first push will be the first build.
 - **Real Google sign-in.** It was built and tested against a stand-in Google only. The redirect URI, the consent screen and a real ID token are unchecked.
 - **Real trackpads and mice.** Wheel routing was tested with synthetic events in Chrome. How a real Mac mouse, a Windows touchpad, a high-resolution mouse and Firefox are classified (`wheelKind`) is unverified, as is Safari's pinch (its gesture events were built in the page) and an iPhone's.
 - 120 Hz. Every frame measurement in the board pass ran at 60 Hz or below.
