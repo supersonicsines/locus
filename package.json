@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "A map of your company that any agent can read. Encrypted, gated, open source.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/supersonicsines/locus.git"
+  },
+  "homepage": "https://github.com/supersonicsines/locus#readme",
+  "bugs": {
+    "url": "https://github.com/supersonicsines/locus/issues"
+  },
   "type": "module",
   "bin": {
     "locus": "dist/cli.mjs"

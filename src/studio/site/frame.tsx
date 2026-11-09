@@ -11,7 +11,7 @@ import { Link } from './route.tsx'
  * that needs it hides until then. The documents the site links to are served by the host itself, from dist/studio/docs/.
  * Set it to the repository's address, such as https://github.com/<owner>/<repo>, with no trailing slash.
  */
-export const REPO_URL: string = ''
+export const REPO_URL: string = 'https://github.com/supersonicsines/locus'
 
 
 /** The Studio's page is fixed and never scrolls, because the map is the app. These pages scroll. Set before the first paint, so nothing jumps. */

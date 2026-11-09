@@ -4,8 +4,9 @@ Read `docs/STATUS.md` first for where things stand, then `docs/PRD.md`, then `do
 
 ## Commits
 
-- Author is `anon`. Commit with `TZ=UTC git commit ...`. No trailers of any kind.
-- Nothing in the repo may point to a person: no real names, no emails, no absolute paths.
+- Author and committer are `supersonicsines <279517770+supersonicsines@users.noreply.github.com>`, set in the repo's own git config. Commit with `TZ=UTC git commit ...`. No trailers of any kind.
+- Nothing in the files may point to a person: no real names, no personal emails, no absolute paths.
+- The repository is public at https://github.com/supersonicsines/locus. Pushing to `main` runs CI.
 
 ## Rules that bind the build
 

@@ -1,6 +1,6 @@
 # Where things stand
 
-Last updated 2026-11-07, after Col's pen pass (white tile, fine lines, drawn in), at the end of the board pass. Read this before picking the project up again.
+Last updated 2026-11-09, when the repository went public on GitHub. Before that, 2026-11-07, after Col's pen pass (white tile, fine lines, drawn in), at the end of the board pass. Read this before picking the project up again.
 
 ## State
 
@@ -12,7 +12,7 @@ Last updated 2026-11-07, after Col's pen pass (white tile, fine lines, drawn in)
   - **The brand pack**, `brand/`: a brand book, every logo file, tokens, the face and a manifest for agents, written by `npm run brand` and checked against the app by a test. The logo workbench and its four other candidates are gone; the record is in [design/qa-rounds.md](design/qa-rounds.md).
   - Three critique passes on the map, three on the website, and five on the logo, each by Opus critics, with fixes and fresh screenshots each time. Then the operator chose Col, and it had four more rounds of its own: a growth from nothing as its only motion, five drawings chosen by device pixels, and an export set. After that the operator asked for black lines on white, a finer, map-like line and an intro that is drawn rather than grown, and got them: the pen pass. The record is [design/qa-rounds.md](design/qa-rounds.md).
 - `npm test` passes 163 of 163 and `npm run typecheck` is clean.
-- Git is local only. There's no remote, nothing has been pushed, and the package isn't on npm.
+- The repository is public at https://github.com/supersonicsines/locus, and every commit is authored `supersonicsines`. The package isn't on npm yet.
 - To see it: `npm run build && npm start`, then http://localhost:4747. To see sign-in without a Google client: `npm run preview:google` (port 4760). The brand: open `brand/index.html`; rebuild it with `npm run brand`.
 - [LAUNCH.md](LAUNCH.md) is the plan for going public on Railway; [SELF-HOSTING.md](SELF-HOSTING.md) is the guide for everyone else.
 
@@ -26,7 +26,7 @@ Agents made each of these changes without a ruling. The recommendation is theirs
 | **The mark's licence** | `brand/` sits in an MIT repository and says nothing of its own, so as things stand the mark and the name are MIT like the code | Most open-source projects keep their name and logo out of the code's licence, with a short trademark policy that says how others may use them. Decide before the repository is public, alongside the trademark check |
 | **Trackpad scrolling pans** (you asked for scroll to zoom in the Locus pass) | Two fingers pan and a pinch zooms, as in Miro and Figma; a mouse wheel still zooms; ⌘ or ctrl and scroll zooms on anything | Keep. Every critic who drove it called this the source of "not buttery". `wheelKind` in `MapView.ts` is where it's decided |
 | **Sign in with Google** on the public host | Off unless `LOCUS_GOOGLE_CLIENT_ID` and `LOCUS_GOOGLE_CLIENT_SECRET` are set. With hosted mode, it replaces proof of work for claiming an address | Turn it on for the public host, after a Google Cloud OAuth client and consent screen ([SELF-HOSTING.md](SELF-HOSTING.md)). Google's branding review may want the button checked |
-| **The repository's address** | `REPO_URL = ''` in `src/studio/site/frame.tsx`; the site hides its source links until it's set | Set it when the GitHub repo exists |
+| **The repository's address** | Decided: `REPO_URL` in `src/studio/site/frame.tsx` is https://github.com/supersonicsines/locus, so the site shows its source links | Done |
 | **Served docs as plain text** | `/docs/SECURITY.md`, `SELF-HOSTING.md` and `PRD-QA.md` are served as plain Markdown text | Fine for now; link to GitHub's rendering once `REPO_URL` is set |
 | **The npm name** | `locus-harness` (set once as `PACKAGE` in `src/core/agent.ts`); the command is `locus`. `locus` on npm belongs to someone else | Claim it before anything public points at it ([LAUNCH.md](LAUNCH.md), step 1). The home page and onboarding show `npx -y locus-harness …`, which fails until then. Get a trademark check on "Locus" too: it's a common name, and there are mapping products called Locus |
 | The face | Spline Sans Mono for everything | Keep |
@@ -55,7 +55,7 @@ Also open:
 - **The domain.**
 - **Logos.** 111 logos come from companies' own sites with no licence (`node --experimental-strip-types scripts/build-logos.mjs --strip-official` removes them, with no downloads). There's also the svgl copyright line, and a trademark review before going public.
 - **Donation target** for the free hosted mode. The slot exists; the address doesn't.
-- **GitHub.** Where it lives, and when. Once it exists: set `REPO_URL`, turn on private vulnerability reporting (SECURITY.md and the code of conduct send reports there), and let the CI and Dependabot files in `.github/` run. CI builds the Docker image, which has never been built on this machine.
+- **GitHub.** Done on 2026-11-09: public at https://github.com/supersonicsines/locus, `REPO_URL` set, private vulnerability reporting, secret scanning and push protection on, and CI and Dependabot running. Logos stay as they are until GitHub or an owner asks otherwise; `--strip-official` is the answer then.
 - **Abuse.** Take legal advice before opening a free hosted instance to the public. See [SECURITY.md](SECURITY.md). For a host that's yours alone, run hosted mode with one account ([SELF-HOSTING.md](SELF-HOSTING.md)).
 
 ## Never verified

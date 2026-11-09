@@ -113,4 +113,4 @@ Look at the Studio's `Content-Security-Policy` response header: the page can rea
 
 ## Reporting a problem
 
-Open a private security advisory on the repository, rather than a public issue.
+Open a private security advisory on the repository, at [https://github.com/supersonicsines/locus/security/advisories/new](https://github.com/supersonicsines/locus/security/advisories/new), rather than a public issue.

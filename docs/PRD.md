@@ -254,4 +254,4 @@ Build first, then test where it counts:
 
 ## 14. License and commits
 
-MIT, chosen for reach and auditability; easy to change before the first public push. All commits are authored `anon`, in UTC, with no trailers, and nothing in the repo points to a person.
+MIT, chosen for reach and auditability. All commits are authored `supersonicsines`, in UTC, with no trailers, and nothing in the files points to a person.

@@ -18,6 +18,8 @@ It's a harness you don't have to build, and it's encrypted so the host can't rea
 ## Try it
 
 ```sh
+git clone https://github.com/supersonicsines/locus.git
+cd locus
 npm install
 npm run build
 npm start
