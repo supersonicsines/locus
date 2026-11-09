@@ -47,6 +47,16 @@ npm run build && npm start   # the real thing, at http://localhost:4747
 5. If the change alters what the README, the PRD or the security notes say, change them in the same pull request.
 6. Add a line under **Unreleased** in [CHANGELOG.md](CHANGELOG.md).
 
+## How a change is merged
+
+`main` is protected. Every change reaches it through a pull request, and a pull request can be merged only when:
+
+- CI has passed: types, tests and a build on Node 22 and 24, and the Docker image building and answering;
+- a maintainer other than its author has approved it, after its latest commit;
+- every review comment has been resolved.
+
+Pull requests are squash-merged, so each becomes one commit on `main`. If you're contributing for the first time, a maintainer approves CI to run on your pull request before it starts.
+
 ## Commits
 
 Write the subject as what the change does, in the present tense ("Let a reader see the costs file"). Say why in the body when it isn't obvious.
