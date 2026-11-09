@@ -44,6 +44,7 @@ test('the site draws the pack’s mark and uses its icons', () => {
   const tiers = JSON.parse(read('brand/logo/tiers.json'))
   assert.equal(read('src/studio/site/mark-paths.ts'), siteMarkPaths(tiers), `src/studio/site/mark-paths.ts ${again}`)
   for (const f of ['favicon.ico', 'apple-touch-icon.png']) assert.deepEqual(bytes(`src/studio/public/${f}`), bytes(`brand/logo/icon/${f}`), `src/studio/public/${f} ${again}`)
+  assert.deepEqual(bytes('src/studio/public/social.png'), bytes('brand/logo/social/locus-social-light.png'), `src/studio/public/social.png ${again}`)
 })
 
 test('brand.json lists every file in the pack, and nothing that isn’t there', () => {

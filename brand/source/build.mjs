@@ -79,6 +79,8 @@ function placeGlyph(d, ox, oy, k) {
     if (cmd === 'M' || cmd === 'L') {
       ;[x, y] = take(2)
       out += `${cmd}${n(X(x))} ${n(Y(y))}`
+      // A pair that follows a move without a letter of its own is a line, as SVG has it. fontTools writes 'A' as M2 0 473 1454.
+      if (cmd === 'M') cmd = 'L'
     } else if (cmd === 'H') {
       ;[x] = take(1)
       out += `L${n(X(x))} ${n(Y(y))}`
@@ -287,6 +289,8 @@ for (const f of ['map.png', 'seal.png', 'towns.png']) {
   await writeFile(resolve(REPO, 'src/studio/site/mark-paths.ts'), siteMarkPaths(tiers))
   await copyFile(at('logo/icon/favicon.ico'), resolve(REPO, 'src/studio/public/favicon.ico'))
   await copyFile(at('logo/icon/apple-touch-icon.png'), resolve(REPO, 'src/studio/public/apple-touch-icon.png'))
+  // The card a link to the site unfurls to. The host makes its address absolute when it serves the page.
+  await copyFile(at('logo/social/locus-social-light.png'), resolve(REPO, 'src/studio/public/social.png'))
 }
 
 /* ---------- the manifest, and the book ---------- */

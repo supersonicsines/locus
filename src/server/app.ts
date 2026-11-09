@@ -311,7 +311,7 @@ export function createHandler(config: Config) {
       return res('Bad path', 400)
     }
     // The page must never be served without its security headers.
-    if (rel === 'index.html') return serveIndex()
+    if (rel === 'index.html') return serveIndex(req)
     const file = join(config.studioDir, rel)
     if (rel && !rel.includes('..') && file.startsWith(config.studioDir + sep)) {
       try {
@@ -320,12 +320,15 @@ export function createHandler(config: Config) {
     }
     // A file or document that isn't here is missing, not the home page: a link to one should say so, and an image should fail as one.
     if (extname(rel) || rel.startsWith('docs/') || rel.startsWith(`docs${sep}`)) return res('Not found.\n', 404, { 'Content-Type': 'text/plain; charset=utf-8' })
-    return serveIndex()
+    return serveIndex(req)
   }
 
-  function serveIndex(): Response {
+  /** The page. A card's image has to be a full address, so the host's own is written in; on an address too, the card is the host's. */
+  function serveIndex(req: Request | null = null): Response {
     try {
-      return res(readFileSync(join(config.studioDir, 'index.html')), 200, {
+      let page = readFileSync(join(config.studioDir, 'index.html'), 'utf8')
+      if (req && config.domain !== 'localhost') page = page.replace('content="/social.png"', `content="${proto(req)}://${config.domain}/social.png"`)
+      return res(page, 200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Content-Security-Policy': CSP,
@@ -570,12 +573,12 @@ export function createHandler(config: Config) {
 
     if (path === '/' && !k) {
       const wantsHtml = (req.headers.get('accept') ?? '').includes('text/html')
-      if (wantsHtml) return serveIndex()
+      if (wantsHtml) return serveIndex(req)
       if (!exists) return textReply(`Nothing has been published at ${name}.\n`, 404)
       return textReply(lockedText(name, `${proto(req)}://${hostOf(req)}${prefix}`))
     }
 
-    if (!isAgentPath) return serveIndex()
+    if (!isAgentPath) return serveIndex(req)
     if (!exists) return textReply(`Nothing has been published at ${name}.\n`, 404)
 
     if (!limiter.allow(`agent:${ip}`, 240, 60_000)) return textReply('Too many requests. Slow down.\n', 429)
@@ -666,7 +669,7 @@ export function createHandler(config: Config) {
 
     if (url.pathname.startsWith('/api/')) return handleApi(req, url, ip)
     if (req.method !== 'GET' && req.method !== 'HEAD') return res('Method not allowed', 405)
-    if (url.pathname === '/') return serveIndex()
+    if (url.pathname === '/') return serveIndex(req)
     if (extname(url.pathname) && !limiter.allow(`files:${ip}`, FILES_PER_MINUTE, 60_000)) return res('Too many requests. Slow down.\n', 429, { 'Content-Type': 'text/plain; charset=utf-8' })
     return serveStatic(url.pathname, req)
   }
