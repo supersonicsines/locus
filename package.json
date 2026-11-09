@@ -37,21 +37,21 @@
     "brand": "node brand/source/build.mjs"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^1.4.0",
+    "@anthropic-ai/sdk": "^1.6.0",
     "@fontsource-variable/spline-sans-mono": "^5.3.0",
     "@resvg/resvg-js": "^2.6.2",
     "@types/d3-contour": "^3.0.6",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "latest",
-    "d3-contour": "^4.0.2",
+    "d3-contour": "^4.0.3",
     "esbuild": "^0.28.2",
     "fflate": "^0.8.3",
     "pdfjs-dist": "^6.5.438",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5"
+    "vite": "^8.3.6"
   }
 }
