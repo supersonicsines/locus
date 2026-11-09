@@ -1,0 +1,31 @@
+name: Release
+
+# Publishing a GitHub release puts the same version on npm as locus-harness. Readers run that package with their
+# password in its environment, so it waits for the owner's approval in the `npm` environment, and it is published by
+# npm's trusted publishing: no npm token is stored anywhere, and npm records which workflow built it.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: The release tag is the package's version
+        run: test "v$(node -p 'require("./package.json").version')" = "${{ github.event.release.tag_name }}"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm publish --provenance --access public

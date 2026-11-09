@@ -33,6 +33,8 @@ npx -y locus-harness --help          # from a machine that has never seen it
 
 The CLI reads any Locus address, so publishing it before the host exists does no harm, and it means the connect step the host will show already works. Until this is done, never deploy: the host and the Studio both tell readers to run `npx -y locus-harness`.
 
+**Every release after the first** goes through `.github/workflows/release.yml`: bump `version` in `package.json` and move the changelog's Unreleased notes under it, merge, then publish a GitHub release tagged `v<version>`. The workflow runs the tests and waits for the owner's approval in the `npm` environment, then publishes with npm's trusted publishing, so no npm token is stored anywhere and the package carries provenance. For that, the package's settings on npmjs.com need a trusted publisher: GitHub Actions, `supersonicsines/locus`, workflow `release.yml`, environment `npm`.
+
 ## 2. The service
 
 1. **Create the project.** From GitHub once the repo is there (Railway redeploys on every push to `main`), or from a clone today with `railway init` and `railway up`. Railway finds the `Dockerfile` and builds with it. `railway up` leaves out what `.gitignore` lists, so the 5 GB `qa/` folder never uploads; `.dockerignore` keeps it out of the image as well. CI builds and starts the same image on every push, so a build that fails there will fail here too.
