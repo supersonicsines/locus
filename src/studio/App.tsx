@@ -19,6 +19,7 @@ import { AgentView, SharePanel } from './ui/Share.tsx'
 import { Sheets, ShredStrip } from './ui/Sheets.tsx'
 import { FitTop, NeedsPanel, StatusLine, stillOpenFor, TopRight } from './ui/Top.tsx'
 import { Home } from './site/Home.tsx'
+import { Mark } from './site/Mark.tsx'
 import { go, isStudio, routeOf, routing, startRouting, useArriving, useRoute } from './site/route.tsx'
 import { Start } from './site/Start.tsx'
 
@@ -404,7 +405,7 @@ function Locked({ name }: { name: string }) {
         <div className="empty-word">Locus</div>
         <div className="lock-card">
           <div className="lock-inner">
-            <img src="/favicon.svg" width="40" height="40" alt="" />
+            <Mark size={40} className="lock-mark" />
             <h1>{name}</h1>
             <p>Nothing is live at this address. Check it with whoever sent it to you.</p>
           </div>
@@ -424,7 +425,7 @@ function Locked({ name }: { name: string }) {
         }}
       >
         <div className="lock-inner">
-          <img src="/favicon.svg" width="40" height="40" alt="" />
+          <Mark size={40} className="lock-mark" />
           <h1>{name}</h1>
           <p>This map is encrypted. A password opens the parts it's allowed to.</p>
           <input className="field mono" autoFocus placeholder="lcr_" aria-label="Password" spellCheck={false} autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />

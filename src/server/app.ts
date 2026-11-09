@@ -10,6 +10,7 @@
 // decrypts anything and never stands in for a recovery key (auth.ts).
 
 import { readFileSync, statSync } from 'node:fs'
+import { gzipSync } from 'node:zlib'
 import { extname, join, normalize, sep } from 'node:path'
 import { costsText, llmsFull, llmsTxt, lockedText, PACKAGE, pieceText, searchText } from '../core/agent.ts'
 import { handleRpc, SERVER_VERSION } from '../core/mcp.ts'
@@ -30,6 +31,8 @@ export interface Config {
   abuseContact: string
   trustProxy: boolean
   proxyHops?: number
+  /** Hosted mode: how many new addresses the whole host gives out in an hour, whoever asks. */
+  claimsPerHour?: number
   /** Sign in with Google. In hosted mode a new address then needs it, and each account gets `mapsPerAccount`. */
   google?: Google
   /** Signs cookies and keys account ids. Without one, one is made once and kept in the data folder. */
@@ -41,13 +44,39 @@ export interface Config {
 }
 
 export const RESERVED = new Set(
-  'www app api admin mail smtp ftp root status static assets cdn docs help support blog locus dashboard account accounts login signin signup billing about security abuse'.split(' '),
+  [
+    'www app api admin mail smtp ftp root status static assets cdn docs help support blog locus dashboard account accounts login signin signup billing about security abuse',
+    // Names mail clients, browsers and resolvers look up by themselves.
+    'autodiscover autoconfig mta-sts webmail imap pop pop3 mx ns ns1 ns2 localhost wpad postmaster hostmaster webmaster noreply no-reply',
+    // Well-known services, so nobody can stand up a page here that passes for theirs.
+    'anthropic claude openai chatgpt google gmail apple icloud microsoft outlook paypal stripe github gitlab coinbase binance metamask amazon aws facebook meta instagram whatsapp twitter telegram discord slack notion figma railway vercel cloudflare',
+  ]
+    .join(' ')
+    .split(' '),
 )
 
 const NAME = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/
 
+/** Punycode names can spell one thing and show another, so none are given out. */
 export function validName(name: string): boolean {
-  return NAME.test(name) && !RESERVED.has(name)
+  return NAME.test(name) && !RESERVED.has(name) && !name.startsWith('xn--')
+}
+
+/**
+ * The key a client's limits are kept under. An IPv6 connection usually holds a whole /64, so it counts as one client;
+ * otherwise anyone with one could step through addresses and never reach a limit.
+ */
+export function addressKey(ip: string): string {
+  const v4 = ip.match(/^(?:::ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/i)
+  if (v4) return v4[1]
+  if (!ip.includes(':')) return ip
+  const bare = ip.split('%')[0].toLowerCase()
+  const halves = bare.split('::')
+  if (halves.length > 2) return bare
+  const left = halves[0] ? halves[0].split(':') : []
+  const right = halves.length === 2 && halves[1] ? halves[1].split(':') : []
+  const groups = halves.length === 2 ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right] : left
+  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':')}::/64`
 }
 
 const CORS: Record<string, string> = {
@@ -56,6 +85,8 @@ const CORS: Record<string, string> = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Expose-Headers': 'Mcp-Session-Id',
 }
+
+const HSTS = 'max-age=31536000; includeSubDomains'
 
 const BASE_HEADERS: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
@@ -116,11 +147,16 @@ function withCookies(status: number, cookies: string[], headers: Record<string, 
 const redirect = (location: string, cookies: string[] = []) => withCookies(302, cookies, { Location: location })
 
 // A small limiter. Per process, in memory, and it forgets on restart, which is fine for this.
-class Limiter {
+export class Limiter {
   private hits = new Map<string, { n: number; until: number }>()
+  private swept = 0
   allow(key: string, max: number, windowMs: number): boolean {
     const now = Date.now()
-    if (this.hits.size > 50_000) this.hits.clear()
+    // Only what has run out is forgotten, at most once a second. Clearing everything would let anyone with enough addresses reset every limit.
+    if (this.hits.size > 50_000 && now - this.swept > 1000) {
+      this.swept = now
+      for (const [k, h] of this.hits) if (h.until < now) this.hits.delete(k)
+    }
     const h = this.hits.get(key)
     if (!h || h.until < now) {
       this.hits.set(key, { n: 1, until: now + windowMs })
@@ -140,6 +176,10 @@ const BAD_PASSWORDS_PER_MINUTE = 30
 const AUTH_PATHS = /^\/api\/(me|auth\/.*)$/
 // Each remote read decrypts and may search the whole map, so one map can only ask so much.
 const SITE_READS_PER_MINUTE = { hosted: 240, self: 1200 }
+// Downloads cost bandwidth, the one thing that grows with how often it's asked, so each client has a budget.
+const BUNDLES_PER_MINUTE = 60
+const FILES_PER_MINUTE = 600
+const COMPRESSIBLE = new Set(['.html', '.js', '.mjs', '.css', '.svg', '.json', '.md', '.map', '.txt', '.wasm'])
 const MAX_RPC_BATCH = 16
 
 function safeDecode(s: string): string {
@@ -208,8 +248,9 @@ export function createHandler(config: Config) {
 
   function proto(req: Request): string {
     if (config.trustProxy) {
+      // The last entry is the one our own proxy wrote. Any before it came from the client.
       const p = req.headers.get('x-forwarded-proto')
-      if (p) return p.split(',')[0].trim()
+      if (p) return p.split(',').at(-1)!.trim()
     }
     return new URL(req.url).protocol.replace(':', '')
   }
@@ -239,7 +280,30 @@ export function createHandler(config: Config) {
 
   const ownedBy = (uid: string) => store.list().filter((s) => s.meta.owner === uid).map((s) => s.name)
 
-  function serveStatic(pathname: string): Response {
+  const gzipped = new Map<string, { mtime: number; body: Uint8Array<ArrayBuffer> }>()
+
+  /** A file from the Studio's build, compressed once and kept, since the build doesn't change while the host runs. */
+  function fileReply(file: string, rel: string, req: Request | null): Response {
+    const immutable = rel.startsWith('assets/')
+    const headers: Record<string, string> = {
+      'Content-Type': MIME[extname(file)] ?? 'application/octet-stream',
+      'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
+      Vary: 'Accept-Encoding',
+    }
+    const wantsGzip = /\bgzip\b/.test(req?.headers.get('accept-encoding') ?? '')
+    if (wantsGzip && COMPRESSIBLE.has(extname(file))) {
+      const mtime = statSync(file).mtimeMs
+      let hit = gzipped.get(file)
+      if (!hit || hit.mtime !== mtime) {
+        hit = { mtime, body: new Uint8Array(gzipSync(readFileSync(file))) }
+        gzipped.set(file, hit)
+      }
+      return res(hit.body, 200, { ...headers, 'Content-Encoding': 'gzip' })
+    }
+    return res(readFileSync(file), 200, headers)
+  }
+
+  function serveStatic(pathname: string, req: Request | null = null): Response {
     let rel: string
     try {
       rel = normalize(decodeURIComponent(pathname)).replace(/^[/\\]+/, '')
@@ -251,17 +315,11 @@ export function createHandler(config: Config) {
     const file = join(config.studioDir, rel)
     if (rel && !rel.includes('..') && file.startsWith(config.studioDir + sep)) {
       try {
-        if (statSync(file).isFile()) {
-          const immutable = rel.startsWith('assets/')
-          return res(readFileSync(file), 200, {
-            'Content-Type': MIME[extname(file)] ?? 'application/octet-stream',
-            'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
-          })
-        }
+        if (statSync(file).isFile()) return fileReply(file, rel, req)
       } catch {}
     }
-    // A document that isn't here is missing, not the home page: a link to one should say so.
-    if (rel.startsWith('docs/') || rel.startsWith(`docs${sep}`)) return res('Not found.\n', 404, { 'Content-Type': 'text/plain; charset=utf-8' })
+    // A file or document that isn't here is missing, not the home page: a link to one should say so, and an image should fail as one.
+    if (extname(rel) || rel.startsWith('docs/') || rel.startsWith(`docs${sep}`)) return res('Not found.\n', 404, { 'Content-Type': 'text/plain; charset=utf-8' })
     return serveIndex()
   }
 
@@ -315,8 +373,14 @@ export function createHandler(config: Config) {
       return json({ available: true })
     }
 
+    // A recovery key sent over plain HTTP can be read on the way. Behind a proxy that says the request came in that way, refuse it.
+    if ((req.method === 'PUT' || req.method === 'DELETE') && config.trustProxy && proto(req) === 'http' && !isLocal(hostOf(req))) {
+      return json({ error: 'Publishing needs HTTPS.' }, 400)
+    }
+
     if (req.method === 'PUT') {
       if (!validName(name)) return json({ error: "That address isn't available. Choose another." }, 400)
+      if (!limiter.allow(`put:${ip}`, 30, 60_000)) return json({ error: 'Too many publishes from your connection. Wait a minute.' }, 429)
       const token = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
       if (!/^[0-9a-f]{64}$/.test(token)) return json({ error: 'Missing publish token.' }, 401)
 
@@ -372,6 +436,10 @@ export function createHandler(config: Config) {
         }
         if (store.count() >= config.maxAccounts) {
           return json({ error: 'Every free account is taken.', code: 'full', accounts: accounts() }, 403)
+        }
+        // However many connections a script spreads itself over, the whole host only gives out so many addresses an hour.
+        if (!limiter.allow('claim:host', config.claimsPerHour ?? 30, 3_600_000)) {
+          return json({ error: 'Many new addresses have been taken in the last hour. Try again later.', code: 'busy' }, 429)
         }
       }
       store.save(name, raw, { tokenHash, createdAt: now, updatedAt: now, version: bundle.version, bytes: size, ...(session ? { owner: session.uid } : {}) })
@@ -481,14 +549,23 @@ export function createHandler(config: Config) {
     if (AUTH_PATHS.test(path)) return json({ error: 'not found' }, 404)
 
     if (!isAgentPath && path !== '/' && path !== '/bundle.json') {
-      if (path.startsWith('/assets/') || extname(path)) return serveStatic(path)
+      if (path.startsWith('/assets/') || extname(path)) {
+        if (!limiter.allow(`files:${ip}`, FILES_PER_MINUTE, 60_000)) return res('Too many requests. Slow down.\n', 429, { 'Content-Type': 'text/plain; charset=utf-8' })
+        return serveStatic(path, req)
+      }
     }
 
     const exists = store.has(name)
 
     if (path === '/bundle.json') {
-      if (!exists) return json({ error: 'No map here.' }, 404, CORS)
-      return res(store.bundle(name), 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', ...CORS })
+      const meta = store.meta(name)
+      if (!meta) return json({ error: 'No map here.' }, 404, CORS)
+      if (!limiter.allow(`bundle:${ip}`, BUNDLES_PER_MINUTE, 60_000)) return json({ error: 'Too many requests. Slow down.' }, 429, CORS)
+      // A reader that already has this version is told so in a few bytes, rather than sent the whole map again.
+      const etag = `"${meta.version}-${meta.bytes}"`
+      const cache = { 'Cache-Control': 'no-cache', ETag: etag, ...CORS }
+      if (req.headers.get('if-none-match') === etag) return res(null, 304, cache)
+      return res(store.bundle(name), 200, { 'Content-Type': 'application/json', ...cache })
     }
 
     if (path === '/' && !k) {
@@ -502,7 +579,6 @@ export function createHandler(config: Config) {
     if (!exists) return textReply(`Nothing has been published at ${name}.\n`, 404)
 
     if (!limiter.allow(`agent:${ip}`, 240, 60_000)) return textReply('Too many requests. Slow down.\n', 429)
-    if (!limiter.allow(`site:${name}`, config.hosted ? SITE_READS_PER_MINUTE.hosted : SITE_READS_PER_MINUTE.self, 60_000)) return textReply('This map is being read too often. Slow down.\n', 429)
 
     if (path === '/mcp' && req.method === 'GET') {
       return textReply('This MCP server speaks JSON over POST.\n', 405, { Allow: 'POST' })
@@ -519,6 +595,8 @@ export function createHandler(config: Config) {
 
     const { view, fail } = await openFor(name, key, ip)
     if (!view) return fail!
+    // Counted only once a password has opened the map, so nobody without one can use up its readers' budget.
+    if (!limiter.allow(`site:${name}`, config.hosted ? SITE_READS_PER_MINUTE.hosted : SITE_READS_PER_MINUTE.self, 60_000)) return textReply('This map is being read too often. Slow down.\n', 429)
 
     if (path === '/mcp') {
       if (req.method !== 'POST') return textReply('Use POST.\n', 405)
@@ -562,6 +640,13 @@ export function createHandler(config: Config) {
   }
 
   return async function handler(req: Request, ip = 'unknown'): Promise<Response> {
+    const response = await route(req, addressKey(ip))
+    // Every address is a subdomain of the host, so one header holds them all to HTTPS.
+    if (proto(req) === 'https' && !isLocal(hostOf(req))) response.headers.set('Strict-Transport-Security', HSTS)
+    return response
+  }
+
+  async function route(req: Request, ip: string): Promise<Response> {
     const url = new URL(req.url)
     const site = siteFromHost(hostOf(req))
     // The page needs this on every address, to know what it's looking at.
@@ -570,12 +655,20 @@ export function createHandler(config: Config) {
     if (AUTH_PATHS.test(url.pathname)) return site || !atRoot(req) ? json({ error: 'not found' }, 404) : handleAuth(req, url, ip)
     if (site) return handleSite(req, url, site, '', ip)
 
+    // www., app. and anything deeper under the host's own domain are the Studio at another origin, with its own storage. Send them home.
+    const host = hostOf(req).split(':')[0].toLowerCase()
+    if (config.domain !== 'localhost' && host.endsWith(`.${config.domain}`) && (req.method === 'GET' || req.method === 'HEAD')) {
+      return res(null, 308, { Location: `${proto(req)}://${config.domain}${url.pathname}${url.search}` })
+    }
+
     const pathMatch = url.pathname.match(/^\/s\/([a-z0-9-]+)(\/.*)?$/)
     if (pathMatch && NAME.test(pathMatch[1])) return handleSite(req, url, pathMatch[1], `/s/${pathMatch[1]}`, ip)
 
     if (url.pathname.startsWith('/api/')) return handleApi(req, url, ip)
     if (req.method !== 'GET' && req.method !== 'HEAD') return res('Method not allowed', 405)
-    return url.pathname === '/' ? serveIndex() : serveStatic(url.pathname)
+    if (url.pathname === '/') return serveIndex()
+    if (extname(url.pathname) && !limiter.allow(`files:${ip}`, FILES_PER_MINUTE, 60_000)) return res('Too many requests. Slow down.\n', 429, { 'Content-Type': 'text/plain; charset=utf-8' })
+    return serveStatic(url.pathname, req)
   }
 }
 

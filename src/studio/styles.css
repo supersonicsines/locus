@@ -3052,7 +3052,7 @@ body:has(.sheet) .empty > * {
   text-align: center;
 }
 
-.lock-card img {
+.lock-card .lock-mark {
   display: block;
   margin: 0 auto 12px;
 }

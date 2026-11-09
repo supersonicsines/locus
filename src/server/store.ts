@@ -17,6 +17,8 @@ export interface SiteMeta {
 
 export class FileStore {
   private root: string
+  /** How many sites there are, kept so the page's every load doesn't read every site's meta. Only this store adds or removes one. */
+  private counted: number | null = null
 
   constructor(dataDir: string) {
     this.root = join(dataDir, 'sites')
@@ -58,12 +60,14 @@ export class FileStore {
   }
 
   count(): number {
-    return this.list().length
+    if (this.counted === null) this.counted = this.list().length
+    return this.counted
   }
 
   /** Write the bundle first, then the meta that points at it, each atomically. */
   save(name: string, bundle: string, meta: SiteMeta): void {
     const dir = this.dir(name)
+    if (!this.has(name)) this.counted = null
     mkdirSync(dir, { recursive: true })
     const write = (file: string, data: string) => {
       const tmp = join(dir, `.${file}.tmp`)
@@ -77,6 +81,7 @@ export class FileStore {
   remove(name: string): boolean {
     if (!this.has(name)) return false
     rmSync(this.dir(name), { recursive: true, force: true })
+    this.counted = null
     return true
   }
 }

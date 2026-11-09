@@ -1,7 +1,7 @@
 // Runs the handler on Node's http module. Nothing is logged about any request,
 // because paths can contain passwords.
 
-import { createServer, type Server } from 'node:http'
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Handler } from './app.ts'
 
 /**
@@ -18,21 +18,41 @@ export function clientAddress(forwardedFor: string | undefined, socketAddress: s
   return socketAddress || 'unknown'
 }
 
+// Each upload in flight is held whole in memory, so only a few are taken at once and the rest are asked to come back.
+const UPLOADS_AT_ONCE = 4
+// An MCP call or a batch of them is small. Nothing else is posted with a body.
+const MAX_POST_BYTES = 64 * 1024
+
+function refuse(res: ServerResponse, req: IncomingMessage, status: number, headers: Record<string, string> = {}) {
+  res.writeHead(status, headers)
+  res.end()
+  req.destroy()
+}
+
 export function listen(handler: Handler, port: number, maxBodyBytes: number, proxyHops: number): Promise<Server> {
+  let uploading = 0
   const server = createServer(async (req, res) => {
     try {
+      const method = req.method ?? 'GET'
+      // Publishing is the only large body, with some headroom so the handler can answer with a friendly "too large".
+      const limit = method === 'PUT' ? maxBodyBytes * 1.5 : method === 'POST' ? MAX_POST_BYTES : 0
+      if (Number(req.headers['content-length'] ?? 0) > limit) return refuse(res, req, 413)
+
       const chunks: Buffer[] = []
-      let size = 0
-      for await (const chunk of req) {
-        size += chunk.length
-        // Leave some headroom so the handler can answer with a friendly "too large".
-        if (size > maxBodyBytes * 1.5) {
-          res.writeHead(413)
-          res.end()
-          req.destroy()
-          return
+      if (limit > 0) {
+        const upload = method === 'PUT'
+        if (upload && uploading >= UPLOADS_AT_ONCE) return refuse(res, req, 503, { 'Retry-After': '10' })
+        if (upload) uploading++
+        try {
+          let size = 0
+          for await (const chunk of req) {
+            size += chunk.length
+            if (size > limit) return refuse(res, req, 413)
+            chunks.push(chunk)
+          }
+        } finally {
+          if (upload) uploading--
         }
-        chunks.push(chunk)
       }
 
       const headers = new Headers()
@@ -40,7 +60,6 @@ export function listen(handler: Handler, port: number, maxBodyBytes: number, pro
         if (v === undefined) continue
         headers.set(k, Array.isArray(v) ? v.join(', ') : v)
       }
-      const method = req.method ?? 'GET'
       const request = new Request(`http://${req.headers.host ?? 'localhost'}${req.url}`, {
         method,
         headers,
@@ -65,6 +84,9 @@ export function listen(handler: Handler, port: number, maxBodyBytes: number, pro
       res.end()
     }
   })
+  // A client that sends its headers or its body too slowly is cut off, rather than holding a connection open.
+  server.headersTimeout = 15_000
+  server.requestTimeout = 120_000
   return new Promise((resolve, reject) => {
     server.once('error', reject)
     server.listen(port, () => resolve(server))

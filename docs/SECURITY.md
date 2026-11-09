@@ -62,7 +62,7 @@ Gate names, password names, company name, pieces, links, prices and readers' lay
 - **Secrets in unusual forms.** The scan finds common key formats in text, Word files and PDFs, and removes them before anything leaves. It will miss some. Images aren't scanned at all: a key in a screenshot goes to Anthropic if you shred with Claude, and can end up on the map.
 - **Prices in ordinary text.** Prices go in a sealed field, and currency sentences are stripped from service pieces. A price written into some other document is just text in that document's gate.
 - **Service names, to anyone with Money.** The Money gate lists every service's name and plan, including services in gates that password can't open. That's what makes the bill readable. File names are withheld.
-- **Passwords in URLs.** The `/k/` form exists because Claude.ai connectors can't set headers. The host never logs paths and sends `Referrer-Policy: no-referrer`, but a URL can still end up in a proxy log or browser history.
+- **Passwords in URLs.** The `/k/` form exists because Claude.ai connectors can't set headers. The host never logs paths and sends `Referrer-Policy: no-referrer`, but a URL can still end up in a proxy log or browser history. On Railway that includes the platform's HTTP logs, which record each request's path and can be read by the project's members. Prefer the `Authorization` header wherever the agent can send one.
 - **Losing your owner key.** Nobody can recover it. That's the cost of a host that can't read your data.
 
 ## Running a public host

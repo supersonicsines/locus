@@ -22,7 +22,7 @@ From a clean clone:
 
 ```sh
 npm ci
-npm run typecheck && npm test        # 157 tests
+npm run typecheck && npm test        # 173 tests
 npm run build
 node dist/cli.mjs serve --port 4747  # open http://localhost:4747, See an example
 npm pack --dry-run                   # dist, README, LICENSE, NOTICE, licenses, SECURITY.md, and nothing else
@@ -35,7 +35,7 @@ The CLI reads any Locus address, so publishing it before the host exists does no
 
 ## 2. The service
 
-1. **Create the project.** From GitHub once the repo is there (Railway redeploys on every push to `main`), or from a clone today with `railway init` and `railway up`. Railway finds the `Dockerfile` and builds with it. `railway up` leaves out what `.gitignore` lists, so the 5 GB `qa/` folder never uploads; `.dockerignore` keeps it out of the image as well. The image has never been built locally (see [STATUS.md](STATUS.md)), so Railway's first build is its first real build: read that build's log.
+1. **Create the project.** From GitHub once the repo is there (Railway redeploys on every push to `main`), or from a clone today with `railway init` and `railway up`. Railway finds the `Dockerfile` and builds with it. `railway up` leaves out what `.gitignore` lists, so the 5 GB `qa/` folder never uploads; `.dockerignore` keeps it out of the image as well. CI builds and starts the same image on every push, so a build that fails there will fail here too.
 2. **Attach a volume** to the service with the mount path `/data`. The image sets `LOCUS_DATA=/data`.
 3. **Variables:**
 
@@ -44,9 +44,11 @@ The CLI reads any Locus address, so publishing it before the host exists does no
    | `RAILWAY_RUN_UID` | `0` | Railway mounts volumes as root, and the image runs as `node`, which couldn't write there otherwise |
    | `LOCUS_DOMAIN` | `example.com` | Addresses become `https://<name>.example.com` |
    | `LOCUS_TRUST_PROXY` | `1` | Railway's edge terminates HTTPS. Without this the host can't tell HTTPS from HTTP and refuses remote passwords |
-   | `LOCUS_PROXY_HOPS` | `1` | Railway's edge only. `2` if Cloudflare proxies in front (not recommended, below). Rate limits are per client address, so getting this wrong lets one client lock others out |
+   | `LOCUS_PROXY_HOPS` | `2` | Measured on 9 November 2026: Railway's edge throws away any `X-Forwarded-For` the client sends and passes `<client>, <its own hop>`, so the client is second from the right. With `1` every visitor would share the edge's address and one allowance. `3` if Cloudflare proxies in front (not recommended, below). Check again with a header-echo service if limits ever seem shared |
    | `LOCUS_HOSTED` | `1` | Always, on a public domain: it's what turns on the limits |
-   | `LOCUS_MAX_ACCOUNTS` | `1` for yours alone, `400` for a public one | With `1`, your first publish claims the only name and nobody else can claim one. Public accounts are 10 MB each and a Hobby volume is 5 GB, so 500 would fill it to the byte. Raise it with the volume on Pro |
+   | `LOCUS_MAX_ACCOUNTS` | `1` for yours alone, `500` for a public one | With `1`, your first publish claims the only name and nobody else can claim one. Public accounts are 10 MB each, so 500 needs a volume of at least 5 GB; Pro volumes start at 50 GB. Leftover `.tmp` files from an interrupted publish can double that at worst |
+   | `LOCUS_POW_BITS` | `18` | The proof of work for a new address: about 2½ s in a laptop's browser. It slows a script down; the cap below is what stops one |
+   | `LOCUS_CLAIMS_PER_HOUR` | `30` | New addresses the whole host gives out in an hour, however many connections ask. With 500 accounts, filling them takes at least 17 hours |
    | `LOCUS_ABUSE_CONTACT` | an inbox you read | Shown to anyone reporting a map. Required in practice for a public host |
    | `LOCUS_DONATE_URL` | when there is one | Optional |
    | `LOCUS_GOOGLE_CLIENT_ID` | from Google Cloud, optional | Turns on Sign in with Google. With `LOCUS_HOSTED=1`, a new address then needs a Google account, instead of a proof of work. Set both Google values or neither ([SECURITY.md](SECURITY.md), "Signing in with Google") |
@@ -58,7 +60,7 @@ The CLI reads any Locus address, so publishing it before the host exists does no
 
    `PORT` is set by Railway, and the host reads it. A switch is off only for `0`, `false`, `no` or `off`; any other value is on, so a typo leaves the limits on. A number that isn't one stops the host with the reason, rather than quietly removing a limit.
 4. **Settings:** healthcheck path `/api/info`, restart policy On failure, and serverless (sleeping) off, so the first agent request of the day isn't a cold start.
-5. **Domains.** Start with the generated `*.up.railway.app` domain to check the deploy; the Studio works there, and maps are at `/s/<name>/`. Then add two custom domains, which is exactly what Hobby allows per service:
+5. **Domains.** Start with the generated `*.up.railway.app` domain to check the deploy; the Studio works there, and maps are at `/s/<name>/`. Then add two custom domains:
    - `example.com`, for the Studio. Your DNS host needs CNAME flattening or ALIAS records; Cloudflare's DNS has them.
    - `*.example.com`, for every address. Railway gives two CNAMEs and a TXT record. The wildcard doesn't verify without the TXT, and its certificate isn't issued without the `_acme-challenge` CNAME.
 
@@ -87,7 +89,7 @@ Then, in a browser:
 - **Backups.** Turn on Railway's scheduled backups for the volume. A sealed map can't be recovered by anyone but its owner, but the files can still be lost.
 - **Deploys cost a short outage.** Railway never lets two deployments mount one volume, so each redeploy drops requests for a few seconds to about a minute. Deploy at quiet times. A local `locus mcp` reader rides through: when the host is away it keeps answering from the last copy it read, and tries again on the next request. Remote readers see errors until it's back.
 - **One replica.** Replicas can't share a volume. One small instance is plenty: an idle host is tens of MB, and in hosted mode each map is limited to 240 remote reads a minute.
-- **Spend.** Hobby is $5 a month, usage included up to $5; volume storage is $0.15 per GB a month. Set a usage limit in Railway's billing so a busy month can't surprise you.
+- **Spend.** An idle host is tens of MB of memory and almost no CPU, and volume storage is $0.15 per GB a month. Bandwidth is what an abuser could run up, so `bundle.json` and the Studio's files have a per-client budget, unchanged bundles are answered with a 304, and text files are sent compressed. Set a hard usage limit in Railway's billing anyway: past it Railway stops the service rather than the bill growing.
 - **Takedowns.** `railway ssh`, then `node dist/cli.mjs admin list` and `node dist/cli.mjs admin remove <name>`. Answer the abuse inbox.
 - **Rolling back.** Redeploy an earlier deployment from Railway's list. The sealed format is `locus/1`. Maps sealed before the rename, as `vadere/1`, can't be read by this version; none were ever published.
 

@@ -62,8 +62,12 @@ export function search(pieces: Piece[], links: Link[], query: string, limit = 8)
     const a = byId.get(l.from)
     const b = byId.get(l.to)
     if (!a || !b) continue
-    neighbours.set(a.id, [...(neighbours.get(a.id) ?? []), b])
-    neighbours.set(b.id, [...(neighbours.get(b.id) ?? []), a])
+    // Only the first few are ever shown, and a map can link one item to thousands.
+    for (const [from, to] of [[a, b], [b, a]]) {
+      const list = neighbours.get(from.id)
+      if (!list) neighbours.set(from.id, [to])
+      else if (list.length < 4) list.push(to)
+    }
   }
 
   return docs
@@ -80,5 +84,5 @@ export function search(pieces: Piece[], links: Link[], query: string, limit = 8)
     .filter((h) => h.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map((h) => ({ ...h, neighbours: (neighbours.get(h.piece.id) ?? []).slice(0, 4) }))
+    .map((h) => ({ ...h, neighbours: neighbours.get(h.piece.id) ?? [] }))
 }

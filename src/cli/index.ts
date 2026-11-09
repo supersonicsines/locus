@@ -129,8 +129,13 @@ async function serve(args: Args) {
   const hosted = on(args.hosted ?? process.env.LOCUS_HOSTED)
   const here = dirname(fileURLToPath(import.meta.url))
   const google = googleClient(args)
+  const domain = (args.domain ?? process.env.LOCUS_DOMAIN ?? 'localhost').trim()
+  // A scheme, a path or capitals would quietly send every address to the Studio.
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/.test(domain)) {
+    die(`LOCUS_DOMAIN must be a bare domain in lower case, such as example.com, not "${domain}".`)
+  }
   const config: Config = {
-    domain: args.domain ?? process.env.LOCUS_DOMAIN ?? 'localhost',
+    domain,
     dataDir: dataDir(args),
     studioDir: args.studio ?? join(here, 'studio'),
     hosted,
@@ -141,13 +146,22 @@ async function serve(args: Args) {
     abuseContact: args['abuse-contact'] ?? process.env.LOCUS_ABUSE_CONTACT ?? '',
     trustProxy: on(args['trust-proxy'] ?? process.env.LOCUS_TRUST_PROXY),
     proxyHops: num('--proxy-hops or LOCUS_PROXY_HOPS', args['proxy-hops'] ?? process.env.LOCUS_PROXY_HOPS, 1, 1),
+    claimsPerHour: num('LOCUS_CLAIMS_PER_HOUR', process.env.LOCUS_CLAIMS_PER_HOUR, 30, 1),
     google,
     sessionSecret: google ? sessionSecretFromEnv() : undefined,
     mapsPerAccount: num('--maps-per-account or LOCUS_MAPS_PER_ACCOUNT', args['maps-per-account'] ?? process.env.LOCUS_MAPS_PER_ACCOUNT, 3, 1),
   }
   const port = num('--port, LOCUS_PORT or PORT', args.port ?? process.env.LOCUS_PORT ?? process.env.PORT, 4747, 1)
   mkdirSync(config.dataDir, { recursive: true })
-  await listen(createHandler(config), port, config.maxBundleBytes, config.trustProxy ? config.proxyHops ?? 1 : 0)
+  const server = await listen(createHandler(config), port, config.maxBundleBytes, config.trustProxy ? config.proxyHops ?? 1 : 0)
+  // A platform stops the host with SIGTERM on every deploy. Stop taking requests, let those in flight finish, then go.
+  const stop = () => {
+    server.close(() => process.exit(0))
+    server.closeIdleConnections()
+    setTimeout(() => process.exit(0), 5_000).unref()
+  }
+  process.once('SIGTERM', stop)
+  process.once('SIGINT', stop)
   console.log(`Locus is running at http://${config.domain === 'localhost' ? 'localhost' : config.domain}:${port}`)
   console.log(`Sealed maps are stored in ${config.dataDir}`)
   if (hosted) console.log(`Hosted mode: up to ${config.maxAccounts} free accounts.`)
@@ -162,15 +176,19 @@ async function mcp(args: Args) {
   const key = needKey(args)
   let view: View | null = null
   let fetchedAt = 0
+  let etag = ''
 
   async function current(): Promise<View> {
     // Picks up new publishes without restarting the client. If the host is away for a moment, as it is during a redeploy, the last good copy carries on and it tries again on the next request.
     if (view && Date.now() - fetchedAt > 60_000) {
       try {
-        const r = await fetch(`${addr}/bundle.json`)
-        if (r.ok) {
+        // Unchanged since the last look, the host says so in a few bytes rather than sending the whole map again.
+        const r = await fetch(`${addr}/bundle.json`, { headers: etag ? { 'If-None-Match': etag } : {} })
+        if (r.status === 304) fetchedAt = Date.now()
+        else if (r.ok) {
           view = await openBundle((await r.json()) as Bundle, key)
           fetchedAt = Date.now()
+          etag = r.headers.get('etag') ?? ''
         }
       } catch {
         // Still the last good copy. A bundle that fails its checks is refused here too, and the last good one stands.

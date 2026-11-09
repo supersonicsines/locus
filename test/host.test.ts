@@ -6,8 +6,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, test } from 'node:test'
 import { generateOwnerKey, generatePassword, publishToken, sealVault, sha256Hex } from '../src/core/seal.ts'
+import { llmsFull } from '../src/core/agent.ts'
+import { openBundle } from '../src/core/seal.ts'
 import type { Vault } from '../src/core/types.ts'
-import { createHandler, type Config } from '../src/server/app.ts'
+import { addressKey, createHandler, Limiter, validName, type Config } from '../src/server/app.ts'
 import { clientAddress, listen } from '../src/server/node.ts'
 
 const dirs: string[] = []
@@ -428,4 +430,105 @@ test("a document the host doesn't have is a 404, not the app", async () => {
   const r = await h(new Request('http://localhost:4747/docs/NOPE.md'))
   assert.equal(r.status, 404)
   assert.match(r.headers.get('content-type') ?? '', /text\/plain/)
+})
+
+// What an independent review found before launch, and what stops it now.
+
+test("one map stuffed with items or links can't hold up the host", async () => {
+  const { vault, open } = vaultFor('stuffed')
+  for (let i = 0; i < 20_000; i++) vault.pieces.push({ id: `p${i}`, title: 't', summary: 's', body: '', kind: 'fact', gate: 'brand', updatedAt: 1 })
+  for (let i = 0; i < 40_000; i++) vault.links.push({ from: 'p0', to: 'p1', kind: 'related' })
+  const view = await openBundle(JSON.parse(JSON.stringify(await sealVault(vault, 1))), open)
+  const t0 = performance.now()
+  llmsFull(view)
+  const ms = performance.now() - t0
+  // It took 17 seconds when each item scanned the whole map.
+  assert.ok(ms < 1000, `llms-full.txt for 20,000 items took ${Math.round(ms)} ms`)
+  const h = host({ maxBundleBytes: 12 * 1_048_576 })
+  assert.equal((await publish(h, vault)).status, 201)
+  const s0 = performance.now()
+  assert.equal((await get(h, 'http://stuffed.localhost:4747/v1/search?q=t', { Authorization: `Bearer ${open}` })).status, 200)
+  assert.ok(performance.now() - s0 < 1000)
+})
+
+test("requests without a password do not use up the readers' budget for a map", async () => {
+  const h = host({ hosted: true, maxAccounts: 10 })
+  const { vault, open } = vaultFor('acme')
+  assert.equal((await publish(h, vault)).status, 201)
+  for (let i = 0; i < 260; i++) await h(new Request(`${SITE}/llms.txt`), `10.0.${i >> 8}.${i & 255}`)
+  assert.equal((await h(new Request(`${SITE}/llms.txt`, { headers: { Authorization: `Bearer ${open}` } }), '192.0.2.1')).status, 200)
+})
+
+test('a reader with the current bundle is answered with 304', async () => {
+  const h = host()
+  const { vault } = vaultFor('acme')
+  await publish(h, vault)
+  const first = await get(h, `${SITE}/bundle.json`)
+  const etag = first.headers.get('etag')!
+  assert.ok(etag)
+  assert.equal((await get(h, `${SITE}/bundle.json`, { 'If-None-Match': etag })).status, 304)
+  await publish(h, vault, 2)
+  assert.equal((await get(h, `${SITE}/bundle.json`, { 'If-None-Match': etag })).status, 200)
+})
+
+test("filling the limiter with other addresses does not reset anyone's limit", () => {
+  const l = new Limiter()
+  assert.ok(l.allow('claim:1.2.3.4', 1, 60_000))
+  assert.ok(!l.allow('claim:1.2.3.4', 1, 60_000))
+  for (let i = 0; i < 50_010; i++) l.allow(`me:${i}`, 60, 60_000)
+  assert.ok(!l.allow('claim:1.2.3.4', 1, 60_000))
+})
+
+test('an IPv6 connection counts as one client per /64', () => {
+  assert.equal(addressKey('2001:db8:1:2:aaaa::1'), addressKey('2001:db8:1:2:bbbb:cccc:dddd:eeee'))
+  assert.notEqual(addressKey('2001:db8:1:2::1'), addressKey('2001:db8:1:3::1'))
+  assert.equal(addressKey('2001:0db8:0001:0002::1'), '2001:db8:1:2::/64')
+  assert.equal(addressKey('::ffff:203.0.113.7'), '203.0.113.7')
+  assert.equal(addressKey('203.0.113.7'), '203.0.113.7')
+})
+
+test('punycode and the names of well-known services are not given out', () => {
+  assert.ok(!validName('xn--pypal-4ve'))
+  for (const n of ['paypal', 'anthropic', 'autodiscover', 'mta-sts', 'www']) assert.ok(!validName(n), n)
+  assert.ok(validName('acme'))
+})
+
+test('the whole host gives out only so many new addresses an hour, from however many connections', async () => {
+  const h = host({ hosted: true, maxAccounts: 100, claimsPerHour: 2 })
+  const statuses: number[] = []
+  for (let i = 0; i < 3; i++) {
+    const { vault } = vaultFor(`co${i}`)
+    statuses.push((await h(new Request(`http://localhost:4747/api/sites/co${i}`, { method: 'PUT', headers: { Authorization: `Bearer ${await publishToken(vault.site!.ownerKey)}` }, body: JSON.stringify(await sealVault(vault, 1)) }), `198.51.100.${i}`)).status)
+  }
+  assert.deepEqual(statuses, [201, 201, 429])
+})
+
+test('behind HTTPS every reply holds the browser to HTTPS, and other names under the domain go home', async () => {
+  const h = host({ domain: 'locus.test', trustProxy: true })
+  const r = await h(new Request('http://locus.test/api/info', { headers: { 'X-Forwarded-Proto': 'https', Host: 'locus.test' } }))
+  assert.equal(r.headers.get('strict-transport-security'), 'max-age=31536000; includeSubDomains')
+  const www = await h(new Request('http://www.locus.test/start?x=1', { headers: { 'X-Forwarded-Proto': 'https', Host: 'www.locus.test' } }))
+  assert.equal(www.status, 308)
+  assert.equal(www.headers.get('location'), 'https://locus.test/start?x=1')
+  // A proxy that reports plain HTTP gets no publish.
+  const put = await h(new Request('http://locus.test/api/sites/acme', { method: 'PUT', headers: { 'X-Forwarded-Proto': 'http', Host: 'locus.test', Authorization: `Bearer ${'0'.repeat(64)}` }, body: '{}' }))
+  assert.equal(put.status, 400)
+})
+
+test('a missing file is a 404, never the app', async () => {
+  const r = await get(host(), 'http://localhost:4747/favicon.svg')
+  assert.equal(r.status, 404)
+})
+
+test('through the real network adapter, bodies are only read where one belongs', async () => {
+  const server = await listen(host(), 0, 1_048_576, 0)
+  const port = (server.address() as { port: number }).port
+  try {
+    const big = await fetch(`http://localhost:${port}/mcp`, { method: 'POST', body: 'x'.repeat(70 * 1024) })
+    assert.equal(big.status, 413)
+    const huge = await fetch(`http://localhost:${port}/api/sites/acme`, { method: 'PUT', headers: { 'Content-Length': String(5 * 1_048_576) }, body: 'x'.repeat(5 * 1_048_576) }).catch(() => null)
+    assert.ok(!huge || huge.status === 413)
+  } finally {
+    server.close()
+  }
 })

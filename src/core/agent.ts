@@ -6,7 +6,7 @@
 import { figure, formatMoney, summarize, trustOf } from './money.ts'
 import { costForReaders, pieceForReaders } from './readers.ts'
 import { search } from './search.ts'
-import type { Cost, Gate, Password, Vault, View } from './types.ts'
+import type { Cost, Gate, Link, Password, Piece, Vault, View } from './types.ts'
 
 /** The package that runs Locus, as npx and npm know it. The plain name "locus" on npm is someone else's package, so commands must never say npx locus. */
 export const PACKAGE = 'locus-harness'
@@ -63,6 +63,37 @@ export function viewFor(vault: Vault, pw: Password): View {
   }
 }
 
+interface ViewIndex {
+  pieces: Map<string, Piece>
+  gates: Map<string, Gate>
+  links: Map<string, Link[]>
+  costs: Map<string, Cost>
+}
+
+const indexes = new WeakMap<View, ViewIndex>()
+
+/**
+ * Lookups over a view, built once per view. A map can hold thousands of items and links, and one request can ask about every
+ * item (llms-full.txt), so anything that scanned the whole view per item would let one stuffed map hold up the host.
+ */
+function indexOf(view: View): ViewIndex {
+  let ix = indexes.get(view)
+  if (ix) return ix
+  ix = { pieces: new Map(), gates: new Map(), links: new Map(), costs: new Map() }
+  for (const p of view.pieces) if (!ix.pieces.has(p.id)) ix.pieces.set(p.id, p)
+  for (const g of view.gates) if (!ix.gates.has(g.id)) ix.gates.set(g.id, g)
+  for (const l of view.links) {
+    for (const end of l.from === l.to ? [l.from] : [l.from, l.to]) {
+      const list = ix.links.get(end)
+      if (list) list.push(l)
+      else ix.links.set(end, [l])
+    }
+  }
+  for (const c of view.costs ?? []) if (c.piece && !ix.costs.has(c.piece)) ix.costs.set(c.piece, c)
+  indexes.set(view, ix)
+  return ix
+}
+
 function alwaysSection(view: View): string[] {
   const rules = view.pieces.filter((p) => p.always === 'approved')
   if (!rules.length) return []
@@ -97,8 +128,14 @@ function whereSection(view: View): string[] {
 
 function mapSection(view: View): string[] {
   const out = ['## The map', '']
+  const byGate = new Map<string, Piece[]>()
+  for (const p of view.pieces) {
+    const list = byGate.get(p.gate)
+    if (list) list.push(p)
+    else byGate.set(p.gate, [p])
+  }
   const groups = view.gates
-    .map((g) => ({ gate: g, pieces: view.pieces.filter((p) => p.gate === g.id) }))
+    .map((g) => ({ gate: g, pieces: byGate.get(g.id) ?? [] }))
     .filter((g) => g.pieces.length)
   for (const { gate, pieces } of groups) {
     out.push(`### ${oneLine(gate.name, 60)}`, '')
@@ -158,10 +195,10 @@ export function llmsTxt(view: View, mode: ReadMode): string {
 }
 
 export function pieceText(view: View, id: string): string | null {
-  const p = view.pieces.find((x) => x.id === id)
+  const ix = indexOf(view)
+  const p = ix.pieces.get(id)
   if (!p) return null
-  const byId = new Map(view.pieces.map((x) => [x.id, x]))
-  const gate = view.gates.find((g) => g.id === p.gate)
+  const gate = ix.gates.get(p.gate)
   const lines = [`# ${oneLine(p.title)}`, '', `Kind: ${oneLine(p.kind, 20)}. Area: ${oneLine(gate?.name ?? 'unknown', 60)}. ID: ${oneLine(p.id, 40)}.`]
   if (p.source) lines.push(`From: ${oneLine(p.source.file)}${p.source.where ? `, ${oneLine(p.source.where)}` : ''}.`)
   if (p.date) lines.push(`${p.date.means === 'as-of' ? 'True as of' : p.date.means === 'ends' ? 'Ends' : 'Renews'}: ${oneLine(p.date.on, 40)}.`)
@@ -170,17 +207,17 @@ export function pieceText(view: View, id: string): string | null {
   lines.push('', oneLine(p.summary))
   if (p.body && p.body !== p.summary) lines.push('', quoted(p.body))
 
-  const linked = view.links.filter((l) => l.from === id || l.to === id)
+  const linked = ix.links.get(id) ?? []
   if (linked.length) {
     lines.push('', '## Linked to', '')
     for (const l of linked) {
-      const other = byId.get(l.from === id ? l.to : l.from)
+      const other = ix.pieces.get(l.from === id ? l.to : l.from)
       if (!other) continue
       const note = l.kind === 'conflicts' ? ' (these two conflict)' : l.label ? ` (${oneLine(l.label, 60)})` : ''
       lines.push(`- \`${oneLine(other.id, 40)}\` ${oneLine(other.title)}${note}`)
     }
   }
-  const cost = view.costs?.find((c) => c.piece === id)
+  const cost = ix.costs.get(id)
   if (cost) lines.push('', `Cost: ${costLine(cost)}`)
   return lines.join('\n')
 }
