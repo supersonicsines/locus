@@ -11,6 +11,8 @@ Drop your company's pile onto a map: brand book, contracts, specs, invoices, exp
 
 It's a harness you don't have to build, and it's encrypted so the host can't read it at rest.
 
+**Try it at [locus.spot](https://locus.spot)**: free while there's room, with nothing to install. Or [run your own](#run-your-own).
+
 *Locus* is Latin for "place": where something is on a map. It's the one place your agents go to learn where everything in your company is, and the rules that apply.
 
 ![The map](docs/images/map.png)
