@@ -1,6 +1,6 @@
 # Where things stand
 
-Last updated 2026-11-09, when the repository went public on GitHub. Before that, 2026-11-07, after Col's pen pass (white tile, fine lines, drawn in), at the end of the board pass. Read this before picking the project up again.
+Last updated 2026-11-10, after `locus-harness` went on npm. Before that, 2026-11-09, when the repository went public on GitHub. Before that, 2026-11-07, after Col's pen pass (white tile, fine lines, drawn in), at the end of the board pass. Read this before picking the project up again.
 
 ## State
 
@@ -11,8 +11,9 @@ Last updated 2026-11-09, when the repository went public on GitHub. Before that,
   - **What an open-source project needs**: a self-hosting guide, a Compose file with Caddy, contributing notes, a code of conduct, templates, CI, Dependabot and a changelog.
   - **The brand pack**, `brand/`: a brand book, every logo file, tokens, the face and a manifest for agents, written by `npm run brand` and checked against the app by a test. The logo workbench and its four other candidates are gone; the record is in [design/qa-rounds.md](design/qa-rounds.md).
   - Three critique passes on the map, three on the website, and five on the logo, each by Opus critics, with fixes and fresh screenshots each time. Then the operator chose Col, and it had four more rounds of its own: a growth from nothing as its only motion, five drawings chosen by device pixels, and an export set. After that the operator asked for black lines on white, a finer, map-like line and an intro that is drawn rather than grown, and got them: the pen pass. The record is [design/qa-rounds.md](design/qa-rounds.md).
-- `npm test` passes 163 of 163 on Node 22 and 24, and `npm run typecheck` is clean. The Docker image was first built by CI on 2026-11-09; it builds, starts and answers.
-- The repository is public at https://github.com/supersonicsines/locus, and every commit is authored `supersonicsines`. The package isn't on npm yet.
+- `npm test` passes 173 of 173, and CI runs it on Node 22 and 24, and `npm run typecheck` is clean. The Docker image was first built by CI on 2026-11-09; it builds, starts and answers.
+- The repository is public at https://github.com/supersonicsines/locus, and every commit is authored `supersonicsines`.
+- **`locus-harness` 0.1.0 is on npm**, published by hand on 2026-11-09; `npx -y locus-harness --help` works from a clean cache. Every later version goes out from a GitHub release whose tag matches `package.json` (`v0.1.1` for 0.1.1): `.github/workflows/release.yml` waits for the owner's approval in the `npm` environment, tests, and publishes through npm's trusted publishing, so no npm token is stored anywhere. The trusted publisher was set up on npm on 2026-11-10, and the next release is its first real test.
 - **The public host is https://locus.spot**, on Railway: one service with a 50 GB volume at `/data` (daily and weekly backups), hosted mode with 500 accounts, 1 vCPU and 1 GB at most, and every address at `https://<name>.locus.spot`. A push to `main` that passes CI deploys itself (the `deploy` job in `.github/workflows/ci.yml`, with a token for that one Railway project held in the GitHub environment `production`, which only `main` can use). Its settings are in [LAUNCH.md](LAUNCH.md). Abuse reports go to abuse@locus.spot.
 - To see it: `npm run build && npm start`, then http://localhost:4747. To see sign-in without a Google client: `npm run preview:google` (port 4760). The brand: open `brand/index.html`; rebuild it with `npm run brand`.
 - [LAUNCH.md](LAUNCH.md) is the plan for going public on Railway; [SELF-HOSTING.md](SELF-HOSTING.md) is the guide for everyone else.
@@ -29,7 +30,7 @@ Agents made each of these changes without a ruling. The recommendation is theirs
 | **Sign in with Google** on the public host | Off unless `LOCUS_GOOGLE_CLIENT_ID` and `LOCUS_GOOGLE_CLIENT_SECRET` are set. With hosted mode, it replaces proof of work for claiming an address | Turn it on for the public host, after a Google Cloud OAuth client and consent screen ([SELF-HOSTING.md](SELF-HOSTING.md)). Google's branding review may want the button checked |
 | **The repository's address** | Decided: `REPO_URL` in `src/studio/site/frame.tsx` is https://github.com/supersonicsines/locus, so the site shows its source links | Done |
 | **Served docs as plain text** | `/docs/SECURITY.md`, `SELF-HOSTING.md` and `PRD-QA.md` are served as plain Markdown text | Fine for now; link to GitHub's rendering once `REPO_URL` is set |
-| **The npm name** | `locus-harness` (set once as `PACKAGE` in `src/core/agent.ts`); the command is `locus`. `locus` on npm belongs to someone else | Claim it before anything public points at it ([LAUNCH.md](LAUNCH.md), step 1). The home page and onboarding show `npx -y locus-harness …`, which fails until then. Get a trademark check on "Locus" too: it's a common name, and there are mapping products called Locus |
+| **The npm name** | Claimed: `locus-harness` 0.1.0 is on npm (set once as `PACKAGE` in `src/core/agent.ts`); the command is `locus`. `locus` on npm belongs to someone else | Get a trademark check on "Locus": it's a common name, and there are mapping products called Locus |
 | The face | Spline Sans Mono for everything | Keep |
 | The map as one country with dashed county borders, or as separate islands | One country | Keep |
 | Land drawn as a plain fill with no coast line | Plain fill | Keep |
@@ -52,8 +53,8 @@ Agents made each of these changes without a ruling. The recommendation is theirs
 
 Also open:
 
-- **npm.** Publish `locus-harness`, or the default connect step (`npx -y locus-harness mcp …`) fails. Until then, run `node dist/cli.mjs mcp …` from a clone.
-- **The domain.**
+- **npm.** Done on 2026-11-09: `locus-harness` 0.1.0, so the default connect step (`npx -y locus-harness mcp …`) works.
+- **The domain.** Done: https://locus.spot.
 - **Logos.** 111 logos come from companies' own sites with no licence (`node --experimental-strip-types scripts/build-logos.mjs --strip-official` removes them, with no downloads). There's also the svgl copyright line, and a trademark review before going public.
 - **Donation target** for the free hosted mode. The slot exists; the address doesn't.
 - **GitHub.** Done on 2026-11-09: public at https://github.com/supersonicsines/locus, `REPO_URL` set, private vulnerability reporting, secret scanning and push protection on, and CI and Dependabot running. Logos stay as they are until GitHub or an owner asks otherwise; `--strip-official` is the answer then.
